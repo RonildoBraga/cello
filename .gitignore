@@ -1,0 +1,43 @@
+# macOS
+.DS_Store
+
+# Xcode and Swift build output / per-user state
+.build/
+build/
+build-device/
+DerivedData/
+.swiftpm/
+xcuserdata/
+*.xcuserstate
+*.xcresult/
+*.xcarchive/
+*.dSYM/
+*.ipa
+
+# Local settings, secrets and signing material
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.local.xcconfig
+LocalSigning.xcconfig
+*.mobileprovision
+*.provisionprofile
+*.p12
+*.pfx
+*.cer
+*.pem
+*.key
+
+# Personal practice recordings, exports, measurements and review evidence
+practice-sessions/
+PracticeSessions/
+PendingTakes/
+PracticeProgress.json
+PulsePractice.json
+TwoTapsPractice.json
+MixedRhythmPractice.json
+*.mov
+*.mp4
+*.zip
+/docs/engineering-review-1.8.0.md

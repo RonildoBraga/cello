@@ -1,0 +1,24 @@
+Deep Humming Noise — retropttam
+
+Source recording: https://freesound.org/people/retropttam/sounds/177276/
+Original WAV: https://upload.wikimedia.org/wikipedia/commons/0/0c/Deep_humming_noise.wav
+Wikimedia file: https://commons.wikimedia.org/wiki/File:Deep_humming_noise.wav
+License: Creative Commons Attribution 3.0 Unported (CC BY 3.0)
+https://creativecommons.org/licenses/by/3.0/
+
+Copyright remains with the original author. This excerpt is licensed under CC BY 3.0.
+The author describes the recording as "Me humming in a deep tone."
+
+Changes for Cello:
+- Extracted seconds 2.4 through 5.4 (three seconds).
+- Converted to mono 48,000 Hz, signed 16-bit PCM WAV.
+- Applied gain 2.362168396770473, plus 30 ms fades at both ends.
+- Preserved original pitch and timing; no voice synthesis or pitch correction.
+
+Measured excerpt pitch: median 110.64730204182847 Hz, approximately A2.
+This is a natural human example with normal pitch variation.
+
+Original WAV SHA-256: 472b510cbdd093f6a0315f479fe54d29702c10e221226059864f68238b3d676c
+Excerpt WAV SHA-256: 3f21f9e0b55c8cb8fb651e8278cce17d14888913503ce411966a758ece568b3e
+
+Source and license verified on 9 November 2026.
