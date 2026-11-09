@@ -39,11 +39,21 @@ struct MelodyReferenceView: View {
                     HStack {
                         Text("Follow the notes").font(.headline)
                         Spacer()
-                        Picker("Melody section", selection: $section) {
+                        Menu {
                             ForEach(MelodySection.allCases) { item in
-                                Text(item.title).tag(item)
+                                Button { section = item } label: {
+                                    if item == section { Label(item.title, systemImage: "checkmark") }
+                                    else { Text(item.title) }
+                                }
                             }
-                        }.tint(Palette.forest).accessibilityIdentifier("melodySectionPicker")
+                        } label: {
+                            HStack(spacing: 5) {
+                                Text(section.title)
+                                Image(systemName: "chevron.down").font(.caption.weight(.semibold))
+                            }.font(.subheadline)
+                        }.tint(Palette.forest)
+                            .accessibilityLabel("Section: \(section.title)")
+                            .accessibilityIdentifier("melodySectionPicker")
                     }
                     ForEach(visiblePhrases, id: \.self) { phrase in
                         phraseRow(phrase)
@@ -51,7 +61,6 @@ struct MelodyReferenceView: View {
                     Text("Longer tiles hold longer. The quick notes in phrase 3 last half a beat each.")
                         .font(.caption).foregroundStyle(Palette.muted)
                 }.padding(18).background(.white, in: RoundedRectangle(cornerRadius: 20))
-                    .accessibilityIdentifier("melodyNoteDisplay")
                 VStack(alignment: .leading, spacing: 7) {
                     Label("Reference tones", systemImage: "waveform")
                         .font(.subheadline.weight(.semibold)).foregroundStyle(Palette.forest)
