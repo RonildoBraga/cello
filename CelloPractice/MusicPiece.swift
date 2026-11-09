@@ -13,7 +13,7 @@ enum MusicPiece: String, CaseIterable, Identifiable {
         self == .hotCrossBuns ? "A first three-note melody" : "Prelude · BWV 1007"
     }
     var statusLabel: String {
-        self == .hotCrossBuns ? "First melody · planned" : "Long-term goal"
+        self == .hotCrossBuns ? "Reference available" : "Long-term goal"
     }
     var summary: String {
         self == .hotCrossBuns

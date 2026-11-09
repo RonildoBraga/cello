@@ -30,7 +30,8 @@ final class SessionStore: ObservableObject {
                     let metadata = try Data(contentsOf: folder.appendingPathComponent("session.json"))
                     let session = try Self.decoder().decode(PracticeSession.self, from: metadata)
                     guard session.id.uuidString == folder.lastPathComponent,
-                          Self.isSafeFilename(session.videoFilename) else {
+                          Self.isSafeFilename(session.videoFilename),
+                          session.melodyContext?.isValid != false else {
                         throw StorageError.invalidMetadata
                     }
                     sessions.append(session)
@@ -51,9 +52,14 @@ final class SessionStore: ObservableObject {
     }
 
     func saveRecording(from source: URL, samples: [PitchSample], exercise: Exercise,
-                       notes: String = "", duration: Double, targetFrequency: Double? = nil) async -> PracticeSession? {
+                       notes: String = "", duration: Double, targetFrequency: Double? = nil,
+                       melodyContext: MelodyPracticeContext? = nil) async -> PracticeSession? {
         errorMessage = progressPersistenceError
         defer { refreshPendingRecordings() }
+        guard melodyContext?.isValid != false else {
+            errorMessage = "Could not save this session because its melody reference is invalid. The original recording is preserved at \(source.lastPathComponent)."
+            return nil
+        }
         let mediaDuration = try? await AVURLAsset(url: source).load(.duration)
         let measuredDuration = mediaDuration?.seconds
         let savedDuration = measuredDuration.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
@@ -64,10 +70,10 @@ final class SessionStore: ObservableObject {
                 $0.confidence.isFinite && (0...1).contains($0.confidence) &&
                 $0.rms.isFinite && $0.rms >= 0
         }
-        let actualTarget = (exercise.targetFrequency ?? targetFrequency)
+        let actualTarget = (melodyContext == nil ? (exercise.targetFrequency ?? targetFrequency) : nil)
             .flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
         let rating: PracticeRating?
-        if exercise.section != nil, let actualTarget {
+        if melodyContext == nil, exercise.section != nil, let actualTarget {
             rating = await RecordingRater.rate(url: source, targetFrequency: actualTarget)
         } else {
             rating = nil
@@ -78,7 +84,7 @@ final class SessionStore: ObservableObject {
             notes: notes, pitchSamples: validSamples, videoFilename: "recording.mov",
             tuningTargetFrequency: exercise.usesComfortableTarget
                 ? actualTarget : nil,
-            rating: rating
+            rating: rating, melodyContext: melodyContext
         )
         let folder = folderURL(for: session)
         do {
@@ -312,6 +318,13 @@ final class SessionStore: ObservableObject {
         if !session.notes.isEmpty {
             result += "\n\n## Previously saved notes\n\n\(session.notes)"
         }
+        if let context = session.melodyContext {
+            result += "\n\n## Melody reference\n\n"
+            result += "- Piece: \(context.pieceID), score version \(context.scoreVersion)\n"
+            result += "- Register: \(context.register.rawValue), key: \(context.referenceKey)\n"
+            result += "- Tempo: \(context.tempoBPM) BPM\n"
+            result += "- The selected expected events and grading version are frozen in session.json.\n"
+        }
         if let rating = session.rating {
             result += "\n\n## Practice rating\n\n"
             result += "- Rating version: \(rating.version)\n"
@@ -338,7 +351,7 @@ final class SessionStore: ObservableObject {
 
         ## Measurement context
 
-        Pitch values are software estimates, not verified note labels. Confidence is the detector's internal estimate. The target is the recorded human example or the selected open-string frequency. A practice rating checks this exercise's matching, steadiness and hold goals; it does not assess physical technique or overall musicianship. Background sound, bowed attacks and harmonics can cause missing or octave-shifted readings.
+        Pitch values are software estimates, not verified note labels. Confidence is the detector's internal estimate. A fixed target is the recorded human example or the selected open-string frequency; a melody reference instead stores its expected events in session.json. A practice rating checks this exercise's matching, steadiness and hold goals; it does not assess physical technique or overall musicianship. Background sound, bowed attacks and harmonics can cause missing or octave-shifted readings.
 
         """
         if let median = session.medianCentsFromTarget {
@@ -349,7 +362,7 @@ final class SessionStore: ObservableObject {
         ## Files for review
 
         - recording.mov: the original synchronized camera and microphone recording.
-        - session.json: exercise, fixed target if selected, duration, pitch measurements and a frozen practice rating when available, plus any notes retained from older recordings.
+        - session.json: exercise, fixed target or melody reference if selected, duration, pitch measurements and a frozen practice rating when available, plus any notes retained from older recordings.
         - pitch.csv: timestamped pitch measurements for plotting or analysis.
 
         """

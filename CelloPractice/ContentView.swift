@@ -14,6 +14,7 @@ enum Palette {
 struct ContentView: View {
     private enum Tab: Hashable { case music, practice, recordings }
     @ObservedObject var store: SessionStore
+    @StateObject private var capture = CaptureController()
     @StateObject private var pulseStore = PulsePracticeStore(exercise: .pulse)
     @StateObject private var twoTapsStore = PulsePracticeStore(exercise: .twoTaps)
     @StateObject private var mixedRhythmStore = PulsePracticeStore(exercise: .mixedRhythm)
@@ -28,12 +29,12 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            MusicLibraryView(store: store, pulseStore: pulseStore, twoTapsStore: twoTapsStore,
+            MusicLibraryView(store: store, capture: capture, pulseStore: pulseStore, twoTapsStore: twoTapsStore,
                              mixedRhythmStore: mixedRhythmStore, onStartLesson: startLesson)
                 .id(libraryRevision)
                 .tabItem { Label("Music", systemImage: "music.note.list") }
                 .tag(Tab.music)
-            PracticeView(store: store, rhythmStores: rhythmStores, selection: $selection,
+            PracticeView(store: store, capture: capture, rhythmStores: rhythmStores, selection: $selection,
                          restartToken: practiceRevision, onStartLesson: startLesson, onShowMusic: showMusic)
                 .tabItem { Label("Practice", systemImage: "waveform") }
                 .tag(Tab.practice)

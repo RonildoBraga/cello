@@ -23,7 +23,7 @@ final class LearningUITests: XCTestCase {
         let first = app.buttons["piece-hotCrossBuns"]
         reveal(first, in: app)
         XCTAssertTrue(first.label.contains("Hot Cross Buns"))
-        XCTAssertTrue(first.label.localizedCaseInsensitiveContains("planned"))
+        XCTAssertTrue(first.label.contains("Reference available"))
         let bach = app.buttons["piece-bachPrelude"]
         reveal(bach, in: app)
         XCTAssertTrue(bach.label.contains("Bach") && bach.label.contains("Long-term goal"))
@@ -41,7 +41,7 @@ final class LearningUITests: XCTestCase {
         let title = app.staticTexts["pieceDetailTitle"]
         XCTAssertTrue(title.waitForExistence(timeout: 5))
         XCTAssertEqual(title.label, "Hot Cross Buns")
-        XCTAssertTrue(app.staticTexts["pieceStatus"].label.localizedCaseInsensitiveContains("planned"))
+        XCTAssertEqual(app.staticTexts["pieceStatus"].label, "Reference available")
         let milestones = app.descendants(matching: .any).matching(identifier: "pieceMilestones").firstMatch
         reveal(milestones, in: app)
         XCTAssertTrue(milestones.exists)
@@ -92,7 +92,7 @@ final class LearningUITests: XCTestCase {
         reveal(piece, in: app)
         piece.tap()
         XCTAssertTrue(app.staticTexts["pieceDetailTitle"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["pieceStatus"].label.localizedCaseInsensitiveContains("planned"))
+        XCTAssertEqual(app.staticTexts["pieceStatus"].label, "Reference available")
         XCTAssertFalse(app.staticTexts["ratingStarCount"].exists)
         XCTAssertFalse(app.staticTexts["pulse.stars"].exists)
         XCTAssertFalse(app.buttons["startLessonButton"].exists)
@@ -422,6 +422,116 @@ final class LearningUITests: XCTestCase {
         XCTAssertFalse(app.buttons["Turn off camera and microphone"].exists)
         assertNoPermissionAlerts(in: app)
         screenshot("Humming · ready after changing sections during playback")
+    }
+
+    func testMelodyReferencePlaysOnlyOnRequestAndStopsOnNavigation() {
+        let app = XCUIApplication()
+        app.launch()
+        openMelodyReference(in: app)
+        let play = app.buttons["melodyPlayButton"]
+        let status = app.descendants(matching: .any).matching(identifier: "melodyPlaybackStatus").firstMatch
+        let key = app.staticTexts["melodyReferenceKey"]
+        XCTAssertEqual(play.label, "Hear melody")
+        XCTAssertFalse(status.exists, "Opening the melody must not start playback")
+        XCTAssertFalse(app.buttons["practiceRecordButton"].exists, "Melody recording is a separate delivery")
+        XCTAssertFalse(app.staticTexts["currentTargetLabel"].exists)
+        XCTAssertFalse(app.buttons["Turn off camera and microphone"].exists)
+        XCTAssertTrue(app.staticTexts["Reference tones"].exists)
+        XCTAssertTrue(key.label.contains("G major") && key.label.contains("G2–B2"))
+        assertNoPermissionAlerts(in: app)
+        assertNoWrittenInput(in: app)
+
+        let registers = app.segmentedControls["melodyRegisterPicker"]
+        registers.buttons["Higher voice"].tap()
+        XCTAssertTrue(key.label.contains("G major") && key.label.contains("G3–B3"))
+        registers.buttons["Cello"].tap()
+        XCTAssertTrue(key.label.contains("D major") && key.label.contains("D3–F♯3"))
+        registers.buttons["Low voice"].tap()
+        XCTAssertEqual(play.label, "Hear melody", "Changing register must not autoplay")
+        screenshot("Hot Cross Buns · whole melody and comfortable registers")
+
+        play.tap()
+        waitForMelodyButton("Stop", in: app)
+        XCTAssertTrue(status.waitForExistence(timeout: 3))
+        let clockAdvanced = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label CONTAINS %@ AND NOT label CONTAINS %@", " / 0:16", "0:00 /"),
+            object: status)
+        XCTAssertEqual(XCTWaiter.wait(for: [clockAdvanced], timeout: 5), .completed,
+                       "The displayed position should advance with real playback")
+        play.tap()
+        waitForMelodyButton("Hear melody", in: app)
+        XCTAssertFalse(status.exists)
+
+        play.tap()
+        waitForMelodyButton("Stop", in: app)
+        app.navigationBars["Listen & follow"].buttons.firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["pieceDetailTitle"].waitForExistence(timeout: 5))
+        app.buttons["melodyReferenceLink"].tap()
+        waitForMelodyButton("Hear melody", in: app)
+        XCTAssertFalse(status.exists, "Returning after Back must not resume the old reference")
+
+        play.tap()
+        waitForMelodyButton("Stop", in: app)
+        app.tabBars.buttons["Practice"].tap()
+        assertReadyToRecord(in: app)
+        waitForRecord(in: app)
+        let hum = app.buttons["previewTargetButton"]
+        XCTAssertTrue(hum.isHittable && hum.isEnabled)
+        hum.tap()
+        let listening = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label == %@", "Cancel"), object: app.buttons["practiceRecordButton"])
+        XCTAssertEqual(XCTWaiter.wait(for: [listening], timeout: 3), .completed,
+                       "The existing human humming preview should still use the shared player")
+        waitForRecord(in: app)
+        XCTAssertFalse(app.staticTexts["captureMessage"].exists)
+        assertNoPermissionAlerts(in: app)
+        app.tabBars.buttons["Music"].tap()
+        waitForMelodyButton("Hear melody", in: app)
+        XCTAssertFalse(status.exists, "Changing tabs must stop the melody")
+    }
+
+    func testMelodyPhrasePlaybackFinishesAndCancelsWhenSelectionChanges() {
+        let app = XCUIApplication()
+        app.launch()
+        openMelodyReference(in: app)
+        let sections = app.buttons["melodySectionPicker"]
+        reveal(sections, in: app)
+        sections.tap()
+        app.buttons["Phrase 3"].tap()
+        waitForMelodyButton("Hear phrase", in: app)
+        let play = app.buttons["melodyPlayButton"]
+        let status = app.descendants(matching: .any).matching(identifier: "melodyPlaybackStatus").firstMatch
+        XCTAssertFalse(status.exists, "Selecting a phrase must not autoplay")
+        screenshot("Hot Cross Buns · phrase 3 with eight quick notes")
+
+        let startedAt = ProcessInfo.processInfo.systemUptime
+        play.tap()
+        waitForMelodyButton("Stop", in: app)
+        XCTAssertTrue(status.waitForExistence(timeout: 3))
+        XCTAssertTrue(status.label.contains("Playing phrase 3"))
+        XCTAssertTrue(status.label.contains("/ 0:04"))
+        waitForMelodyButton("Hear phrase", in: app, timeout: 7)
+        XCTAssertGreaterThanOrEqual(ProcessInfo.processInfo.systemUptime - startedAt, 3.8,
+                                    "The four-beat phrase should play in real time at60BPM")
+        XCTAssertFalse(status.exists)
+
+        play.tap()
+        waitForMelodyButton("Stop", in: app)
+        app.segmentedControls["melodyRegisterPicker"].buttons["Higher voice"].tap()
+        waitForMelodyButton("Hear phrase", in: app)
+        XCTAssertFalse(status.exists, "A register change must cancel the previous reference")
+        XCTAssertTrue(app.staticTexts["melodyReferenceKey"].label.contains("G3–B3"))
+
+        play.tap()
+        waitForMelodyButton("Stop", in: app)
+        sections.tap()
+        app.buttons["Phrase 1"].tap()
+        waitForMelodyButton("Hear phrase", in: app)
+        XCTAssertFalse(status.exists, "A phrase change must cancel playback without automatically restarting")
+        XCTAssertFalse(app.buttons["practiceRecordButton"].exists)
+        XCTAssertFalse(app.staticTexts["ratingStarCount"].exists)
+        assertNoWrittenInput(in: app)
+        assertNoPermissionAlerts(in: app)
     }
 
     func testLessonsOpenBothGuidedHummingActivities() {
@@ -978,6 +1088,23 @@ final class LearningUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.tabBars.buttons["Practice"].waitForExistence(timeout: 5))
         app.tabBars.buttons["Practice"].tap()
+    }
+
+    private func openMelodyReference(in app: XCUIApplication) {
+        let piece = app.buttons["piece-hotCrossBuns"]
+        reveal(piece, in: app)
+        piece.tap()
+        let reference = app.buttons["melodyReferenceLink"]
+        reveal(reference, in: app)
+        reference.tap()
+        XCTAssertTrue(app.navigationBars["Listen & follow"].waitForExistence(timeout: 5))
+        waitForMelodyButton("Hear melody", in: app)
+    }
+
+    private func waitForMelodyButton(_ label: String, in app: XCUIApplication, timeout: TimeInterval = 5) {
+        let ready = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label == %@ AND enabled == true", label), object: app.buttons["melodyPlayButton"])
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: timeout), .completed)
     }
 
     private func selectExercise(_ title: String, in app: XCUIApplication) {
