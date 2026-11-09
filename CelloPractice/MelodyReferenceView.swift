@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Manual listening only; melody recording and assessment belong to the next delivery.
+/// A manual listening page sharing the same recorded references as phrase practice.
 @MainActor
 struct MelodyReferenceView: View {
     @ObservedObject var capture: CaptureController
@@ -31,7 +31,7 @@ struct MelodyReferenceView: View {
                             Text(item.title).tag(item)
                         }
                     }.pickerStyle(.segmented).accessibilityIdentifier("melodyRegisterPicker")
-                    Text("Reference tones · \(register.keyName) · \(register.rangeLabel) · 60 BPM")
+                    Text("\(register == .cello ? "Recorded cello" : "Recorded hum") · \(register.keyName) · \(register.rangeLabel) · 60 BPM")
                         .font(.caption).foregroundStyle(Palette.muted)
                         .accessibilityIdentifier("melodyReferenceKey")
                 }
@@ -61,9 +61,11 @@ struct MelodyReferenceView: View {
                         .font(.caption).foregroundStyle(Palette.muted)
                 }.padding(18).background(.white, in: RoundedRectangle(cornerRadius: 20))
                 VStack(alignment: .leading, spacing: 7) {
-                    Label("Reference tones", systemImage: "waveform")
+                    Label(register == .cello ? "Recorded cello" : "Recorded hum", systemImage: "waveform")
                         .font(.subheadline.weight(.semibold)).foregroundStyle(Palette.forest)
-                    Text("Generated notes for listening and humming along. Open Humming on the piece page to record and earn stars.")
+                    Text(register == .cello
+                         ? "Recorded bowed cello notes, tuned and arranged into the melody."
+                         : "A recorded human hum, with pitch and timing edited into the melody. Open Humming to record and earn stars.")
                         .font(.footnote).foregroundStyle(Palette.muted)
                 }
                 if hasRequestedPlayback, !capture.isPlayingReference, let message = capture.message {

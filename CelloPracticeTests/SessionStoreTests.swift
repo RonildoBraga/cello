@@ -552,7 +552,7 @@ final class SessionStoreTests: XCTestCase {
         let progressURL = root.appendingPathComponent("MelodyProgress.json")
         try FileManager.default.createDirectory(at: progressURL, withIntermediateDirectories: true)
         let source = try await makeAudioMovie(in: root.appendingPathComponent("PendingTakes", isDirectory: true),
-            audioData: MelodyReferenceTone.wavData(context: context), duration: context.duration)
+            audioData: SyntheticMelodyReference.wavData(context: context), duration: context.duration)
         let saved = await store.saveRecording(from: source, samples: [], exercise: .listen,
             duration: context.duration, melodyContext: context)
         XCTAssertEqual(try XCTUnwrap(saved).melodyRating?.starCount, 3)

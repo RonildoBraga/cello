@@ -7,23 +7,23 @@ import XCTest
 final class MelodyReferenceToneTests: XCTestCase {
     func testWholeMelodyIsDecodableMonoPCMWithExactBeatDuration() throws {
         let context = try MelodyPracticeContext.hotCrossBuns(register: .lowVoice)
-        let data = try MelodyReferenceTone.wavData(context: context)
+        let data = try SyntheticMelodyReference.wavData(context: context)
         XCTAssertEqual(String(decoding: data.prefix(4), as: UTF8.self), "RIFF")
         XCTAssertEqual(String(decoding: data[8..<12], as: UTF8.self), "WAVE")
         let player = try AVAudioPlayer(data: data)
         XCTAssertEqual(player.numberOfChannels, 1)
-        XCTAssertEqual(player.duration, 16, accuracy: 1 / Double(MelodyReferenceTone.sampleRate))
-        XCTAssertEqual(data.count, 44 + 16 * MelodyReferenceTone.sampleRate * 2)
+        XCTAssertEqual(player.duration, 16, accuracy: 1 / Double(SyntheticMelodyReference.sampleRate))
+        XCTAssertEqual(data.count, 44 + 16 * SyntheticMelodyReference.sampleRate * 2)
     }
 
     func testPhraseDurationTracksTempoIncludingLastNotesSilence() throws {
         for tempo in [40, 60, 72, 120] {
             for section in [MelodySection.phrase1, .phrase3, .whole] {
                 let context = try MelodyPracticeContext.hotCrossBuns(register: .cello, section: section, tempoBPM: tempo)
-                let data = try MelodyReferenceTone.wavData(context: context)
+                let data = try SyntheticMelodyReference.wavData(context: context)
                 let player = try AVAudioPlayer(data: data)
-                XCTAssertEqual(player.duration, context.duration, accuracy: 1 / Double(MelodyReferenceTone.sampleRate))
-                let expectedFrames = Int((context.duration * Double(MelodyReferenceTone.sampleRate)).rounded())
+                XCTAssertEqual(player.duration, context.duration, accuracy: 1 / Double(SyntheticMelodyReference.sampleRate))
+                let expectedFrames = Int((context.duration * Double(SyntheticMelodyReference.sampleRate)).rounded())
                 XCTAssertEqual(data.count, 44 + expectedFrames * 2)
             }
         }
@@ -35,8 +35,8 @@ final class MelodyReferenceToneTests: XCTestCase {
         XCTAssertTrue(sound.allSatisfy(\.isFinite))
         XCTAssertLessThan(sound.map(abs).max() ?? 1, 0.65)
         for event in context.expectedEvents {
-            let start = Int(event.onsetBeat * Double(MelodyReferenceTone.sampleRate))
-            let end = Int(event.endBeat * Double(MelodyReferenceTone.sampleRate))
+            let start = Int(event.onsetBeat * Double(SyntheticMelodyReference.sampleRate))
+            let end = Int(event.endBeat * Double(SyntheticMelodyReference.sampleRate))
             let audibleEnd = start + Int((Double(end - start) * 0.85).rounded())
             XCTAssertEqual(sound[start], 0)
             XCTAssertEqual(sound[audibleEnd - 1], 0)
@@ -54,10 +54,10 @@ final class MelodyReferenceToneTests: XCTestCase {
             let context = try MelodyPracticeContext.hotCrossBuns(register: register, section: .phrase1)
             let sound = try samples(context: context)
             for event in context.expectedEvents {
-                let start = Int((event.onsetBeat + 0.1) * Double(MelodyReferenceTone.sampleRate))
+                let start = Int((event.onsetBeat + 0.1) * Double(SyntheticMelodyReference.sampleRate))
                 let estimate = try XCTUnwrap(detector.estimate(
                     samples: Array(sound[start..<(start + 8_192)]),
-                    sampleRate: Double(MelodyReferenceTone.sampleRate)
+                    sampleRate: Double(SyntheticMelodyReference.sampleRate)
                 ))
                 let expected = try XCTUnwrap(context.frequency(for: event))
                 XCTAssertLessThan(abs(1_200 * log2(estimate.frequency / expected)), 4)
@@ -76,7 +76,7 @@ final class MelodyReferenceToneTests: XCTestCase {
         XCTAssertGreaterThan(rms(sound[4_800..<9_600]), 0.15)
         XCTAssertTrue(sound[48_000..<144_000].allSatisfy { $0 == 0 })
         XCTAssertGreaterThan(rms(sound[148_800..<153_600]), 0.15)
-        XCTAssertEqual(sound.count, 4 * MelodyReferenceTone.sampleRate)
+        XCTAssertEqual(sound.count, 4 * SyntheticMelodyReference.sampleRate)
     }
 
     func testInvalidOrOversizedSnapshotsCannotAllocateAudio() {
@@ -91,7 +91,7 @@ final class MelodyReferenceToneTests: XCTestCase {
             snapshot(events: [MelodyEvent(onsetBeat: 0, durationBeats: 1, midiNote: Int.max)]),
             snapshot(events: [MelodyEvent(onsetBeat: 0, durationBeats: .infinity, midiNote: 50)])
         ] {
-            XCTAssertThrowsError(try MelodyReferenceTone.wavData(context: context))
+            XCTAssertThrowsError(try SyntheticMelodyReference.wavData(context: context))
         }
     }
 
@@ -105,7 +105,7 @@ final class MelodyReferenceToneTests: XCTestCase {
     }
 
     private func samples(context: MelodyPracticeContext) throws -> [Float] {
-        let data = try MelodyReferenceTone.wavData(context: context)
+        let data = try SyntheticMelodyReference.wavData(context: context)
         return stride(from: 44, to: data.count, by: 2).map { offset in
             let bits = UInt16(data[offset]) | (UInt16(data[offset + 1]) << 8)
             return Float(Int16(bitPattern: bits)) / 32_768

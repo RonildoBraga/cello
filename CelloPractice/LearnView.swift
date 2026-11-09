@@ -87,7 +87,7 @@ struct MusicLibraryView: View {
                         MelodyReferenceView(capture: capture)
                     } label: {
                         MusicLibraryRow(title: "Listen & follow", subtitle: "Hear the melody or one short phrase",
-                                        systemImage: "play.circle.fill", footer: "Reference tones · 60 BPM")
+                                        systemImage: "play.circle.fill", footer: "Recorded hum & cello · 60 BPM")
                     }.buttonStyle(.plain)
                         .accessibilityIdentifier("melodyReferenceLink")
                 }
@@ -151,7 +151,12 @@ struct MusicLibraryView: View {
                 Divider()
                 Link("Deep Humming Noise · retropttam", destination: HummingExample.sourceURL)
                 Link("Creative Commons Attribution 3.0", destination: HummingExample.licenseURL)
-                Text("Three-second excerpt, shortened and volume adjusted. Original pitch preserved.")
+                Text("Foundation example: shortened and volume adjusted, with original pitch preserved. Melody examples: pitch and timing edited from the same human recording.")
+                    .foregroundStyle(Palette.muted)
+                Divider()
+                Link("VSCO 2 Community Edition · recorded cello", destination: URL(string: "https://github.com/sgossner/VSCO-2-CE")!)
+                Link("Creative Commons CC0 1.0", destination: URL(string: "https://creativecommons.org/publicdomain/zero/1.0/")!)
+                Text("Bowed cello-section excerpts from Versilian Studios and Ivy Audio, shortened, volume adjusted and tuned for reference playback.")
                     .foregroundStyle(Palette.muted)
             }.font(.footnote).padding(.top, 12)
         }.font(.subheadline.weight(.medium)).foregroundStyle(Palette.forest)

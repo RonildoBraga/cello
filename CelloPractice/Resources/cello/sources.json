@@ -1,0 +1,158 @@
+{
+  "source": "VS Chamber Orchestra 2: Community Edition",
+  "sourceRepository": "https://github.com/sgossner/VSCO-2-CE",
+  "sourceRevision": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+  "license": "CC0-1.0",
+  "recordingType": "Cello section, bowed sustain with vibrato",
+  "recordists": [
+    "Sam Gossner",
+    "Simon Dalzell"
+  ],
+  "sampleCutting": "Elan Hickler / Soundemote",
+  "notes": [
+    {
+      "file": "cello-c2.wav",
+      "midiNote": 36,
+      "scientificNote": "C2",
+      "measuredFrequencyHz": 65.39183095652106,
+      "targetFrequencyHz": 65.40639132514966,
+      "sourcePath": "Strings/Cello Section/susvib/susvib_C1_v1_1.wav",
+      "sourceURL": "https://github.com/sgossner/VSCO-2-CE/blob/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Cello%20Section/susvib/susvib_C1_v1_1.wav",
+      "sourceSHA256": "abdcea431f384e135c469b0f3e4ac2a437f282f521dc5bcbe22abc221536e8de",
+      "outputSHA256": "80742889a536e03f001d5985fe5d12f5b33465bea4580c4de7c5f56cc53f7e52",
+      "sampleRate": 48000,
+      "channels": 1,
+      "bitDepth": 16,
+      "durationSeconds": 3.2,
+      "edit": {
+        "sourceNoteLabel": "C1",
+        "midiNote": 36,
+        "sourceStartSeconds": 0.15,
+        "durationSeconds": 3.2,
+        "gain": 4.162784119131801,
+        "attackFadeSeconds": 0.01,
+        "releaseFadeSeconds": 0.05,
+        "maximumPeak": 0.65
+      },
+      "analysis": {
+        "windowFrames": 8192,
+        "hopFrames": 4410,
+        "minimumConfidence": 0.75,
+        "measuredWindowStartSeconds": 0.4,
+        "measuredWindowEndSeconds": 3.2,
+        "acceptedWindowCount": 28,
+        "medianConfidence": 0.9912138915551966,
+        "minimumCentsFromNominal": -1.6990794883085425,
+        "maximumCentsFromNominal": 1.1734934290630028
+      }
+    },
+    {
+      "file": "cello-g2.wav",
+      "midiNote": 43,
+      "scientificNote": "G2",
+      "measuredFrequencyHz": 97.96663394844622,
+      "targetFrequencyHz": 97.99885899543733,
+      "sourcePath": "Strings/Cello Section/susvib/susvib_G1_v1_1.wav",
+      "sourceURL": "https://github.com/sgossner/VSCO-2-CE/blob/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Cello%20Section/susvib/susvib_G1_v1_1.wav",
+      "sourceSHA256": "9e5d24e8e28d6c7f650f9bb2b33d43c13e341a8bd33124c64e23881378b181ba",
+      "outputSHA256": "60241e75c64043f34e32483705eb3effef93cd382fbefa47a7f1d2c61921d482",
+      "sampleRate": 48000,
+      "channels": 1,
+      "bitDepth": 16,
+      "durationSeconds": 3.2,
+      "edit": {
+        "sourceNoteLabel": "G1",
+        "midiNote": 43,
+        "sourceStartSeconds": 0.15,
+        "durationSeconds": 3.2,
+        "gain": 4.926744652141419,
+        "attackFadeSeconds": 0.01,
+        "releaseFadeSeconds": 0.05,
+        "maximumPeak": 0.65
+      },
+      "analysis": {
+        "windowFrames": 8192,
+        "hopFrames": 4410,
+        "minimumConfidence": 0.75,
+        "measuredWindowStartSeconds": 0.4,
+        "measuredWindowEndSeconds": 3.2,
+        "acceptedWindowCount": 28,
+        "medianConfidence": 0.9954701297694004,
+        "minimumCentsFromNominal": -5.532021818008584,
+        "maximumCentsFromNominal": 4.53354419905459
+      }
+    },
+    {
+      "file": "cello-d3.wav",
+      "midiNote": 50,
+      "scientificNote": "D3",
+      "measuredFrequencyHz": 147.04697656093282,
+      "targetFrequencyHz": 146.8323839587038,
+      "sourcePath": "Strings/Cello Section/susvib/susvib_D2_v1_1.wav",
+      "sourceURL": "https://github.com/sgossner/VSCO-2-CE/blob/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Cello%20Section/susvib/susvib_D2_v1_1.wav",
+      "sourceSHA256": "e8640dec9febc6e39fcf06b19d2c95a85d5ff8c38f13c9879e69f551eaf38ab8",
+      "outputSHA256": "3abd0373b312c2fc6743db7df0252b09ee393e31312865284abc37d930fee898",
+      "sampleRate": 48000,
+      "channels": 1,
+      "bitDepth": 16,
+      "durationSeconds": 3.2,
+      "edit": {
+        "sourceNoteLabel": "D2",
+        "midiNote": 50,
+        "sourceStartSeconds": 0.15,
+        "durationSeconds": 3.2,
+        "gain": 4.8065313030629255,
+        "attackFadeSeconds": 0.01,
+        "releaseFadeSeconds": 0.05,
+        "maximumPeak": 0.65
+      },
+      "analysis": {
+        "windowFrames": 8192,
+        "hopFrames": 4410,
+        "minimumConfidence": 0.75,
+        "measuredWindowStartSeconds": 0.4,
+        "measuredWindowEndSeconds": 3.2,
+        "acceptedWindowCount": 28,
+        "medianConfidence": 0.9926841687602113,
+        "minimumCentsFromNominal": -2.1371993805309213,
+        "maximumCentsFromNominal": 5.144251782594283
+      }
+    },
+    {
+      "file": "cello-a3.wav",
+      "midiNote": 57,
+      "scientificNote": "A3",
+      "measuredFrequencyHz": 219.89828166261523,
+      "targetFrequencyHz": 220.0,
+      "sourcePath": "Strings/Cello Section/susvib/susvib_A2_v1_1.wav",
+      "sourceURL": "https://github.com/sgossner/VSCO-2-CE/blob/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Cello%20Section/susvib/susvib_A2_v1_1.wav",
+      "sourceSHA256": "c97a003184fdcb153d6b6c0bae8d82a90592a1b04b06bd7caaeda8b9776d5284",
+      "outputSHA256": "9bac024ae978f90360399d71ef1401b280db112671deab51dae6bb789b0faa0a",
+      "sampleRate": 48000,
+      "channels": 1,
+      "bitDepth": 16,
+      "durationSeconds": 3.2,
+      "edit": {
+        "sourceNoteLabel": "A2",
+        "midiNote": 57,
+        "sourceStartSeconds": 0.15,
+        "durationSeconds": 3.2,
+        "gain": 8.588320304889892,
+        "attackFadeSeconds": 0.01,
+        "releaseFadeSeconds": 0.05,
+        "maximumPeak": 0.65
+      },
+      "analysis": {
+        "windowFrames": 8192,
+        "hopFrames": 4410,
+        "minimumConfidence": 0.75,
+        "measuredWindowStartSeconds": 0.4,
+        "measuredWindowEndSeconds": 3.2,
+        "acceptedWindowCount": 28,
+        "medianConfidence": 0.9921870052333541,
+        "minimumCentsFromNominal": -6.665752982736351,
+        "maximumCentsFromNominal": 2.2707690473863766
+      }
+    }
+  ]
+}
