@@ -1,6 +1,6 @@
 # Music learning path
 
-Status: Music organisation and first-melody reference playback delivered. Melody recording and assessments remain planned in [the delivery epic](https://github.com/RonildoBraga/cello/issues/1).
+Status: Music organisation, first-melody reference playback and humming phrase recording/feedback delivered. Melody rhythm and cello playing remain planned in [the delivery epic](https://github.com/RonildoBraga/cello/issues/1).
 
 ## Problem and goal
 
@@ -17,7 +17,7 @@ Music
     Rhythm → Pulse; Two taps per beat; Mixed rhythm
     Cello → Open C/G/D/A strings
   Pieces
-    Hot Cross Buns → Listen & follow; first-melody learning path
+    Hot Cross Buns → Humming (four phrases, then whole melody); Listen & follow
     Bach, Suite No. 1 Prelude → long-term learning path
 Practice → the selected foundation exercise
 Recordings → existing local audio/video history
@@ -58,4 +58,4 @@ Bach is a longer-term destination through easier repertoire, note reading, scale
 | [#6](https://github.com/RonildoBraga/cello/issues/6) | Cello prerequisites and a complete first-melody performance | #3–5 and physical cello validation |
 | [#7](https://github.com/RonildoBraga/cello/issues/7) | Intermediate repertoire and teacher-reviewed milestones toward Bach | First complete melody |
 
-The first-melody reference uses one versioned score, selectable whole/phrase contexts, three explicitly named registers and manual playback. The optional immutable `MelodyPracticeContext` on saved sessions freezes piece, score version, reference key/register, tuning, expected events, tempo, section and grading version. Existing sessions omit it and remain compatible. No melody recording UI is exposed yet; its grading version is nil until an assessment exists. A melody context suppresses the fixed-note foundation grader and chart. Foundation stars cannot automatically complete piece lessons. Record retains the manual-reference behaviour: hearing an example is a separate action from the countdown.
+The first-melody reference uses one versioned score, selectable whole/phrase contexts, three explicitly named registers and manual playback. Humming offers only the two voice registers; the cello register remains in reference playback. The optional immutable `MelodyPracticeContext` freezes piece, score version, key/register, tuning, expected events, tempo, section and grading version. Reference-only selections from the first release have a nil grading version; new humming takes use melody grading version 1 and a separate frozen `MelodyRating`. Existing sessions remain compatible. A melody context suppresses the fixed-note foundation grader and chart. Melody completion uses its own durable ledger keyed to the complete frozen context. Foundation stars cannot complete piece lessons. Hearing an example is always separate from Record's countdown.

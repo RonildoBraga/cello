@@ -55,16 +55,15 @@ struct MelodyReferenceView: View {
                             .accessibilityLabel("Section: \(section.title)")
                             .accessibilityIdentifier("melodySectionPicker")
                     }
-                    ForEach(visiblePhrases, id: \.self) { phrase in
-                        phraseRow(phrase)
-                    }
+                    MelodyNotesView(context: context,
+                                    elapsed: capture.isPlayingReference ? capture.referenceElapsed : nil)
                     Text("Longer tiles hold longer. The quick notes in phrase 3 last half a beat each.")
                         .font(.caption).foregroundStyle(Palette.muted)
                 }.padding(18).background(.white, in: RoundedRectangle(cornerRadius: 20))
                 VStack(alignment: .leading, spacing: 7) {
                     Label("Reference tones", systemImage: "waveform")
                         .font(.subheadline.weight(.semibold)).foregroundStyle(Palette.forest)
-                    Text("Generated notes for listening and humming along. Phrase recording and stars come next.")
+                    Text("Generated notes for listening and humming along. Open Humming on the piece page to record and earn stars.")
                         .font(.footnote).foregroundStyle(Palette.muted)
                 }
                 if hasRequestedPlayback, !capture.isPlayingReference, let message = capture.message {
@@ -82,39 +81,6 @@ struct MelodyReferenceView: View {
             }
             .onAppear { isVisible = true }
             .onDisappear { isVisible = false; hasRequestedPlayback = false; capture.stop() }
-    }
-
-    private var visiblePhrases: [Int] {
-        section == .whole ? Array(0..<4) : [0]
-    }
-
-    private func phraseRow(_ phrase: Int) -> some View {
-        let events = context.expectedEvents.enumerated().filter {
-            Int($0.element.onsetBeat / 4) == phrase
-        }
-        let current = capture.isPlayingReference ? context.eventIndex(at: capture.referenceElapsed) : nil
-        return VStack(alignment: .leading, spacing: 6) {
-            Text(section == .whole ? "Phrase \(phrase + 1)" : section.title)
-                .font(.caption.weight(.medium)).foregroundStyle(Palette.muted)
-            GeometryReader { geometry in
-                HStack(spacing: 4) {
-                    ForEach(events, id: \.offset) { index, event in
-                        let highlighted = current == index
-                        Text(event.frequency(tuningA4Hz: context.tuningA4Hz).map {
-                            TunerReading(frequency: $0, targetFrequency: nil).noteName
-                        } ?? "Rest")
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
-                            .minimumScaleFactor(0.7).lineLimit(1)
-                            .frame(width: max(0, (geometry.size.width - CGFloat(events.count - 1) * 4)
-                                * event.durationBeats / 4), height: 40)
-                            .foregroundStyle(highlighted ? .white : Palette.forest)
-                            .background(highlighted ? Palette.forest : Palette.forest.opacity(0.07),
-                                        in: RoundedRectangle(cornerRadius: 9))
-                            .accessibilityLabel("\(event.frequency(tuningA4Hz: context.tuningA4Hz).map { TunerReading(frequency: $0, targetFrequency: nil).noteName } ?? "Rest"), \(event.durationBeats.formatted()) beats")
-                    }
-                }
-            }.frame(height: 40)
-        }
     }
 
     private var playbackControl: some View {

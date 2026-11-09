@@ -77,6 +77,13 @@ struct MusicLibraryView: View {
                 }
                 if piece == .hotCrossBuns {
                     NavigationLink {
+                        MelodyHummingView(store: store, capture: capture)
+                    } label: {
+                        MusicLibraryRow(title: "Humming", subtitle: "Record phrases and earn Notes, Timing and Clarity stars",
+                                        systemImage: "waveform", footer: "Four phrases, then the whole melody")
+                    }.buttonStyle(.plain)
+                        .accessibilityIdentifier("melodyHummingLink")
+                    NavigationLink {
                         MelodyReferenceView(capture: capture)
                     } label: {
                         MusicLibraryRow(title: "Listen & follow", subtitle: "Hear the melody or one short phrase",
@@ -102,7 +109,7 @@ struct MusicLibraryView: View {
                     .accessibilityIdentifier("pieceMilestones")
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Practise foundations").font(.headline).foregroundStyle(Palette.ink)
-                    Text("These shared skills are available now. Piece-specific exercises are planned.")
+                    Text(piece == .hotCrossBuns ? "Build the skills behind the melody." : "These shared skills are available now. Piece-specific exercises are planned.")
                         .font(.footnote).foregroundStyle(Palette.muted)
                     ForEach(LearningArea.allCases) { area in
                         NavigationLink {
