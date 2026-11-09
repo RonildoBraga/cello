@@ -97,10 +97,13 @@ struct PracticeSession: Identifiable, Codable {
     let tuningTargetFrequency: Double?
     /// Frozen feedback from this recording's audio. Older recordings remain unrated.
     let rating: PracticeRating?
+    /// A melody take keeps the score, register and tempo selected before recording.
+    /// Existing single-note recordings omit this field.
+    let melodyContext: MelodyPracticeContext?
 
     init(id: UUID, createdAt: Date, exercise: Exercise, duration: Double, notes: String,
          pitchSamples: [PitchSample], videoFilename: String, tuningTargetFrequency: Double? = nil,
-         rating: PracticeRating? = nil) {
+         rating: PracticeRating? = nil, melodyContext: MelodyPracticeContext? = nil) {
         self.id = id
         self.createdAt = createdAt
         self.exercise = exercise
@@ -110,10 +113,12 @@ struct PracticeSession: Identifiable, Codable {
         self.videoFilename = videoFilename
         self.tuningTargetFrequency = tuningTargetFrequency
         self.rating = rating
+        self.melodyContext = melodyContext
     }
 
     var effectiveTargetFrequency: Double? {
-        exercise.targetFrequency ?? tuningTargetFrequency.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
+        guard melodyContext == nil else { return nil }
+        return exercise.targetFrequency ?? tuningTargetFrequency.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
     }
 
     var effectiveTargetNote: String? {

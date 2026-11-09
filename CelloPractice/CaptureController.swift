@@ -27,6 +27,8 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     @Published private(set) var rms: Double = 0
     @Published private(set) var message: String?
     @Published private(set) var elapsed: TimeInterval = 0
+    /// Actual player position, independent of the recording timer.
+    @Published private(set) var referenceElapsed: TimeInterval = 0
 
     private let sessionQueue = DispatchQueue(label: "cello.capture.session")
     private let audioQueue = DispatchQueue(label: "cello.capture.audio", qos: .userInitiated)
@@ -65,6 +67,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     private var displayStartTime: Double?
     private var referencePlayer: AVAudioPlayer?
     private var referencePlayerToken: UUID?
+    private var referenceTimer: Timer?
 
     override init() {
         super.init()
@@ -74,6 +77,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     deinit {
         observerTokens.forEach(NotificationCenter.default.removeObserver)
         displayTimer?.invalidate()
+        referenceTimer?.invalidate()
         referenceCooldown?.cancel()
     }
 
@@ -136,6 +140,9 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
             self.referencePlayer?.stop()
             self.referencePlayer = nil
             self.referencePlayerToken = nil
+            self.referenceTimer?.invalidate()
+            self.referenceTimer = nil
+            self.referenceElapsed = 0
         }
         sessionQueue.async { [weak self] in
             guard let self else { return }
@@ -237,8 +244,33 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         playReference(frequency: HummingExample.frequency, source: .humanHum)
     }
 
-    private enum ReferenceSource: String {
+    /// Uses the same output route and capture suppression as the foundation references.
+    func playMelodyReference(_ context: MelodyPracticeContext) {
+        guard context.isValid else {
+            publish { self.message = "This melody reference is unavailable. Try another phrase." }
+            return
+        }
+        let frequency = context.expectedEvents.compactMap { $0.frequency(tuningA4Hz: context.tuningA4Hz) }.first
+            ?? context.tuningA4Hz
+        playReference(frequency: frequency, source: .melody(context))
+    }
+
+    private enum ReferenceSource: Sendable {
         case tone, humanHum
+        case melody(MelodyPracticeContext)
+
+        var name: String {
+            switch self {
+            case .tone: return "tone"
+            case .humanHum: return "humanHum"
+            case .melody: return "melodyTone"
+            }
+        }
+
+        var melodyContext: MelodyPracticeContext? {
+            if case .melody(let context) = self { return context }
+            return nil
+        }
     }
 
     private func playReference(frequency: Double, source: ReferenceSource) {
@@ -249,6 +281,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
             }
             let token = UUID()
             self.referencePlayerToken = token
+            self.referenceElapsed = 0
             self.isPlayingReference = true
             self.message = nil
             self.confidence = 0
@@ -275,7 +308,8 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         referenceUsesCapture = session.isRunning && wantsToRun
         referenceCancelled = false
         referenceDiagnostics = ReferencePlaybackDiagnostics(frequencyHz: frequency,
-            timestamp: ISO8601DateFormatter().string(from: Date()), source: source.rawValue)
+            timestamp: ISO8601DateFormatter().string(from: Date()), source: source.name,
+            melodyContext: source.melodyContext)
         audioQueue.sync {
             analysisSuppressed = true
             generation += 1
@@ -287,6 +321,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
             switch source {
             case .tone: data = try ReferenceTone.wavData(frequency: frequency)
             case .humanHum: data = try HummingExample.wavData()
+            case .melody(let context): data = try MelodyReferenceTone.wavData(context: context)
             }
             let audioSession = AVAudioSession.sharedInstance()
             if referenceUsesCapture {
@@ -309,6 +344,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
                     player.delegate = self
                     let prepared = player.prepareToPlay()
                     let started = prepared && player.play()
+                    if started { self.startReferenceTimer(token: token) }
                     self.sessionQueue.async { [self] in
                         guard self.referenceToken == token, !self.referenceCancelled else { return }
                         self.referenceDiagnostics?.prepared = prepared
@@ -340,6 +376,18 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         }
     }
 
+    // Player position follows the audio clock, so delayed UI ticks never accumulate drift.
+    private func startReferenceTimer(token: UUID) {
+        referenceTimer?.invalidate()
+        let timer = Timer(timeInterval: 0.05, repeats: true) { [weak self] _ in
+            guard let self, self.referencePlayerToken == token,
+                  let player = self.referencePlayer else { return }
+            self.referenceElapsed = player.currentTime
+        }
+        referenceTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
     // Called on main. A cancellation can arrive before queued preparation starts.
     private func referenceRequestIsCurrent(_ token: UUID) -> Bool {
         guard referencePlayerToken == token else {
@@ -356,6 +404,11 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     // Called on the main thread by playback/delegate paths.
     private func referencePlaybackEnded(token: UUID, message: String? = nil) {
         guard referencePlayerToken == token else { return }
+        referenceTimer?.invalidate()
+        referenceTimer = nil
+        if let referencePlayer {
+            referenceElapsed = message == nil ? referencePlayer.duration : referencePlayer.currentTime
+        }
         referencePlayer?.delegate = nil
         referencePlayer?.stop()
         referencePlayer = nil
@@ -385,7 +438,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
                     self.writeReferenceDiagnostics()
                     self.wantsToRun = false
                     self.finishStoppingSession()
-                    self.finishReferenceCleanup(message: "Audio could not resume: \(error.localizedDescription). Tap Record to try again.")
+                    self.finishReferenceCleanup(message: "Audio could not resume: \(error.localizedDescription). Please try again.")
                 }
             }
             self.referenceCooldown = cooldown
@@ -408,6 +461,8 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
             lastAnalysisTime = 0
         }
         publish {
+            self.referenceTimer?.invalidate()
+            self.referenceTimer = nil
             if let message { self.message = message }
             self.isPlayingReference = false
             self.confidence = 0
@@ -420,6 +475,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         let frequencyHz: Double
         let timestamp: String
         let source: String
+        let melodyContext: MelodyPracticeContext?
         var category: String?
         var mode: String?
         var outputVolume: Float?
@@ -528,6 +584,9 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
             self.referencePlayer?.stop()
             self.referencePlayer = nil
             self.referencePlayerToken = nil
+            self.referenceTimer?.invalidate()
+            self.referenceTimer = nil
+            self.referenceElapsed = 0
             self.sessionQueue.async { [self] in
                 guard self.referenceToken == token, self.referenceCancelled else { return }
                 self.finishStoppingSession()

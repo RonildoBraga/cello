@@ -18,7 +18,7 @@ The foundations include:
 
 The **Cello** area has separate C/G/D/A open-string targets. Each practice area remembers its lesson selection. Foundation lesson pages show instructions, best/latest scores and earned completion; every exercise stays available. Original IDs, lesson numbers and earned progress are retained.
 
-**Pieces** starts with a Hot Cross Buns learning path and a longer-term goal of Bach’s Cello Suite No. 1 Prelude. The piece pages describe planned milestones and link to existing foundations; melody playback and phrase/performance grading are future work. See the [learning-path design](docs/music-learning-path.md) and [delivery issues](https://github.com/RonildoBraga/cello/issues/1).
+**Pieces** starts with Hot Cross Buns and a longer-term goal of Bach’s Cello Suite No. 1 Prelude. Open **Music → Hot Cross Buns → Listen & follow** to hear the whole melody or any of four phrases at 60 BPM. Choose low voice (G2–B2), higher voice (G3–B3) or cello (D3–F♯3); note tiles follow the reference. Playback is manual and uses generated tones, clearly distinguished from the human humming example. Melody recording and phrase/performance grading are future work. See the [learning-path design](docs/music-learning-path.md) and [delivery issues](https://github.com/RonildoBraga/cello/issues/1).
 
 - **Hear hum** plays the recorded human example. **Record** starts a three-second countdown, then records a three-second humming take. Cello takes finish when you tap Stop, with a 90-second limit.
 - Voice/instrument recordings include synchronized microphone audio, video and pitch observations. A tuning bar and end-of-take pitch chart show distance from the fixed target.
@@ -93,6 +93,8 @@ Practice data stays on the device. The app has no account, analytics, automatic 
 Deleting the app removes its local data, so export important recordings first. Repository ignore rules exclude local builds, signing material, personal practice media and review artifacts. The bundled reference hum below is a licensed public recording, not a learner's practice take.
 
 ## Media attribution
+
+Hot Cross Buns uses an original three-note teaching arrangement of the traditional melody and locally synthesized reference tones. No publisher score, scan or recording is bundled. The shared score contains 17 note events over 16 beats; the reference preserves phrase lengths and leaves short quiet gaps between notes. See [score and reference provenance](docs/hot-cross-buns-reference.md).
 
 The bundled human-hum example is a three-second excerpt of **[Deep Humming Noise](https://freesound.org/people/retropttam/sounds/177276/)** by **retropttam**, licensed under **[Creative Commons Attribution 3.0 Unported](https://creativecommons.org/licenses/by/3.0/)**. It was shortened, converted to mono PCM, volume adjusted and faded at the ends; its original pitch and timing are preserved. Full provenance and checksums are in [HUMMING-LICENSE.txt](CelloPractice/Resources/HUMMING-LICENSE.txt). Copyright remains with the original author.
 

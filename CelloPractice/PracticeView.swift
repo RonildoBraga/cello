@@ -4,7 +4,7 @@ import SwiftUI
 @MainActor
 struct PracticeView: View {
     @ObservedObject var store: SessionStore
-    @StateObject private var capture = CaptureController()
+    @ObservedObject var capture: CaptureController
     let rhythmStores: [RhythmExercise: PulsePracticeStore]
     @Binding var selection: PracticeSelection
     let restartToken: UUID

@@ -388,6 +388,91 @@ final class SessionStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testMelodySnapshotPersistsReloadsAndExportsWithoutFoundationCredit() async throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let directory = root.appendingPathComponent("PracticeSessions", isDirectory: true)
+        let source = try await makeHummingMovie(in: root.appendingPathComponent("PendingTakes", isDirectory: true))
+        let originalVideo = try Data(contentsOf: source)
+        let context = try MelodyPracticeContext.hotCrossBuns(register: .lowVoice, section: .phrase3, tempoBPM: 72)
+        let store = SessionStore(directory: directory)
+        // Even if a caller retains a foundation exercise, a changing melody must
+        // never receive a single-note rating or contribute to its milestones.
+        let saved = await store.saveRecording(from: source, samples: [sample(time: 0.1)],
+            exercise: .steadyHum, duration: 3, targetFrequency: HummingExample.frequency,
+            melodyContext: context)
+        let session = try XCTUnwrap(saved)
+        XCTAssertEqual(session.melodyContext, context)
+        XCTAssertNil(session.rating)
+        XCTAssertNil(session.tuningTargetFrequency)
+        XCTAssertNil(session.effectiveTargetFrequency)
+        XCTAssertNil(session.medianCentsFromTarget)
+        XCTAssertEqual(store.progress(for: .steadyHum, targetFrequency: HummingExample.frequency).successfulAttempts, 0)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: root.appendingPathComponent("PracticeProgress.json").path))
+
+        let metadata = directory.appendingPathComponent(session.id.uuidString).appendingPathComponent("session.json")
+        let before = try Data(contentsOf: metadata)
+        let restored = try XCTUnwrap(SessionStore(directory: directory).sessions.first)
+        XCTAssertEqual(restored.melodyContext, context)
+        XCTAssertNil(restored.rating)
+        let archive = try await store.export(restored)
+        defer { try? FileManager.default.removeItem(at: archive.deletingLastPathComponent()) }
+        XCTAssertEqual(try Data(contentsOf: metadata), before)
+        let files = try readStoredZIP(at: archive)
+        XCTAssertEqual(files["recording.mov"], originalVideo)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let exported = try decoder.decode(PracticeSession.self, from: XCTUnwrap(files["session.json"]))
+        XCTAssertEqual(exported.melodyContext, context)
+        XCTAssertNil(exported.rating)
+        XCTAssertTrue(try XCTUnwrap(files["review.md"]).utf8String.contains("## Melody reference"))
+
+        let stringTake = PracticeSession(id: UUID(), createdAt: Date(), exercise: .openA,
+            duration: 3, notes: "", pitchSamples: [], videoFilename: "recording.mov", melodyContext: context)
+        XCTAssertNil(stringTake.effectiveTargetFrequency)
+    }
+
+    @MainActor
+    func testInvalidMelodyReferencePreservesPendingAndArchivedRecordings() async throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let directory = root.appendingPathComponent("PracticeSessions", isDirectory: true)
+        let source = try await makeMovie(in: root.appendingPathComponent("PendingTakes", isDirectory: true))
+        let originalVideo = try Data(contentsOf: source)
+        let context = try MelodyPracticeContext.hotCrossBuns(register: .cello)
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(context)) as? [String: Any])
+        json["tempoBPM"] = 0
+        let invalidContext = try JSONDecoder().decode(MelodyPracticeContext.self,
+            from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertFalse(invalidContext.isValid)
+        let store = SessionStore(directory: directory)
+        let saved = await store.saveRecording(from: source, samples: [], exercise: .listen,
+            duration: 1, melodyContext: invalidContext)
+        XCTAssertNil(saved)
+        XCTAssertNotNil(store.errorMessage)
+        XCTAssertTrue(store.sessions.isEmpty)
+        XCTAssertEqual(store.pendingRecordingCount, 1)
+        XCTAssertEqual(try Data(contentsOf: source), originalVideo)
+
+        // Invalid imported metadata stays on disk for recovery instead of being
+        // accepted as a playable, gradeable score or silently rewritten.
+        let invalidSession = PracticeSession(id: UUID(), createdAt: Date(), exercise: .listen,
+            duration: 1, notes: "", pitchSamples: [], videoFilename: "recording.mov", melodyContext: invalidContext)
+        let folder = directory.appendingPathComponent(invalidSession.id.uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let metadata = try encoder.encode(invalidSession)
+        try metadata.write(to: folder.appendingPathComponent("session.json"))
+        try originalVideo.write(to: folder.appendingPathComponent("recording.mov"))
+        let reloaded = SessionStore(directory: directory)
+        XCTAssertTrue(reloaded.sessions.isEmpty)
+        XCTAssertNotNil(reloaded.errorMessage)
+        XCTAssertEqual(try Data(contentsOf: folder.appendingPathComponent("session.json")), metadata)
+        XCTAssertEqual(try Data(contentsOf: folder.appendingPathComponent("recording.mov")), originalVideo)
+    }
+
+    @MainActor
     func testLegacyFreePracticeHasNoInventedTargetAndStringTargetsStayAuthoritative() throws {
         let root = try makeRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -405,12 +490,14 @@ final class SessionStoreTests: XCTestCase {
         var json = try XCTUnwrap(JSONSerialization.jsonObject(with: encoder.encode(legacy)) as? [String: Any])
         json.removeValue(forKey: "tuningTargetFrequency")
         json.removeValue(forKey: "rating")
+        json.removeValue(forKey: "melodyContext")
         let originalMetadata = try JSONSerialization.data(withJSONObject: json)
         try originalMetadata.write(to: folder.appendingPathComponent("session.json"))
         let store = SessionStore(directory: directory)
         XCTAssertNil(store.errorMessage)
         let restored = try XCTUnwrap(store.sessions.first)
         XCTAssertNil(restored.rating)
+        XCTAssertNil(restored.melodyContext)
         XCTAssertNil(restored.tuningTargetFrequency)
         XCTAssertNil(restored.effectiveTargetFrequency)
         XCTAssertNil(restored.effectiveTargetNote)

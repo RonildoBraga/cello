@@ -4,6 +4,7 @@ import SwiftUI
 @MainActor
 struct MusicLibraryView: View {
     @ObservedObject var store: SessionStore
+    @ObservedObject var capture: CaptureController
     @ObservedObject var pulseStore: PulsePracticeStore
     @ObservedObject var twoTapsStore: PulsePracticeStore
     @ObservedObject var mixedRhythmStore: PulsePracticeStore
@@ -73,6 +74,15 @@ struct MusicLibraryView: View {
                     Text(piece.title).font(.system(size: 30, weight: .semibold, design: .serif))
                         .foregroundStyle(Palette.ink).accessibilityIdentifier("pieceDetailTitle")
                     Text(piece.summary).font(.subheadline).foregroundStyle(Palette.muted)
+                }
+                if piece == .hotCrossBuns {
+                    NavigationLink {
+                        MelodyReferenceView(capture: capture)
+                    } label: {
+                        MusicLibraryRow(title: "Listen & follow", subtitle: "Hear the melody or one short phrase",
+                                        systemImage: "play.circle.fill", footer: "Reference tones · 60 BPM")
+                    }.buttonStyle(.plain)
+                        .accessibilityIdentifier("melodyReferenceLink")
                 }
                 VStack(alignment: .leading, spacing: 18) {
                     Text("Learning path").font(.headline).foregroundStyle(Palette.ink)
