@@ -3,31 +3,39 @@ import XCTest
 @testable import Cello
 
 final class PracticeLessonTests: XCTestCase {
-    func testLessonBookKeepsSectionsAndNumberingSeparate() {
+    func testLessonBookSeparatesAreasAndPreservesExistingNumbersAndIDs() {
         let humming = PracticeLesson.lessons(in: .humming)
-        XCTAssertEqual(humming.map(\.number), [1, 2, 3, 4, 5])
-        XCTAssertEqual(humming.map(\.id), ["steadyHum", "matchHum", "pulse", "twoTaps", "mixedRhythm"])
-        XCTAssertTrue(humming.allSatisfy { $0.section == .humming })
-        XCTAssertEqual(humming.map(\.activity), [.recording(.steadyHum), .recording(.matchHum),
-                                                   .rhythm(.pulse), .rhythm(.twoTaps), .rhythm(.mixedRhythm)])
+        XCTAssertEqual(humming.map(\.number), [1, 2])
+        XCTAssertEqual(humming.map(\.id), ["steadyHum", "matchHum"])
+        XCTAssertTrue(humming.allSatisfy { $0.area == .humming })
+        XCTAssertEqual(humming.map(\.activity), [.recording(.steadyHum), .recording(.matchHum)])
+
+        let rhythm = PracticeLesson.lessons(in: .rhythm)
+        XCTAssertEqual(rhythm.map(\.number), [3, 4, 5])
+        XCTAssertEqual(rhythm.map(\.id), ["pulse", "twoTaps", "mixedRhythm"])
+        XCTAssertTrue(rhythm.allSatisfy { $0.area == .rhythm })
+        XCTAssertEqual(rhythm.map(\.activity), [.rhythm(.pulse), .rhythm(.twoTaps), .rhythm(.mixedRhythm)])
 
         let cello = PracticeLesson.lessons(in: .cello)
         XCTAssertEqual(cello.map(\.number), [1, 2, 3, 4])
+        XCTAssertEqual(cello.map(\.id), ["openC", "openG", "openD", "openA"])
         XCTAssertEqual(cello.map(\.activity), [.recording(.openC), .recording(.openG),
                                                  .recording(.openD), .recording(.openA)])
-        XCTAssertTrue(cello.allSatisfy { $0.section == .cello })
+        XCTAssertTrue(cello.allSatisfy { $0.area == .cello })
+        XCTAssertEqual(humming.count + rhythm.count + cello.count, PracticeLesson.allCases.count)
     }
 
-    func testLessonRecommendationsIncludeRhythmAndStopAtEachSectionEnd() {
+    func testOriginalFoundationRecommendationsContinueAcrossAreasAndStopAtEachPathEnd() {
         let transitions: [(PracticeLesson, PracticeLesson)] = [
             (.steadyHum, .matchHum), (.matchHum, .pulse), (.pulse, .twoTaps), (.twoTaps, .mixedRhythm),
             (.openC, .openG), (.openG, .openD), (.openD, .openA)
         ]
         for (current, expected) in transitions {
             XCTAssertEqual(current.next, expected)
-            XCTAssertEqual(expected.section, current.section)
             XCTAssertEqual(expected.number, current.number + 1)
         }
+        XCTAssertEqual(PracticeLesson.matchHum.area, .humming)
+        XCTAssertEqual(PracticeLesson.matchHum.next?.area, .rhythm)
         XCTAssertNil(PracticeLesson.mixedRhythm.next)
         XCTAssertNil(PracticeLesson.openA.next)
     }
@@ -47,35 +55,49 @@ final class PracticeLessonTests: XCTestCase {
         }
     }
 
-    func testSelectionRemembersCompleteLessonsIndependentlyForEachSection() {
+    func testSelectionRemembersCompleteLessonsIndependentlyForEachArea() {
         var selection = PracticeSelection()
-        XCTAssertEqual(selection.section, .humming)
+        XCTAssertEqual(selection.area, .humming)
         XCTAssertEqual(selection.lesson, .steadyHum)
-        selection.select(.twoTaps)
-        selection.section = .cello
+        selection.area = .rhythm
+        XCTAssertEqual(selection.lesson, .pulse)
+        selection.area = .cello
         XCTAssertEqual(selection.lesson, .openG)
         selection.select(.openD)
-        selection.section = .humming
-        XCTAssertEqual(selection.lesson, .twoTaps)
+        selection.select(.twoTaps)
+        XCTAssertEqual(selection.area, .rhythm)
+        selection.area = .humming
+        XCTAssertEqual(selection.lesson, .steadyHum)
         selection.select(.matchHum)
-        selection.section = .cello
+        selection.area = .rhythm
+        XCTAssertEqual(selection.lesson, .twoTaps)
+        selection.area = .cello
         XCTAssertEqual(selection.lesson, .openD)
         selection.select(.pulse)
-        XCTAssertEqual(selection.section, .humming, "Starting a library lesson should select its own section atomically")
+        XCTAssertEqual(selection.area, .rhythm, "Starting a library lesson should select its own area atomically")
         XCTAssertEqual(selection.lesson, .pulse)
-        selection.section = .cello
+        selection.area = .humming
+        XCTAssertEqual(selection.lesson, .matchHum)
+        selection.area = .cello
         XCTAssertEqual(selection.lesson, .openD)
     }
 
-    func testEveryLessonRoutesToItsOwnSectionAndTypedActivity() {
+    func testEveryLessonRoutesToItsOwnAreaAndTypedActivityWithoutAddingRecordingTargets() {
         var selection = PracticeSelection()
+        XCTAssertEqual(LearningArea.allCases, [.humming, .rhythm, .cello])
+        XCTAssertEqual(PracticeSection.allCases, [.humming, .cello])
+        for area in LearningArea.allCases {
+            XCTAssertEqual(area.defaultLesson.area, area)
+        }
         for lesson in PracticeLesson.allCases {
             selection.select(lesson)
             XCTAssertEqual(selection.lesson, lesson)
-            XCTAssertEqual(selection.section, lesson.section)
+            XCTAssertEqual(selection.area, lesson.area)
             switch lesson.activity {
-            case .recording(let exercise): XCTAssertEqual(exercise.section, lesson.section)
-            case .rhythm: XCTAssertEqual(lesson.section, .humming)
+            case .recording(let exercise):
+                XCTAssertNotNil(exercise.section)
+                XCTAssertEqual(lesson.area, exercise.section == .humming ? .humming : .cello)
+            case .rhythm: XCTAssertEqual(lesson.area, .rhythm)
             }
         }
     }

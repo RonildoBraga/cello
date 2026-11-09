@@ -12,12 +12,15 @@ enum Palette {
 }
 
 struct ContentView: View {
+    private enum Tab: Hashable { case music, practice, recordings }
     @ObservedObject var store: SessionStore
     @StateObject private var pulseStore = PulsePracticeStore(exercise: .pulse)
     @StateObject private var twoTapsStore = PulsePracticeStore(exercise: .twoTaps)
     @StateObject private var mixedRhythmStore = PulsePracticeStore(exercise: .mixedRhythm)
-    @State private var selectedTab = 0
+    @State private var selectedTab = Tab.music
     @State private var selection = PracticeSelection()
+    @State private var practiceRevision = UUID()
+    @State private var libraryRevision = UUID()
 
     private var rhythmStores: [RhythmExercise: PulsePracticeStore] {
         [.pulse: pulseStore, .twoTaps: twoTapsStore, .mixedRhythm: mixedRhythmStore]
@@ -25,13 +28,30 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            PracticeView(store: store, rhythmStores: rhythmStores, selection: $selection)
+            MusicLibraryView(store: store, pulseStore: pulseStore, twoTapsStore: twoTapsStore,
+                             mixedRhythmStore: mixedRhythmStore, onStartLesson: startLesson)
+                .id(libraryRevision)
+                .tabItem { Label("Music", systemImage: "music.note.list") }
+                .tag(Tab.music)
+            PracticeView(store: store, rhythmStores: rhythmStores, selection: $selection,
+                         restartToken: practiceRevision, onStartLesson: startLesson, onShowMusic: showMusic)
                 .tabItem { Label("Practice", systemImage: "waveform") }
-                .tag(0)
+                .tag(Tab.practice)
             RecordingsView(store: store)
                 .tabItem { Label("Recordings", systemImage: "play.rectangle.on.rectangle") }
-                .tag(1)
+                .tag(Tab.recordings)
         }
+    }
+
+    private func startLesson(_ lesson: PracticeLesson) {
+        selection.select(lesson)
+        practiceRevision = UUID()
+        selectedTab = .practice
+    }
+
+    private func showMusic() {
+        libraryRevision = UUID()
+        selectedTab = .music
     }
 }
 

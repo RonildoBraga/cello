@@ -7,8 +7,9 @@ struct PracticeView: View {
     @StateObject private var capture = CaptureController()
     let rhythmStores: [RhythmExercise: PulsePracticeStore]
     @Binding var selection: PracticeSelection
-    @State private var showingLessons = false
-    @State private var restartToken = UUID()
+    let restartToken: UUID
+    let onStartLesson: (PracticeLesson) -> Void
+    let onShowMusic: () -> Void
 
     private struct ActivityIdentity: Hashable {
         let lesson: PracticeLesson
@@ -24,14 +25,8 @@ struct PracticeView: View {
         NavigationStack {
             activityScreen
                 .background(Palette.paper)
-                .navigationTitle(selection.section.title)
+                .navigationTitle(selection.area.title)
                 .navigationBarTitleDisplayMode(.inline)
-                .sheet(isPresented: $showingLessons) {
-                    LessonsView(store: store, pulseStore: rhythmStore(for: .pulse), twoTapsStore: rhythmStore(for: .twoTaps),
-                                mixedRhythmStore: rhythmStore(for: .mixedRhythm),
-                                initialSection: selection.section,
-                                onStartLesson: selectLesson, onClose: { showingLessons = false })
-                }
         }
     }
 
@@ -39,19 +34,19 @@ struct PracticeView: View {
     private var activityScreen: some View {
         switch lesson.activity {
         case .recording(let exercise):
-            VoicePracticeView(store: store, capture: capture, exercise: exercise, section: lesson.section,
-                              nextLesson: lesson.next, onStartLesson: selectLesson,
-                              onShowLessons: { showingLessons = true }) { locked in
+            VoicePracticeView(store: store, capture: capture, exercise: exercise,
+                              nextLesson: lesson.next, onStartLesson: onStartLesson,
+                              onShowLessons: onShowMusic) { locked in
                 practiceHeader(disabled: locked)
             }.id(activityIdentity)
         case .rhythm(let exercise):
-            PulsePracticeView(store: rhythmStore(for: exercise), isActive: !showingLessons,
-                              nextLesson: lesson.next, onNext: selectLesson) {
+            PulsePracticeView(store: rhythmStore(for: exercise), isActive: true,
+                              nextLesson: lesson.next, onNext: onStartLesson) {
                 practiceHeader(disabled: false)
             }.id(activityIdentity)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
-                        PracticeLessonsButton { showingLessons = true }
+                        PracticeLessonsButton(onTap: onShowMusic)
                     }
                 }
         }
@@ -59,15 +54,15 @@ struct PracticeView: View {
 
     private func practiceHeader(disabled: Bool) -> some View {
         VStack(alignment: .leading, spacing: 20) {
-            Picker("Practice section", selection: $selection.section) {
-                ForEach(PracticeSection.allCases) { section in
-                    Text(section.title).tag(section)
+            Picker("Practice area", selection: $selection.area) {
+                ForEach(LearningArea.allCases) { area in
+                    Text(area.title).tag(area)
                 }
             }.pickerStyle(.segmented)
-                .accessibilityIdentifier("practiceSectionPicker")
+                .accessibilityIdentifier("practiceAreaPicker")
             Menu {
-                ForEach(PracticeLesson.lessons(in: selection.section)) { item in
-                    Button { selectLesson(item) } label: {
+                ForEach(PracticeLesson.lessons(in: selection.area)) { item in
+                    Button { onStartLesson(item) } label: {
                         if item == lesson { Label(item.title, systemImage: "checkmark") }
                         else { Text(item.title) }
                     }
@@ -92,12 +87,6 @@ struct PracticeView: View {
         }.id("practiceTop")
     }
 
-    private func selectLesson(_ lesson: PracticeLesson) {
-        selection.select(lesson)
-        restartToken = UUID()
-        showingLessons = false
-    }
-
     private func rhythmStore(for exercise: RhythmExercise) -> PulsePracticeStore {
         guard let store = rhythmStores[exercise] else {
             preconditionFailure("Every rhythm lesson must have its own practice store")
@@ -113,11 +102,11 @@ struct PracticeLessonsButton: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 6) {
-                Image(systemName: "books.vertical")
-                Text("Lessons")
+                Image(systemName: "music.note.list")
+                Text("Music")
             }.font(.subheadline.weight(.medium))
-        }.accessibilityLabel("Lessons")
-            .accessibilityIdentifier("hummingLearnButton")
+        }.accessibilityLabel("Music library")
+            .accessibilityIdentifier("musicLibraryButton")
             .disabled(disabled)
     }
 }
