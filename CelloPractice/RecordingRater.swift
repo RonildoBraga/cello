@@ -1,4 +1,3 @@
-import AVFoundation
 import CelloPitch
 import Foundation
 
@@ -14,51 +13,7 @@ enum RecordingRater {
                 return PracticeRating(targetFrequency: 0, status: .unclear)
             }
             do {
-                let asset = AVURLAsset(url: url)
-                guard let track = try await asset.loadTracks(withMediaType: .audio).first else {
-                    return PracticeRating(targetFrequency: targetFrequency, status: .unclear)
-                }
-                let reader = try AVAssetReader(asset: asset)
-                let output = AVAssetReaderTrackOutput(track: track, outputSettings: [
-                    AVFormatIDKey: kAudioFormatLinearPCM,
-                    AVSampleRateKey: sampleRate,
-                    AVNumberOfChannelsKey: 1,
-                    AVLinearPCMBitDepthKey: 32,
-                    AVLinearPCMIsFloatKey: true,
-                    AVLinearPCMIsBigEndianKey: false,
-                    AVLinearPCMIsNonInterleaved: false
-                ])
-                output.alwaysCopiesSampleData = false
-                guard reader.canAdd(output) else { throw AudioError.unreadable }
-                reader.add(output)
-                guard reader.startReading() else { throw AudioError.unreadable }
-                var samples: [Float] = []
-                var expectedTime: Double?
-                while let buffer = output.copyNextSampleBuffer() {
-                    let time = CMSampleBufferGetPresentationTimeStamp(buffer).seconds
-                    let duration = CMSampleBufferGetDuration(buffer).seconds
-                    if let expectedTime, time.isFinite, abs(time - expectedTime) > 0.05 {
-                        // Missing media must not be concatenated into an apparently
-                        // uninterrupted hold. Ask for another take instead.
-                        reader.cancelReading()
-                        throw AudioError.unreadable
-                    }
-                    if time.isFinite, duration.isFinite { expectedTime = time + duration }
-                    guard let block = CMSampleBufferGetDataBuffer(buffer) else { throw AudioError.unreadable }
-                    let bytes = CMBlockBufferGetDataLength(block)
-                    guard bytes > 0, bytes % MemoryLayout<Float>.size == 0 else { throw AudioError.unreadable }
-                    var chunk = [Float](repeating: 0, count: bytes / MemoryLayout<Float>.size)
-                    let copied = chunk.withUnsafeMutableBytes {
-                        CMBlockBufferCopyDataBytes(block, atOffset: 0, dataLength: bytes, destination: $0.baseAddress!)
-                    }
-                    guard copied == kCMBlockBufferNoErr else { throw AudioError.unreadable }
-                    samples.append(contentsOf: chunk)
-                    guard Double(samples.count) / sampleRate <= maximumDuration else {
-                        reader.cancelReading()
-                        throw AudioError.unreadable
-                    }
-                }
-                guard reader.status == .completed else { throw AudioError.unreadable }
+                let samples = try await RecordingAudio.read(url: url, maximumDuration: maximumDuration)
                 return rate(samples: samples, sampleRate: sampleRate, targetFrequency: targetFrequency)
             } catch {
                 return PracticeRating(targetFrequency: targetFrequency, status: .unclear)
@@ -95,7 +50,7 @@ enum RecordingRater {
             let accepted = estimate.flatMap { $0.confidence >= 0.75 ? $0 : nil }
             frames.append(Frame(center: Double(end - window / 2) / sampleRate,
                                 estimate: accepted,
-                                ambiguous: accepted.map { octaveIsAmbiguous(sound, sampleRate: sampleRate, frequency: $0.frequency) } ?? false))
+                                ambiguous: accepted.map { RecordingAudio.octaveIsAmbiguous(sound, sampleRate: sampleRate, frequency: $0.frequency) } ?? false))
         }
 
         // 10 ms cells preserve real pauses instead of treating the span between
@@ -195,46 +150,4 @@ enum RecordingRater {
         return sorted.last?.cents ?? 0
     }
 
-    /// A strong second component can make a long period win despite a clear
-    /// shorter-period interpretation. Flag uncertainty; never shift it toward
-    /// the requested note. The target frequency is deliberately not an input.
-    private static func octaveIsAmbiguous(_ sound: [Float], sampleRate: Double, frequency: Double) -> Bool {
-        let period = Int((sampleRate / frequency).rounded())
-        guard period >= 4, period < sound.count / 2, frequency * 2 <= 1_000 else { return false }
-        let full = normalizedCorrelation(sound, lag: period)
-        let half = normalizedCorrelation(sound, lag: max(2, period / 2))
-        guard half >= 0.90, full - half >= 0.015, full - half <= 0.12 else { return false }
-        let fundamental = amplitude(sound, frequency: frequency, sampleRate: sampleRate)
-        let octave = amplitude(sound, frequency: frequency * 2, sampleRate: sampleRate)
-        return octave > max(0.0002, fundamental * 1.4)
-    }
-
-    private static func normalizedCorrelation(_ sound: [Float], lag: Int) -> Double {
-        let mean = sound.reduce(0.0) { $0 + Double($1) } / Double(sound.count)
-        var cross = 0.0, left = 0.0, right = 0.0
-        for index in 0..<(sound.count - lag) {
-            let a = Double(sound[index]) - mean
-            let b = Double(sound[index + lag]) - mean
-            cross += a * b
-            left += a * a
-            right += b * b
-        }
-        return cross / max(1e-20, sqrt(left * right))
-    }
-
-    private static func amplitude(_ sound: [Float], frequency: Double, sampleRate: Double) -> Double {
-        let angle = 2 * Double.pi * frequency / sampleRate
-        let cosine = cos(angle), sine = sin(angle)
-        var phaseCosine = 1.0, phaseSine = 0.0, real = 0.0, imaginary = 0.0
-        for sample in sound {
-            real += Double(sample) * phaseCosine
-            imaginary += Double(sample) * phaseSine
-            let nextCosine = phaseCosine * cosine - phaseSine * sine
-            phaseSine = phaseSine * cosine + phaseCosine * sine
-            phaseCosine = nextCosine
-        }
-        return 2 * hypot(real, imaginary) / Double(sound.count)
-    }
-
-    private enum AudioError: Error { case unreadable }
 }

@@ -23,7 +23,7 @@ final class LearningUITests: XCTestCase {
         let first = app.buttons["piece-hotCrossBuns"]
         reveal(first, in: app)
         XCTAssertTrue(first.label.contains("Hot Cross Buns"))
-        XCTAssertTrue(first.label.contains("Reference available"))
+        XCTAssertTrue(first.label.contains("Humming available"))
         let bach = app.buttons["piece-bachPrelude"]
         reveal(bach, in: app)
         XCTAssertTrue(bach.label.contains("Bach") && bach.label.contains("Long-term goal"))
@@ -41,7 +41,7 @@ final class LearningUITests: XCTestCase {
         let title = app.staticTexts["pieceDetailTitle"]
         XCTAssertTrue(title.waitForExistence(timeout: 5))
         XCTAssertEqual(title.label, "Hot Cross Buns")
-        XCTAssertEqual(app.staticTexts["pieceStatus"].label, "Reference available")
+        XCTAssertEqual(app.staticTexts["pieceStatus"].label, "Humming available")
         let milestones = app.descendants(matching: .any).matching(identifier: "pieceMilestones").firstMatch
         reveal(milestones, in: app)
         XCTAssertTrue(milestones.exists)
@@ -92,7 +92,7 @@ final class LearningUITests: XCTestCase {
         reveal(piece, in: app)
         piece.tap()
         XCTAssertTrue(app.staticTexts["pieceDetailTitle"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.staticTexts["pieceStatus"].label, "Reference available")
+        XCTAssertEqual(app.staticTexts["pieceStatus"].label, "Humming available")
         XCTAssertFalse(app.staticTexts["ratingStarCount"].exists)
         XCTAssertFalse(app.staticTexts["pulse.stars"].exists)
         XCTAssertFalse(app.buttons["startLessonButton"].exists)
@@ -209,6 +209,97 @@ final class LearningUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["ratingFeedback"].exists)
         assertNoWrittenInput(in: app)
         screenshot("Recording · unclear take without a grade")
+    }
+
+    func testArchivedMelodyFeedbackChartAndCompletionStaySeparateFromFoundations() throws {
+        let app = XCUIApplication()
+        launchPractice(in: app)
+        let foundationTarget = app.staticTexts["currentTargetLabel"].label
+        let foundationProgress = app.staticTexts["practiceProgressText"].label
+        app.tabBars.buttons["Recordings"].tap()
+        // Optional external setup: three real decoder/rater results from the
+        // human-based Phrase 1 fixture, a delayed two-star result and an unclear
+        // noise take. Only folder/session IDs are normalized; grades are not set
+        // by the UI test or by a special app mode.
+        let successfulIDs = (1...3).map { "FA000000-0000-4000-8000-00000000000\($0)" }
+        let partialID = "FB000000-0000-4000-8000-000000000001"
+        let unclearID = "FB000000-0000-4000-8000-000000000002"
+        let rows = (successfulIDs + [partialID, unclearID]).map {
+            app.descendants(matching: .any)["recording-\($0)"]
+        }
+        guard rows[0].waitForExistence(timeout: 5), rows.allSatisfy(\.exists) else {
+            throw XCTSkip("Requires externally seeded, production-rated melody fixtures FA...001–003 and FB...001–002")
+        }
+        rows[0].tap()
+        let stars = app.staticTexts["melodyRatingStars"]
+        reveal(stars, in: app)
+        XCTAssertEqual(stars.label, "3 of 3 stars")
+        for id in ["melodyGoal-notes", "melodyGoal-timing", "melodyGoal-clarity"] {
+            XCTAssertTrue(app.descendants(matching: .any)[id].label.contains("goal reached"))
+        }
+        let chart = app.descendants(matching: .any).matching(identifier: "melodyPitchChart").firstMatch
+        reveal(chart, in: app)
+        XCTAssertTrue(chart.isHittable)
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "pitchTraceChart").firstMatch.exists,
+                       "A changing melody needs its own expected-note chart")
+        screenshot("Melody recording · three stars and phrase chart")
+
+        app.navigationBars["Your session"].buttons.firstMatch.tap()
+        rows[3].tap()
+        reveal(stars, in: app)
+        XCTAssertEqual(stars.label, "2 of 3 stars")
+        XCTAssertTrue(app.descendants(matching: .any)["melodyGoal-notes"].label.contains("goal reached"))
+        XCTAssertTrue(app.descendants(matching: .any)["melodyGoal-clarity"].label.contains("goal reached"))
+        XCTAssertTrue(app.descendants(matching: .any)["melodyGoal-timing"].label.contains("keep practising"))
+        reveal(chart, in: app)
+        screenshot("Melody recording · delayed phrase keeps Timing separate")
+
+        app.navigationBars["Your session"].buttons.firstMatch.tap()
+        rows[4].tap()
+        let unscored = app.staticTexts["melodyRatingUnclear"]
+        reveal(unscored, in: app)
+        XCTAssertTrue(app.staticTexts["Progress unchanged"].exists)
+        XCTAssertFalse(stars.exists, "Uncertain sound must not receive zero stars")
+        for id in ["melodyGoal-notes", "melodyGoal-timing", "melodyGoal-clarity"] {
+            XCTAssertFalse(app.descendants(matching: .any)[id].exists)
+        }
+        XCTAssertTrue(app.staticTexts["melodyFeedback"].exists)
+        reveal(chart, in: app)
+        screenshot("Melody recording · unclear take leaves progress unchanged")
+
+        app.tabBars.buttons["Music"].tap()
+        openMelodyHumming(in: app)
+        let progress = app.staticTexts["practiceProgressText"]
+        reveal(progress, in: app)
+        XCTAssertTrue(progress.label.contains("Goal reached"))
+        XCTAssertTrue(app.buttons["nextMelodyPhraseButton"].isEnabled)
+        app.scrollViews.firstMatch.swipeDown()
+        let registers = app.segmentedControls["melodyHummingRegisterPicker"]
+        for _ in 0..<4 {
+            if registers.isHittable { break }
+            app.scrollViews.firstMatch.swipeDown()
+        }
+        registers.buttons["Higher voice"].tap()
+        reveal(progress, in: app)
+        XCTAssertFalse(progress.label.contains("Goal reached"), "Another register starts its own practice goal")
+        XCTAssertTrue(progress.label.contains("0 of 3"))
+        app.scrollViews.firstMatch.swipeDown()
+        for _ in 0..<4 {
+            if registers.isHittable { break }
+            app.scrollViews.firstMatch.swipeDown()
+        }
+        registers.buttons["Low voice"].tap()
+        selectMelodyHummingSection("Phrase 3", in: app)
+        reveal(progress, in: app)
+        XCTAssertFalse(progress.label.contains("Goal reached"), "A different phrase earns its own completion")
+        XCTAssertTrue(progress.label.contains("0 of 3"))
+        app.tabBars.buttons["Practice"].tap()
+        waitForRecord(in: app)
+        XCTAssertEqual(app.staticTexts["currentTargetLabel"].label, foundationTarget)
+        XCTAssertEqual(app.staticTexts["practiceProgressText"].label, foundationProgress,
+                       "Melody stars cannot grant a foundation achievement")
+        assertNoWrittenInput(in: app)
+        assertNoPermissionAlerts(in: app)
     }
 
     func testArchivedTakeShowsPitchTraceWithoutChangingItsRatingOrPlayback() throws {
@@ -531,6 +622,99 @@ final class LearningUITests: XCTestCase {
         XCTAssertFalse(status.exists, "A phrase change must cancel playback without automatically restarting")
         XCTAssertFalse(app.buttons["practiceRecordButton"].exists)
         XCTAssertFalse(app.staticTexts["ratingStarCount"].exists)
+        assertNoWrittenInput(in: app)
+        assertNoPermissionAlerts(in: app)
+    }
+
+    func testMelodyHummingHasSeparatePhrasesRegistersAndManualReference() {
+        let app = XCUIApplication()
+        launchPractice(in: app)
+        let foundationTarget = app.staticTexts["currentTargetLabel"].label
+        let foundationProgress = app.staticTexts["practiceProgressText"].label
+        app.tabBars.buttons["Music"].tap()
+        openMelodyHumming(in: app)
+        let registers = app.segmentedControls["melodyHummingRegisterPicker"]
+        let sections = app.buttons["melodyHummingSectionPicker"]
+        let duration = app.staticTexts["melodyTakeDuration"]
+        let target = app.staticTexts["currentTargetLabel"]
+        XCTAssertTrue(registers.buttons["Low voice"].isSelected)
+        XCTAssertTrue(registers.buttons["Higher voice"].exists)
+        XCTAssertFalse(registers.buttons["Cello"].exists, "Piece humming has voice registers only")
+        XCTAssertTrue(sections.label.contains("Phrase 1"))
+        XCTAssertTrue(duration.label.contains("4 seconds") && duration.label.contains("60 BPM"))
+        XCTAssertTrue(target.label.contains("G2–B2"))
+        XCTAssertFalse(app.staticTexts["LISTEN"].exists)
+        XCTAssertFalse(app.buttons["Turn off camera and microphone"].exists)
+        XCTAssertFalse(app.staticTexts["melodyRatingStars"].exists)
+        assertNoPermissionAlerts(in: app)
+        screenshot("Hot Cross Buns · humming ready for phrase 1")
+
+        selectMelodyHummingSection("Whole melody", in: app)
+        XCTAssertTrue(duration.label.contains("16 seconds"), "Whole-melody takes must not use the three-second foundation limit")
+        XCTAssertTrue(app.buttons["previewTargetButton"].label.contains("Hear melody"))
+        XCTAssertFalse(app.staticTexts["LISTEN"].exists, "Changing phrase must not autoplay")
+        selectMelodyHummingSection("Phrase 3", in: app)
+        XCTAssertTrue(duration.label.contains("4 seconds"))
+        registers.buttons["Higher voice"].tap()
+        XCTAssertTrue(target.label.contains("G3–B3"))
+        waitForRecord(in: app)
+        let hear = app.buttons["previewTargetButton"]
+        reveal(hear, in: app)
+        hear.tap()
+        let previewing = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label == %@", "Cancel"), object: app.buttons["practiceRecordButton"])
+        XCTAssertEqual(XCTWaiter.wait(for: [previewing], timeout: 3), .completed)
+        XCTAssertTrue(app.staticTexts["LISTEN"].exists)
+        XCTAssertFalse(registers.buttons["Low voice"].isEnabled, "The reference cannot change during playback or a take")
+        screenshot("Hot Cross Buns · hearing the selected humming phrase")
+
+        app.tabBars.buttons["Practice"].tap()
+        waitForRecord(in: app)
+        XCTAssertEqual(app.staticTexts["currentTargetLabel"].label, foundationTarget)
+        XCTAssertEqual(app.staticTexts["practiceProgressText"].label, foundationProgress)
+        XCTAssertFalse(app.staticTexts["captureMessage"].exists)
+        app.tabBars.buttons["Music"].tap()
+        waitForRecord(in: app)
+        XCTAssertTrue(target.label.contains("G3–B3"))
+        XCTAssertFalse(app.staticTexts["LISTEN"].exists, "Returning to Humming must not resume playback")
+        assertNoWrittenInput(in: app)
+        assertNoPermissionAlerts(in: app)
+    }
+
+    func testMelodyRecordDoesNotAutoplayAndUnavailableCaptureDoesNotCreateFeedback() {
+        let app = XCUIApplication()
+        app.launch()
+        openMelodyHumming(in: app)
+        let record = app.buttons["practiceRecordButton"]
+        XCTAssertEqual(record.label, "Record")
+        record.tap()
+        // Camera/microphone consent follows the explicit Record action. A real
+        // Simulator has no camera; this exercises its recoverable error, rather
+        // than adding an app-only camera or scoring fixture.
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        for _ in 0..<2 {
+            let alert = springboard.alerts.firstMatch
+            if alert.waitForExistence(timeout: 1) {
+                let allow = alert.buttons.matching(NSPredicate(format: "label == 'Allow' OR label == 'OK'")).firstMatch
+                XCTAssertTrue(allow.exists, "Only explicit camera/microphone permission alerts are expected")
+                allow.tap()
+            }
+        }
+        XCTAssertFalse(app.staticTexts["LISTEN"].exists, "Record must never play the reference first")
+        let message = app.staticTexts["captureMessage"]
+        XCTAssertTrue(message.waitForExistence(timeout: 8), "Unavailable capture must leave Preparing with an explanation")
+        XCTAssertTrue(message.label.localizedCaseInsensitiveContains("camera")
+                      || message.label.localizedCaseInsensitiveContains("microphone"))
+        waitForRecord(in: app)
+        XCTAssertTrue(record.isEnabled)
+        XCTAssertFalse(app.staticTexts["melodyRatingStars"].exists)
+        XCTAssertFalse(app.staticTexts["melodyRatingUnclear"].exists, "No take means no invented assessment")
+        screenshot("Hot Cross Buns · camera unavailable without a fabricated result")
+        app.navigationBars["Hot Cross Buns"].buttons.firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["pieceDetailTitle"].waitForExistence(timeout: 5))
+        app.buttons["melodyHummingLink"].tap()
+        waitForRecord(in: app)
+        XCTAssertFalse(app.staticTexts["LISTEN"].exists)
         assertNoWrittenInput(in: app)
         assertNoPermissionAlerts(in: app)
     }
@@ -1100,6 +1284,31 @@ final class LearningUITests: XCTestCase {
         reference.tap()
         XCTAssertTrue(app.navigationBars["Listen & follow"].waitForExistence(timeout: 5))
         waitForMelodyButton("Hear melody", in: app)
+    }
+
+    private func openMelodyHumming(in app: XCUIApplication) {
+        let piece = app.buttons["piece-hotCrossBuns"]
+        reveal(piece, in: app)
+        piece.tap()
+        let humming = app.buttons["melodyHummingLink"]
+        reveal(humming, in: app)
+        humming.tap()
+        XCTAssertTrue(app.segmentedControls["melodyHummingRegisterPicker"].waitForExistence(timeout: 5))
+        waitForRecord(in: app)
+    }
+
+    private func selectMelodyHummingSection(_ title: String, in app: XCUIApplication) {
+        let sections = app.buttons["melodyHummingSectionPicker"]
+        for _ in 0..<5 {
+            if sections.isHittable { break }
+            app.scrollViews.firstMatch.swipeDown()
+        }
+        XCTAssertTrue(sections.isHittable)
+        sections.tap()
+        let choice = app.buttons.matching(NSPredicate(format: "label == %@ OR label BEGINSWITH %@", title, "\(title) ·")).firstMatch
+        XCTAssertTrue(choice.waitForExistence(timeout: 3))
+        choice.tap()
+        waitForRecord(in: app)
     }
 
     private func waitForMelodyButton(_ label: String, in app: XCUIApplication, timeout: TimeInterval = 5) {

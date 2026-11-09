@@ -182,9 +182,14 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
 
     /// The completion belongs to this take, even if its lesson screen disappears.
     /// Called on main; failed saves deliberately retain the original pending file.
-    func startRecording(onFinished: @escaping (URL, [PitchSample]) -> Void) {
+    func startRecording(maximumDuration: TimeInterval = 90,
+                        onFinished: @escaping (URL, [PitchSample]) -> Void) {
         sessionQueue.async { [weak self] in
             guard let self, !self.recordingRequested else { return }
+            guard maximumDuration.isFinite, maximumDuration > 0, maximumDuration <= 90 else {
+                self.publish { self.message = "This recording length is unavailable. Choose another exercise." }
+                return
+            }
             guard self.session.isRunning, self.wantsToRun else {
                 self.publish { self.message = "Camera and microphone aren’t ready. Tap Record to try again." }
                 return
@@ -214,9 +219,8 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
                     self.recordingStartHostTime = nil
                     self.lastAnalysisTime = 0
                 }
-                self.movieOutput.maxRecordedDuration = CMTime(seconds: 90, preferredTimescale: 600)
+                self.movieOutput.maxRecordedDuration = CMTime(seconds: maximumDuration, preferredTimescale: 600)
                 self.publish {
-                    self.isRecording = true
                     self.elapsed = 0
                     self.message = nil
                 }
@@ -781,6 +785,7 @@ extension CaptureController: AVCaptureFileOutputRecordingDelegate {
             self.lastAnalysisTime = 0
         }
         publish { [self] in
+            self.isRecording = true
             self.displayTimer?.invalidate()
             self.displayStartTime = CACurrentMediaTime()
             self.displayTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in

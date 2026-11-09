@@ -14,6 +14,10 @@ final class SessionStore: ObservableObject {
     private var progressPersistenceError: String?
     private var progressFileIsUnreadable = false
     private var progressNeedsSave = false
+    private var melodyLedger = MelodyProgressLedger()
+    private var melodyPersistenceError: String?
+    private var melodyFileIsUnreadable = false
+    private var melodyNeedsSave = false
 
     init(directory overrideDirectory: URL? = nil) {
         directory = overrideDirectory ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -48,13 +52,14 @@ final class SessionStore: ObservableObject {
             errorMessage = "Could not open your practice history: \(error.localizedDescription)"
         }
         loadProgress()
+        loadMelodyProgress()
         refreshPendingRecordings()
     }
 
     func saveRecording(from source: URL, samples: [PitchSample], exercise: Exercise,
                        notes: String = "", duration: Double, targetFrequency: Double? = nil,
                        melodyContext: MelodyPracticeContext? = nil) async -> PracticeSession? {
-        errorMessage = progressPersistenceError
+        errorMessage = progressPersistenceError ?? melodyPersistenceError
         defer { refreshPendingRecordings() }
         guard melodyContext?.isValid != false else {
             errorMessage = "Could not save this session because its melody reference is invalid. The original recording is preserved at \(source.lastPathComponent)."
@@ -78,13 +83,19 @@ final class SessionStore: ObservableObject {
         } else {
             rating = nil
         }
+        let melodyRating: MelodyRating?
+        if let context = melodyContext, context.gradingVersion == MelodyRating.currentVersion {
+            melodyRating = await MelodyRecordingRater.rate(url: source, context: context)
+        } else {
+            melodyRating = nil
+        }
         let session = PracticeSession(
             id: UUID(), createdAt: Date(), exercise: exercise,
             duration: savedDuration,
             notes: notes, pitchSamples: validSamples, videoFilename: "recording.mov",
             tuningTargetFrequency: exercise.usesComfortableTarget
                 ? actualTarget : nil,
-            rating: rating, melodyContext: melodyContext
+            rating: rating, melodyContext: melodyContext, melodyRating: melodyRating
         )
         let folder = folderURL(for: session)
         do {
@@ -119,6 +130,10 @@ final class SessionStore: ObservableObject {
         progressLedger.progress(for: exercise, targetFrequency: targetFrequency, sessions: sessions)
     }
 
+    func melodyProgress(for context: MelodyPracticeContext) -> PracticeProgress {
+        melodyLedger.progress(for: context, sessions: sessions)
+    }
+
     private var progressURL: URL {
         directory.deletingLastPathComponent().appendingPathComponent("PracticeProgress.json")
     }
@@ -138,10 +153,15 @@ final class SessionStore: ObservableObject {
                 if errorMessage == nil { errorMessage = progressPersistenceError }
             }
         }
-        persistNewMilestones()
+        persistFoundationMilestones()
     }
 
     private func persistNewMilestones() {
+        persistFoundationMilestones()
+        persistMelodyMilestones()
+    }
+
+    private func persistFoundationMilestones() {
         if progressLedger.update(from: sessions) { progressNeedsSave = true }
         guard progressNeedsSave, !progressFileIsUnreadable else { return }
         do {
@@ -157,15 +177,51 @@ final class SessionStore: ObservableObject {
         }
     }
 
+    private var melodyProgressURL: URL {
+        directory.deletingLastPathComponent().appendingPathComponent("MelodyProgress.json")
+    }
+
+    private func loadMelodyProgress() {
+        if FileManager.default.fileExists(atPath: melodyProgressURL.path) {
+            do {
+                let ledger = try JSONDecoder().decode(MelodyProgressLedger.self,
+                    from: Data(contentsOf: melodyProgressURL))
+                guard ledger.schemaVersion == 1 else { throw StorageError.invalidMetadata }
+                melodyLedger = ledger
+            } catch {
+                melodyPersistenceError = "Saved melody progress could not be read. Its file and all recordings have been preserved."
+                melodyFileIsUnreadable = true
+                if errorMessage == nil { errorMessage = melodyPersistenceError }
+            }
+        }
+        persistMelodyMilestones()
+    }
+
+    private func persistMelodyMilestones() {
+        if melodyLedger.update(from: sessions) { melodyNeedsSave = true }
+        guard melodyNeedsSave, !melodyFileIsUnreadable else { return }
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            try encoder.encode(melodyLedger).write(to: melodyProgressURL, options: .atomic)
+            melodyNeedsSave = false
+            if errorMessage == melodyPersistenceError { errorMessage = nil }
+            melodyPersistenceError = nil
+        } catch {
+            melodyPersistenceError = "Your recording is saved, but melody progress could not be saved. \(error.localizedDescription)"
+            errorMessage = melodyPersistenceError
+        }
+    }
+
     func delete(_ session: PracticeSession) {
         // Rated recordings may be the only durable proof of an earned milestone.
         // Preserve that proof until the separate progress file is safely written.
         persistNewMilestones()
-        guard !progressNeedsSave else {
-            errorMessage = progressPersistenceError
+        guard !progressNeedsSave, !melodyNeedsSave else {
+            errorMessage = progressPersistenceError ?? melodyPersistenceError
             return
         }
-        errorMessage = progressPersistenceError
+        errorMessage = progressPersistenceError ?? melodyPersistenceError
         do {
             try FileManager.default.removeItem(at: folderURL(for: session))
             sessions.removeAll { $0.id == session.id }
@@ -310,7 +366,7 @@ final class SessionStore: ObservableObject {
         # Cello practice session
 
         - Recorded: \(ISO8601DateFormatter().string(from: session.createdAt))
-        - Exercise: \(session.exercise.title)
+        - Exercise: \(session.title)
         - Duration: \(String(format: "%.1f", session.duration)) seconds
         - Target: \(target)
         - Pitch observations: \(session.pitchSamples.count)
@@ -345,6 +401,20 @@ final class SessionStore: ObservableObject {
             if let spread = rating.settledSpreadCents {
                 result += "- Settled pitch variation: \(String(format: "%.1f", spread)) cents\n"
             }
+        }
+        if let rating = session.melodyRating {
+            result += "\n\n## Melody feedback\n\n"
+            result += "- Scoring version: \(rating.version)\n"
+            if let stars = rating.starCount {
+                result += "- Goals reached: \(stars) of 3\n"
+                result += "- Notes: \(rating.notes ? "reached" : "keep practising")\n"
+                result += "- Timing: \(rating.timing ? "reached" : "keep practising")\n"
+                result += "- Clarity: \(rating.clarity ? "reached" : "keep practising")\n"
+            } else {
+                result += "- Result: not rated (\(rating.status.rawValue))\n"
+            }
+            result += "- Feedback: \(rating.feedback)\n"
+            result += "- Octave mismatch: \(rating.octaveMismatch ? "detected; pitches were not shifted" : "not detected")\n"
         }
         result += """
 

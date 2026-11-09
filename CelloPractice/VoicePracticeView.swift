@@ -27,11 +27,13 @@ struct VoicePracticeView<Header: View>: View {
     @State private var saving = false
     @State private var saved = false
     @State private var latestSession: PracticeSession?
-    private var latestRating: PracticeRating? { latestSession?.rating }
+    private var hasResult: Bool { latestSession?.rating != nil || latestSession?.melodyRating != nil }
 
     let exercise: Exercise
     let section: PracticeSection
     private let targetFrequency: Double
+    private let melodyContext: MelodyPracticeContext?
+    private let onNextPhrase: (() -> Void)?
     private let nextLesson: PracticeLesson?
     private let onStartLesson: (PracticeLesson) -> Void
     private let onShowLessons: () -> Void
@@ -48,19 +50,39 @@ struct VoicePracticeView<Header: View>: View {
         self.exercise = exercise
         self.section = section
         self.targetFrequency = section.effectiveTarget(for: exercise)
+        self.melodyContext = nil
+        self.onNextPhrase = nil
         self.nextLesson = nextLesson
         self.onStartLesson = onStartLesson
         self.onShowLessons = onShowLessons
         self.header = header
     }
 
+    init(store: SessionStore, capture: CaptureController, context: MelodyPracticeContext,
+         onNextPhrase: (() -> Void)?, @ViewBuilder header: @escaping (Bool) -> Header) {
+        precondition(context.isValid && context.gradingVersion == MelodyRating.currentVersion)
+        self.store = store
+        self.capture = capture
+        self.exercise = .listen
+        self.section = .humming
+        self.targetFrequency = context.expectedEvents.compactMap { context.frequency(for: $0) }.first ?? context.tuningA4Hz
+        self.melodyContext = context
+        self.onNextPhrase = onNextPhrase
+        self.nextLesson = nil
+        self.onStartLesson = { _ in }
+        self.onShowLessons = {}
+        self.header = header
+    }
+
     var body: some View {
         recordingPracticeScreen
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    PracticeLessonsButton(disabled: controlsLocked) {
-                        cancelFlow(stopCapture: true)
-                        onShowLessons()
+                if melodyContext == nil {
+                    ToolbarItem(placement: .topBarLeading) {
+                        PracticeLessonsButton(disabled: controlsLocked) {
+                            cancelFlow(stopCapture: true)
+                            onShowLessons()
+                        }
                     }
                 }
                 if capture.isReady {
@@ -75,6 +97,7 @@ struct VoicePracticeView<Header: View>: View {
             .onAppear { isVisible = true }
             .onDisappear { isVisible = false; cancelFlow(stopCapture: true) }
             .onChange(of: scenePhase) { _, newPhase in
+                guard isVisible else { return }
                 if newPhase == .background {
                     cancelFlow(stopCapture: true)
                 } else if newPhase == .active {
@@ -86,6 +109,7 @@ struct VoicePracticeView<Header: View>: View {
                 }
             }
             .onChange(of: capture.isReady) { _, ready in
+                guard isVisible else { return }
                 if ready {
                     dispatchPendingAction()
                 } else if phase != .preparing {
@@ -93,10 +117,12 @@ struct VoicePracticeView<Header: View>: View {
                 }
             }
             .onChange(of: capture.isPlayingReference) { wasPlaying, playing in
+                guard isVisible else { return }
                 guard wasPlaying, !playing else { return }
                 if phase == .previewing { phase = .idle }
             }
             .onChange(of: capture.isRecording) { _, recording in
+                guard isVisible else { return }
                 if recording { phase = .recording }
                 else if phase == .recording || phase == .startingRecording {
                     let needsRest = timedRecording && isVisible
@@ -107,7 +133,7 @@ struct VoicePracticeView<Header: View>: View {
                 }
             }
             .onChange(of: capture.elapsed) { _, elapsed in
-                if timedRecording && !stopRequested && elapsed >= 3 {
+                if isVisible && timedRecording && !stopRequested && elapsed >= recordingDuration {
                     stopRequested = true
                     capture.stopRecording()
                 }
@@ -115,7 +141,7 @@ struct VoicePracticeView<Header: View>: View {
             .onReceive(capture.$message) { message in
                 // Published messages can repeat (for example after a denied
                 // permission retry); every failure must release Preparing.
-                if message != nil && !capture.isRecording { cancelFlow(stopCapture: true) }
+                if isVisible && message != nil && !capture.isRecording { cancelFlow(stopCapture: true) }
             }
     }
 
@@ -125,22 +151,27 @@ struct VoicePracticeView<Header: View>: View {
                 VStack(alignment: .leading, spacing: 20) {
                     header(controlsLocked)
                     targetControls
-                    if let session = latestSession, let rating = session.rating, !isBusy && !capture.isRecording && !saving {
+                    if let session = latestSession, hasResult, !isBusy && !capture.isRecording && !saving {
                         VStack(spacing: 16) {
-                            PracticeRatingView(rating: rating)
-                                .accessibilityIdentifier("latestRatingCard")
-                            lessonProgress
-                            if let target = session.effectiveTargetFrequency {
-                                PitchTraceView(samples: session.pitchSamples, targetFrequency: target, duration: session.duration)
+                            if let rating = session.melodyRating, let context = session.melodyContext {
+                                MelodyFeedbackView(rating: rating)
+                                MelodyTraceView(context: context, rating: rating, duration: session.duration)
+                            } else if let rating = session.rating {
+                                PracticeRatingView(rating: rating)
+                                    .accessibilityIdentifier("latestRatingCard")
+                                if let target = session.effectiveTargetFrequency {
+                                    PitchTraceView(samples: session.pitchSamples, targetFrequency: target, duration: session.duration)
+                                }
                             }
+                            lessonProgress
                         }.id("latestRating")
                     } else {
                         tuner
                     }
-                    if latestRating == nil && !isBusy && !capture.isRecording && !saving {
+                    if !hasResult && !isBusy && !capture.isRecording && !saving {
                         lessonProgress
                     }
-                    if latestRating != nil && !isBusy && !capture.isRecording && !saving {
+                    if hasResult && !isBusy && !capture.isRecording && !saving {
                         DisclosureGroup("Live tuner") { tuner.padding(.top, 10) }
                             .font(.subheadline.weight(.medium)).foregroundStyle(Palette.forest)
                     }
@@ -154,33 +185,53 @@ struct VoicePracticeView<Header: View>: View {
                     }
                 }.padding(.horizontal, 22).padding(.top, 16).padding(.bottom, 26)
             }
-            .onChange(of: latestRating) { _, rating in
+            .onChange(of: latestSession?.id) { _, id in
                 withAnimation {
-                    scroll.scrollTo(rating == nil ? "practiceTop" : "latestRating", anchor: .top)
+                    scroll.scrollTo(id == nil ? "practiceTop" : "latestRating", anchor: .top)
                 }
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) { recordingControls }
     }
 
-    private var lessonProgress: some View {
-        PracticeProgressView(progress: store.progress(for: exercise, targetFrequency: targetFrequency),
-                             nextLesson: nextLesson, onNext: startLesson, disabled: restSeconds > 0)
+    @ViewBuilder private var lessonProgress: some View {
+        if let context = melodyContext {
+            let progress = store.melodyProgress(for: context)
+            HStack {
+                PracticeProgressView(progress: progress)
+                if let onNextPhrase {
+                    Button(progress.completed ? "Next phrase" : "Try next phrase") {
+                        guard canStartAction else { return }
+                        cancelFlow(stopCapture: true)
+                        onNextPhrase()
+                    }.font(.caption.weight(.semibold)).foregroundStyle(Palette.forest)
+                        .disabled(controlsLocked || restSeconds > 0)
+                        .accessibilityIdentifier("nextMelodyPhraseButton")
+                }
+            }
+        } else {
+            PracticeProgressView(progress: store.progress(for: exercise, targetFrequency: targetFrequency),
+                                 nextLesson: nextLesson, onNext: startLesson, disabled: restSeconds > 0)
+        }
     }
 
     private var targetControls: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
-                Text("TARGET").font(.system(size: 10, weight: .semibold)).tracking(1.4)
+                Text(melodyContext == nil ? "TARGET" : "REFERENCE TONES")
+                    .font(.system(size: 10, weight: .semibold)).tracking(1.4)
                     .foregroundStyle(Palette.muted)
-                Text(String(format: "%@ · %.1f Hz", targetNote, targetFrequency))
+                Text(melodyContext.map { "\($0.referenceKey) · \($0.register.rangeLabel)" }
+                     ?? String(format: "%@ · %.1f Hz", targetNote, targetFrequency))
                     .font(.subheadline.weight(.medium)).foregroundStyle(Palette.ink)
                     .accessibilityIdentifier("currentTargetLabel")
-                    .accessibilityLabel(String(format: "Target %@ · %.1f Hz", targetNote, targetFrequency))
+                    .accessibilityLabel(melodyContext.map { "Reference \($0.referenceKey), \($0.register.rangeLabel)" }
+                                        ?? String(format: "Target %@ · %.1f Hz", targetNote, targetFrequency))
             }
             Spacer(minLength: 0)
             Button { previewReference() } label: {
-                Label(section == .humming ? "Hear hum" : "Hear string", systemImage: "speaker.wave.2")
+                Label(melodyContext.map { $0.section == .whole ? "Hear melody" : "Hear phrase" }
+                      ?? (section == .humming ? "Hear hum" : "Hear string"), systemImage: "speaker.wave.2")
                     .font(.subheadline.weight(.medium)).frame(minHeight: 44)
                     .padding(.horizontal, 14)
                     .background(Palette.forest.opacity(0.06), in: Capsule())
@@ -247,7 +298,8 @@ struct VoicePracticeView<Header: View>: View {
                 Text(pitchMessage).font(.subheadline).multilineTextAlignment(.center)
                     .foregroundStyle(.white.opacity(0.85)).frame(minHeight: 22)
             }.padding(.vertical, 4)
-            PitchMeter(cents: reading.cents ?? 0, active: reading.cents != nil && !isBusy && !saving, range: meterRange)
+            PitchMeter(cents: reading.cents ?? 0,
+                       active: currentTarget != nil && reading.cents != nil && !isBusy && !saving, range: meterRange)
                 .frame(height: 30).padding(.horizontal, 6)
             HStack {
                 Text("Low")
@@ -282,9 +334,15 @@ struct VoicePracticeView<Header: View>: View {
         return capture.isRecording ? (section == .humming ? "Hum" : "Play") : "Ready"
     }
     private var targetNote: String { TunerReading(frequency: targetFrequency, targetFrequency: nil).noteName }
-    private var reading: TunerReading { TunerReading(frequency: capture.frequency, targetFrequency: targetFrequency) }
+    private var currentTarget: Double? {
+        guard let context = melodyContext else { return targetFrequency }
+        guard let index = context.eventIndex(at: capture.isRecording ? capture.elapsed : 0) else { return nil }
+        return context.frequency(for: context.expectedEvents[index])
+    }
+    private var reading: TunerReading { TunerReading(frequency: capture.frequency, targetFrequency: currentTarget) }
     private var meterRange: Double { exercise.usesComfortableTarget ? 200 : 50 }
-    private var isGuidedHumming: Bool { exercise == .steadyHum || exercise == .matchHum }
+    private var isGuidedHumming: Bool { melodyContext != nil || exercise == .steadyHum || exercise == .matchHum }
+    private var recordingDuration: TimeInterval { melodyContext?.duration ?? 3 }
     private var isBusy: Bool { phase != .idle && phase != .recording }
     private var controlsLocked: Bool { isBusy || capture.isRecording || saving || capture.isPlayingReference }
     private var recordButtonTitle: String {
@@ -304,13 +362,19 @@ struct VoicePracticeView<Header: View>: View {
         switch phase {
         case .preparing: return "Preparing camera & microphone…"
         case .previewing:
+            if let context = melodyContext { return context.section == .whole ? "Listen to the melody" : "Listen to the phrase" }
             return section == .humming ? "Listen to the hum" : "Listen to the string note"
         case .counting: return isGuidedHumming ? "Get ready to hum" : "Get ready to play"
         case .startingRecording: return "Starting recording…"
         case .recording:
+            if melodyContext != nil {
+                return currentTarget.map { "Hum \(TunerReading(frequency: $0, targetFrequency: nil).noteName) · follow the phrase" } ?? "Rest"
+            }
             guard reading.frequency != nil else { return isGuidedHumming ? "Hum one gentle note" : "Play one steady note" }
         case .idle:
-            guard reading.frequency != nil else { return "Record starts with 3–2–1" }
+            guard reading.frequency != nil else {
+                return melodyContext.map { "3–2–1, then hum for \(Int($0.duration)) seconds" } ?? "Record starts with 3–2–1"
+            }
         }
         guard let cents = reading.cents else { return "Listening…" }
         if abs(cents) <= 10 { return "Close to the target" }
@@ -340,7 +404,8 @@ struct VoicePracticeView<Header: View>: View {
         pendingRecord = false
         phase = .previewing
         // Hearing a reference needs playback only, without camera or mic setup.
-        if section == .humming { capture.playHummingExample() }
+        if let context = melodyContext { capture.playMelodyReference(context) }
+        else if section == .humming { capture.playHummingExample() }
         else { capture.playReferenceTone(frequency: targetFrequency) }
     }
 
@@ -384,7 +449,7 @@ struct VoicePracticeView<Header: View>: View {
                 cancelFlow(stopCapture: false)
                 return
             }
-            timedRecording = exercise == .steadyHum || exercise == .matchHum
+            timedRecording = isGuidedHumming
             stopRequested = false
             phase = .startingRecording
             startRecording()
@@ -395,14 +460,16 @@ struct VoicePracticeView<Header: View>: View {
         // Capture only the frozen lesson, store and individual state bindings.
         // Capturing the whole view would also retain the capture controller.
         // The weak controller avoids a cycle while a late finish still saves.
-        capture.startRecording { [weak capture = capture, store, exercise, targetFrequency,
+        capture.startRecording(maximumDuration: timedRecording ? recordingDuration : 90) {
+            [weak capture = capture, store, exercise, targetFrequency, melodyContext,
                                   saving = $saving, saved = $saved,
                                   latestSession = $latestSession, isVisible = $isVisible] url, samples in
             saving.wrappedValue = true
             let fallbackDuration = capture?.elapsed ?? 0
             Task { @MainActor in
                 let result = await store.saveRecording(from: url, samples: samples,
-                    exercise: exercise, duration: fallbackDuration, targetFrequency: targetFrequency)
+                    exercise: exercise, duration: fallbackDuration, targetFrequency: targetFrequency,
+                    melodyContext: melodyContext)
                 saving.wrappedValue = false
                 saved.wrappedValue = result != nil
                 if let result, isVisible.wrappedValue {

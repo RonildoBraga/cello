@@ -100,10 +100,13 @@ struct PracticeSession: Identifiable, Codable {
     /// A melody take keeps the score, register and tempo selected before recording.
     /// Existing single-note recordings omit this field.
     let melodyContext: MelodyPracticeContext?
+    /// Melody feedback is frozen with the take and never replaces foundation feedback.
+    let melodyRating: MelodyRating?
 
     init(id: UUID, createdAt: Date, exercise: Exercise, duration: Double, notes: String,
          pitchSamples: [PitchSample], videoFilename: String, tuningTargetFrequency: Double? = nil,
-         rating: PracticeRating? = nil, melodyContext: MelodyPracticeContext? = nil) {
+         rating: PracticeRating? = nil, melodyContext: MelodyPracticeContext? = nil,
+         melodyRating: MelodyRating? = nil) {
         self.id = id
         self.createdAt = createdAt
         self.exercise = exercise
@@ -114,7 +117,16 @@ struct PracticeSession: Identifiable, Codable {
         self.tuningTargetFrequency = tuningTargetFrequency
         self.rating = rating
         self.melodyContext = melodyContext
+        self.melodyRating = melodyRating
     }
+
+    var title: String {
+        guard let context = melodyContext else { return exercise.title }
+        let piece = context.pieceID == "hotCrossBuns" ? "Hot Cross Buns" : "Melody"
+        return "\(piece) · \(context.section.title)"
+    }
+
+    var starCount: Int? { melodyContext == nil ? rating?.starCount : melodyRating?.starCount }
 
     var effectiveTargetFrequency: Double? {
         guard melodyContext == nil else { return nil }

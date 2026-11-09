@@ -130,7 +130,7 @@ struct RecordingsView: View {
                                         .frame(width: 42, height: 42)
                                         .background(Palette.forest.opacity(0.07), in: RoundedRectangle(cornerRadius: 13))
                                     VStack(alignment: .leading, spacing: 5) {
-                                        Text(session.exercise.title).font(.subheadline.weight(.semibold))
+                                        Text(session.title).font(.subheadline.weight(.semibold))
                                             .foregroundStyle(Palette.ink)
                                         Text(session.createdAt.formatted(date: .abbreviated, time: .shortened))
                                             .font(.caption).foregroundStyle(Palette.muted)
@@ -139,7 +139,7 @@ struct RecordingsView: View {
                                     VStack(alignment: .trailing, spacing: 5) {
                                         Text(timeString(session.duration)).font(.caption.monospacedDigit())
                                             .foregroundStyle(Palette.muted)
-                                        if let stars = session.rating?.starCount {
+                                        if let stars = session.starCount {
                                             Label("\(stars)/3", systemImage: "star.fill").font(.caption2.weight(.semibold))
                                                 .foregroundStyle(Palette.gold)
                                                 .accessibilityLabel("\(stars) of 3 stars")
@@ -180,7 +180,7 @@ struct SessionDetailView: View {
             VStack(alignment: .leading, spacing: 20) {
                 VStack(alignment: .leading, spacing: 7) {
                     HStack(alignment: .firstTextBaseline) {
-                        Text(session.exercise.title)
+                        Text(session.title)
                             .font(.system(size: 27, weight: .semibold, design: .serif))
                             .foregroundStyle(Palette.ink)
                         Spacer(minLength: 8)
@@ -190,12 +190,17 @@ struct SessionDetailView: View {
                     Text(session.createdAt.formatted(date: .long, time: .shortened))
                         .font(.caption).foregroundStyle(Palette.muted)
                 }
-                if let rating = session.rating {
+                if let rating = session.melodyRating, let context = session.melodyContext {
+                    MelodyFeedbackView(rating: rating)
+                    MelodyTraceView(context: context, rating: rating, duration: session.duration)
+                } else if let rating = session.rating {
                     PracticeRatingView(rating: rating)
                         .accessibilityIdentifier("archivedRatingCard")
                 }
                 if let target = session.effectiveTargetFrequency {
                     PitchTraceView(samples: session.pitchSamples, targetFrequency: target, duration: session.duration)
+                } else if let context = session.melodyContext, session.melodyRating == nil {
+                    MelodyTraceView(context: context, samples: session.pitchSamples, duration: session.duration)
                 }
                 VStack(alignment: .leading, spacing: 10) {
                     Label("Playback", systemImage: "play.rectangle")

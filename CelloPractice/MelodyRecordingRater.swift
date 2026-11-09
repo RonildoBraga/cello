@@ -1,0 +1,209 @@
+import CelloPitch
+import Foundation
+
+/// Compares independently measured sound with a frozen score on the recording's
+/// original timeline. It never transposes a hum or shifts it onto the target.
+enum MelodyRecordingRater {
+    static func rate(url: URL, context: MelodyPracticeContext) async -> MelodyRating {
+        do {
+            let samples = try await RecordingAudio.read(url: url, maximumDuration: min(26, context.duration + 2))
+            return await Task.detached(priority: .userInitiated) {
+                rate(samples: samples, sampleRate: 48_000, context: context)
+            }.value
+        } catch { return MelodyRating(status: .unclear) }
+    }
+
+    static func rate(samples: [Float], sampleRate: Double, context: MelodyPracticeContext) -> MelodyRating {
+        guard context.isValid, context.gradingVersion == MelodyRating.currentVersion,
+              context.duration <= 24, context.expectedEvents.contains(where: { $0.midiNote != nil }),
+              sampleRate.isFinite, (8_000...96_000).contains(sampleRate),
+              !samples.isEmpty, Double(samples.count) / sampleRate <= min(26, context.duration + 2),
+              samples.allSatisfy(\.isFinite) else { return MelodyRating(status: .unclear) }
+        let clipped = Double(samples.filter { abs($0) >= 0.999 }.count) / Double(samples.count)
+        guard clipped < 0.001 else { return MelodyRating(status: .unclear) }
+        // Automatic movie stop can include a short audio tail. Grade exactly the
+        // frozen exercise interval while the original movie and live samples stay
+        // available for review. This never moves the learner's onset in time.
+        let count = min(samples.count, Int((context.duration * sampleRate).rounded(.down)))
+        return analyse(samples: Array(samples.prefix(count)), sampleRate: sampleRate, context: context)
+    }
+
+    private static func analyse(samples: [Float], sampleRate: Double, context: MelodyPracticeContext) -> MelodyRating {
+        let window = max(512, Int(sampleRate * (8_192.0 / 48_000)))
+        guard samples.count >= window else { return MelodyRating(status: .insufficientSound) }
+
+        let cellSize = max(1, Int(sampleRate * 0.01))
+        let levels: [Double] = stride(from: 0, to: samples.count, by: cellSize).map { start in
+            let cell = samples[start..<min(start + cellSize, samples.count)]
+            let mean = cell.reduce(0.0) { $0 + Double($1) } / Double(cell.count)
+            return sqrt(cell.reduce(0.0) { $0 + pow(Double($1) - mean, 2) } / Double(cell.count))
+        }
+        let floor = max(0.0008, min(0.01, (levels.max() ?? 0) * 0.08))
+        let hop = max(1, Int(sampleRate * 0.05))
+        var starts = Array(stride(from: 0, through: samples.count - window, by: hop))
+        if starts.last != samples.count - window { starts.append(samples.count - window) }
+        let detector = PitchDetector()
+        let frames = starts.map { start -> Frame in
+            let sound = Array(samples[start..<(start + window)])
+            let estimate = detector.estimate(samples: sound, sampleRate: sampleRate)
+            let accepted = estimate.flatMap { $0.confidence >= 0.80 ? $0 : nil }
+            return Frame(time: Double(start + window / 2) / sampleRate, estimate: accepted,
+                         ambiguous: accepted.map {
+                RecordingAudio.octaveIsAmbiguous(sound, sampleRate: sampleRate, frequency: $0.frequency)
+            } ?? false)
+        }
+        var frameIndex = 0
+        let cells: [Cell] = levels.enumerated().map { index, rms in
+            let time = (Double(index * cellSize) + Double(cellSize) / 2) / sampleRate
+            while frameIndex + 1 < frames.count,
+                  abs(frames[frameIndex + 1].time - time) < abs(frames[frameIndex].time - time) { frameIndex += 1 }
+            let frame = frames[frameIndex]
+            let active = rms >= floor
+            let estimate = active && abs(frame.time - time) <= Double(window) / sampleRate / 2 + 0.001
+                ? frame.estimate : nil
+            return Cell(time: time, active: active, frequency: estimate?.frequency,
+                        confidence: estimate?.confidence ?? 0, rms: rms,
+                        ambiguous: estimate != nil && frame.ambiguous)
+        }
+        let cellDuration = Double(cellSize) / sampleRate
+        let activeDuration = Double(cells.filter(\.active).count) * cellDuration
+        let voiced = cells.filter { $0.frequency != nil }
+        let voicedDuration = Double(voiced.count) * cellDuration
+        let ambiguousFraction = voiced.isEmpty ? 0 : Double(voiced.filter(\.ambiguous).count) / Double(voiced.count)
+        let points = cells.enumerated().compactMap { index, cell in
+            index.isMultiple(of: 5) ? MelodyPitchPoint(time: cell.time, frequency: cell.frequency,
+                confidence: cell.confidence, rms: cell.rms, ambiguous: cell.ambiguous) : nil
+        }
+
+        // Boundaries are inferred without the score: amplitude reattacks and
+        // sustained pitch changes. One sustained note cannot stand in for eight taps.
+        let boundaries = observedBoundaries(cells: cells, attackWindowDuration: Double(window) / sampleRate)
+        var pitchedOrdinal = 0
+        let secondsPerBeat = 60 / Double(context.tempoBPM)
+        let results = context.expectedEvents.enumerated().map { index, event -> MelodyNoteResult in
+            let start = event.onsetBeat * secondsPerBeat
+            let duration = event.durationBeats * secondsPerBeat
+            let end = start + duration
+            let inset = min(0.10, duration * 0.20)
+            let interior = cells.filter { $0.time >= start + inset && $0.time < end - min(0.08, duration * 0.15) }
+            let expectedInterior = max(0.01, duration - inset - min(0.08, duration * 0.15))
+            let activeCoverage = Double(interior.filter(\.active).count) * cellDuration / expectedInterior
+            let expectedFrequency = context.frequency(for: event)
+            let onset: Double?
+            let segmentEnd: Double?
+            if expectedFrequency != nil {
+                onset = boundaries.indices.contains(pitchedOrdinal) ? boundaries[pitchedOrdinal] : nil
+                segmentEnd = boundaries.indices.contains(pitchedOrdinal + 1)
+                    ? boundaries[pitchedOrdinal + 1] : Double(samples.count) / sampleRate
+                pitchedOrdinal += 1
+            } else { onset = nil; segmentEnd = nil }
+            // Sequence pitch and clarity use independently detected sound segments;
+            // timing still uses absolute movie time. A late, correct sequence can
+            // earn Notes without disguising its late starts as correct Timing.
+            let observed: [Cell]
+            if let onset, let finish = segmentEnd {
+                let segmentDuration = max(0, finish - onset)
+                observed = cells.filter {
+                    $0.time >= onset + min(0.10, segmentDuration * 0.20)
+                        && $0.time < finish - min(0.08, segmentDuration * 0.15)
+                }
+            } else { observed = [] }
+            let usable = observed.filter { $0.frequency != nil && !$0.ambiguous }
+            let voicedCoverage = Double(usable.count) * cellDuration / expectedInterior
+            let observedFrequency = median(usable.compactMap(\.frequency))
+            let octaveMismatch = observedFrequency.flatMap { measured in expectedFrequency.map {
+                let cents = abs(1_200 * log2(measured / $0))
+                return abs(cents - 1_200) <= 90
+            } } ?? false
+            let near = expectedFrequency.map { expected in
+                Double(usable.filter { abs(1_200 * log2(($0.frequency ?? 0) / expected)) <= 70 }.count)
+                    / Double(max(1, usable.count))
+            } ?? 0
+            let restQuiet = activeCoverage <= 0.20
+            let matched = expectedFrequency == nil ? restQuiet : voicedCoverage >= 0.35 && near >= 0.75
+            let clear = expectedFrequency == nil ? restQuiet : voicedCoverage >= 0.70
+                && median(usable.map(\.confidence)).map { $0 >= 0.85 } == true
+            let nearStart = onset.map { abs($0 - start) <= min(0.20, duration * 0.35) } ?? false
+            let timed = expectedFrequency == nil ? restQuiet : nearStart && activeCoverage >= 0.60
+                && Double(samples.count) / sampleRate >= end - min(0.15, duration * 0.20)
+            return MelodyNoteResult(expectedIndex: index, expectedStart: start, expectedDuration: duration,
+                expectedFrequency: expectedFrequency, observedFrequency: observedFrequency,
+                observedOnset: onset, matched: matched, timed: timed,
+                clear: clear, octaveMismatch: octaveMismatch)
+        }
+        let expectedNotes = context.expectedEvents.filter { $0.midiNote != nil }.count
+        let extraNotes = max(0, boundaries.count - expectedNotes)
+        // Extra observed notes count against sequence/timing, rather than being
+        // discarded once the expected number of notes has been consumed.
+        let eventCount = Double(results.count + extraNotes)
+        let matchedFraction = Double(results.filter(\.matched).count) / eventCount
+        let timedFraction = Double(results.filter(\.timed).count) / eventCount
+        let clearFraction = Double(results.filter(\.clear).count) / Double(results.count)
+        let outsideSound = cells.filter { cell in
+            cell.active && !context.expectedEvents.contains { event in
+                cell.time >= event.onsetBeat * secondsPerBeat && cell.time < event.endBeat * secondsPerBeat
+            }
+        }.count
+        let status: MelodyRating.Status
+        if voicedDuration < max(0.35, context.duration * 0.12) {
+            status = activeDuration >= max(0.35, context.duration * 0.12) ? .unclear : .insufficientSound
+        } else if activeDuration == 0 || voicedDuration / activeDuration < 0.55 || ambiguousFraction >= 0.15 {
+            status = .unclear
+        } else { status = .rated }
+        return MelodyRating(status: status, notes: matchedFraction + 1e-9 >= 0.80,
+            timing: timedFraction + 1e-9 >= 0.80 && Double(outsideSound) * cellDuration <= 0.15,
+            clarity: clearFraction + 1e-9 >= 0.80 && voicedDuration / max(0.001, activeDuration) >= 0.80,
+            voicedDuration: voicedDuration, matchedNoteFraction: matchedFraction,
+            timedNoteFraction: timedFraction, clearNoteFraction: clearFraction,
+            octaveMismatch: results.contains(where: \.octaveMismatch), noteResults: results, pitchPoints: points)
+    }
+
+    private struct Frame { let time: Double; let estimate: PitchEstimate?; let ambiguous: Bool }
+    private struct Cell {
+        let time: Double; let active: Bool; let frequency: Double?
+        let confidence: Double; let rms: Double; let ambiguous: Bool
+    }
+
+    private static func observedBoundaries(cells: [Cell], attackWindowDuration: Double) -> [Double] {
+        var boundaries: [Double] = []
+        var inactiveCount = 3
+        var previousFrequency: Double?
+        for (index, cell) in cells.enumerated() {
+            if !cell.active { inactiveCount += 1; continue }
+            let attack = inactiveCount >= 3
+            inactiveCount = 0
+            if attack, boundaries.last.map({ cell.time - $0 >= 0.12 }) ?? true {
+                boundaries.append(max(0, cell.time - 0.005))
+                previousFrequency = cell.frequency
+            }
+            guard let frequency = cell.frequency, !cell.ambiguous else { continue }
+            // The first pitch windows overlap the attack and may still contain
+            // the preceding note. Refresh that transient baseline before looking
+            // for another change; never create a second onset from its settling.
+            if let lastBoundary = boundaries.last, cell.time - lastBoundary < attackWindowDuration {
+                previousFrequency = frequency
+                continue
+            }
+            let changed = previousFrequency.map { abs(1_200 * log2(frequency / $0)) >= 100 } ?? false
+            // A change must survive the next 80ms, avoiding transient/glissando spikes.
+            let following = cells[index..<min(cells.count, index + 8)].compactMap(\.frequency)
+            let stable = following.count >= 5 && following.filter {
+                abs(1_200 * log2($0 / frequency)) <= 80
+            }.count >= 5
+            if changed && stable {
+                if boundaries.last.map({ cell.time - $0 >= 0.12 }) ?? true {
+                    boundaries.append(max(0, cell.time - 0.005))
+                    previousFrequency = frequency
+                }
+            } else if previousFrequency == nil { previousFrequency = frequency }
+        }
+        return boundaries
+    }
+
+    private static func median(_ values: [Double]) -> Double? {
+        guard !values.isEmpty else { return nil }
+        let sorted = values.sorted()
+        let middle = sorted.count / 2
+        return sorted.count.isMultiple(of: 2) ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle]
+    }
+}

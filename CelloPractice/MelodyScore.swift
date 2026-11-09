@@ -97,7 +97,7 @@ enum MelodySection: String, CaseIterable, Identifiable, Codable, Sendable {
 }
 
 /// A frozen selection, so future recordings never depend on changed app settings.
-/// Grading is deliberately absent until melody assessment is implemented.
+/// A nil grading version identifies reference-only selections from the first release.
 struct MelodyPracticeContext: Codable, Equatable, Sendable {
     let pieceID: String
     let scoreVersion: Int
@@ -136,8 +136,9 @@ struct MelodyPracticeContext: Codable, Equatable, Sendable {
     }
 
     static func hotCrossBuns(register: MelodyRegister, section: MelodySection = .whole,
-                             tempoBPM: Int = 60) throws -> MelodyPracticeContext {
+                             tempoBPM: Int = 60, gradingVersion: Int? = nil) throws -> MelodyPracticeContext {
         guard supportedTempoRange.contains(tempoBPM) else { throw ContextError.invalidTempo }
+        guard gradingVersion.map({ $0 > 0 }) ?? true else { throw ContextError.invalidGradingVersion }
         let score = MelodyScore.hotCrossBuns
         let range = section.beatRange
         let events = score.events.filter { range.contains($0.onsetBeat) }.map {
@@ -149,7 +150,7 @@ struct MelodyPracticeContext: Codable, Equatable, Sendable {
                                      register: register, referenceKey: register.keyName,
                                      tuningA4Hz: 440, tempoBPM: tempoBPM, section: section,
                                      expectedEvents: events, durationBeats: range.upperBound - range.lowerBound,
-                                     gradingVersion: nil)
+                                     gradingVersion: gradingVersion)
     }
 
     func frequency(for event: MelodyEvent) -> Double? {
@@ -165,7 +166,10 @@ struct MelodyPracticeContext: Codable, Equatable, Sendable {
 
     enum ContextError: LocalizedError {
         case invalidTempo
+        case invalidGradingVersion
 
-        var errorDescription: String? { "Choose a tempo from 40 to 120 beats per minute." }
+        var errorDescription: String? {
+            self == .invalidTempo ? "Choose a tempo from 40 to 120 beats per minute." : "This scoring version is unavailable."
+        }
     }
 }
