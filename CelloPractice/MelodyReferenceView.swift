@@ -17,26 +17,25 @@ struct MelodyReferenceView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 20) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Hot Cross Buns")
-                        .font(.system(size: 30, weight: .semibold, design: .serif))
+                        .font(.system(size: 27, weight: .semibold, design: .serif))
                         .foregroundStyle(Palette.ink)
                     Text("Listen first, then gently hum along. Choose a register that feels easy.")
                         .font(.subheadline).foregroundStyle(Palette.muted)
                 }
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Reference register").font(.subheadline.weight(.semibold))
                     Picker("Reference register", selection: $register) {
                         ForEach(MelodyRegister.allCases) { item in
                             Text(item.title).tag(item)
                         }
                     }.pickerStyle(.segmented).accessibilityIdentifier("melodyRegisterPicker")
-                    Text("\(register.keyName) · \(register.rangeLabel) · 60 BPM")
-                        .font(.footnote).foregroundStyle(Palette.muted)
+                    Text("Reference tones · \(register.keyName) · \(register.rangeLabel) · 60 BPM")
+                        .font(.caption).foregroundStyle(Palette.muted)
                         .accessibilityIdentifier("melodyReferenceKey")
                 }
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Text("Follow the notes").font(.headline)
                         Spacer()
@@ -85,7 +84,7 @@ struct MelodyReferenceView: View {
             Int($0.element.onsetBeat / 4) == phrase
         }
         let current = capture.isPlayingReference ? context.eventIndex(at: capture.referenceElapsed) : nil
-        return VStack(alignment: .leading, spacing: 8) {
+        return VStack(alignment: .leading, spacing: 6) {
             Text(section == .whole ? "Phrase \(phrase + 1)" : section.title)
                 .font(.caption.weight(.medium)).foregroundStyle(Palette.muted)
             GeometryReader { geometry in
@@ -98,14 +97,14 @@ struct MelodyReferenceView: View {
                             .font(.system(size: 14, weight: .semibold, design: .rounded))
                             .minimumScaleFactor(0.7).lineLimit(1)
                             .frame(width: max(0, (geometry.size.width - CGFloat(events.count - 1) * 4)
-                                * event.durationBeats / 4), height: 48)
+                                * event.durationBeats / 4), height: 40)
                             .foregroundStyle(highlighted ? .white : Palette.forest)
                             .background(highlighted ? Palette.forest : Palette.forest.opacity(0.07),
                                         in: RoundedRectangle(cornerRadius: 9))
                             .accessibilityLabel("\(event.frequency(tuningA4Hz: context.tuningA4Hz).map { TunerReading(frequency: $0, targetFrequency: nil).noteName } ?? "Rest"), \(event.durationBeats.formatted()) beats")
                     }
                 }
-            }.frame(height: 48)
+            }.frame(height: 40)
         }
     }
 

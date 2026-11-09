@@ -494,7 +494,8 @@ final class LearningUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
         openMelodyReference(in: app)
-        let sections = app.buttons["melodySectionPicker"]
+        // Menu pickers can expose a pop-up button instead of a button on iOS27.
+        let sections = app.descendants(matching: .any).matching(identifier: "melodySectionPicker").firstMatch
         reveal(sections, in: app)
         sections.tap()
         app.buttons["Phrase 3"].tap()
