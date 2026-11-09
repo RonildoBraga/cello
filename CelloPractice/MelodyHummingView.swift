@@ -65,6 +65,7 @@ struct MelodyHummingView: View {
                                     : capture.isPlayingReference ? capture.referenceElapsed : nil)
             }.id("practiceTop")
         }.id("\(register.rawValue)|\(section.rawValue)")
+            .background(Palette.paper)
             .navigationTitle("Hot Cross Buns").navigationBarTitleDisplayMode(.inline)
     }
 }

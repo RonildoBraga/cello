@@ -17,8 +17,9 @@ struct MelodyNotesView: View {
         let events = context.expectedEvents.enumerated().filter { Int($0.element.onsetBeat / 4) == phrase }
         let current = elapsed.flatMap { context.eventIndex(at: $0) }
         return VStack(alignment: .leading, spacing: 6) {
-            Text(context.section == .whole ? "Phrase \(phrase + 1)" : context.section.title)
-                .font(.caption.weight(.medium)).foregroundStyle(Palette.muted)
+            if context.section == .whole {
+                Text("Phrase \(phrase + 1)").font(.caption.weight(.medium)).foregroundStyle(Palette.muted)
+            }
             GeometryReader { geometry in
                 HStack(spacing: 4) {
                     ForEach(events, id: \.offset) { index, event in
