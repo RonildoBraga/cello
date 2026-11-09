@@ -1,7 +1,8 @@
 import Foundation
+@testable import Cello
 
-/// Generated harmonic reference tones, not a recording of a voice or cello.
-enum MelodyReferenceTone {
+/// Independent synthetic test signal. Never part of the shipped app.
+enum SyntheticMelodyReference {
     static let sampleRate = 48_000
 
     static func wavData(context: MelodyPracticeContext) throws -> Data {

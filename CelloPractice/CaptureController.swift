@@ -240,8 +240,8 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     }
 
     /// Listen first, then hum. Playback is never analysed or saved as the learner's pitch.
-    func playReferenceTone(frequency: Double) {
-        playReference(frequency: frequency, source: .tone)
+    func playCelloReference(frequency: Double) {
+        playReference(frequency: frequency, source: .recordedCello)
     }
 
     func playHummingExample() {
@@ -260,14 +260,14 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     }
 
     private enum ReferenceSource: Sendable {
-        case tone, humanHum
+        case recordedCello, humanHum
         case melody(MelodyPracticeContext)
 
         var name: String {
             switch self {
-            case .tone: return "tone"
+            case .recordedCello: return "recordedCello"
             case .humanHum: return "humanHum"
-            case .melody: return "melodyTone"
+            case .melody(let context): return context.register == .cello ? "celloMelody" : "humanMelody"
             }
         }
 
@@ -323,9 +323,9 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         do {
             let data: Data
             switch source {
-            case .tone: data = try ReferenceTone.wavData(frequency: frequency)
+            case .recordedCello: data = try RecordedReference.celloNote(frequency: frequency)
             case .humanHum: data = try HummingExample.wavData()
-            case .melody(let context): data = try MelodyReferenceTone.wavData(context: context)
+            case .melody(let context): data = try RecordedReference.wavData(context: context)
             }
             let audioSession = AVAudioSession.sharedInstance()
             if referenceUsesCapture {

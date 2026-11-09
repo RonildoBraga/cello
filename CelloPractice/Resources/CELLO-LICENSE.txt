@@ -1,0 +1,58 @@
+VS Chamber Orchestra 2: Community Edition — recorded cello references
+
+Source project: https://github.com/sgossner/VSCO-2-CE
+Pinned source revision: 440300901dfe9275fd84e0b7763af1f8443ae62e
+Project page: https://vis.versilstudios.net/vsco-community.html
+License: CC0 1.0 Universal (CC0-1.0)
+License text: https://github.com/sgossner/VSCO-2-CE/blob/440300901dfe9275fd84e0b7763af1f8443ae62e/LICENSE
+License deed: https://creativecommons.org/publicdomain/zero/1.0/
+
+Recorded by Sam Gossner and Simon Dalzell. Sample cutting by Elan Hickler / Soundemote.
+Credits requested by the source: Versilian Studios / Sam Gossner and Ivy Audio / Simon Dalzell.
+
+These are excerpts of recorded bowed cello-section sustains with vibrato from the susvib collection. They are not synthesized oscillators or new recordings of a solo player. The source does not establish which physical string/fingering was used, so these are pitch references rather than demonstrations of open-string technique.
+
+Changes for Cello:
+- Kept source seconds 0.15–3.35, producing a 3.2-second excerpt.
+- Downmixed stereo 44,100 Hz / 24-bit PCM to mono 48,000 Hz / signed 16-bit PCM.
+- Applied a 10 ms raised-cosine fade in and 50 ms raised-cosine fade out.
+- Applied a constant gain per excerpt so the maximum absolute sample is approximately 0.65.
+- No pitch correction or synthetic partials were added to these bundled source excerpts. Natural bow noise and small pitch variation remain. The app renderer may make a small constant playback-rate adjustment to match its explicit equal-tempered target.
+
+Source note labels use an octave number one below scientific pitch notation: source C1/G1/D2/A2 are audibly C2/G2/D3/A3. The measured frequencies below were checked independently with the app's PitchDetector; the target was not passed to the detector. Measurements use 8,192-frame windows at 48 kHz, a 4,410-frame hop, and confidence >= 0.75, with window starts from 0.4 seconds through the available sustained excerpt.
+
+cello-c2.wav
+Source: https://github.com/sgossner/VSCO-2-CE/blob/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Cello%20Section/susvib/susvib_C1_v1_1.wav
+Source SHA-256: abdcea431f384e135c469b0f3e4ac2a437f282f521dc5bcbe22abc221536e8de
+Bundled SHA-256: 80742889a536e03f001d5985fe5d12f5b33465bea4580c4de7c5f56cc53f7e52
+Measured median: 65.39183095652106 Hz; nominal C2: 65.40639132514966 Hz.
+Observed sustained range relative to nominal: -1.699 to 1.173 cents; median detector confidence 0.991214.
+Constant gain: 4.162784119131801.
+
+cello-g2.wav
+Source: https://github.com/sgossner/VSCO-2-CE/blob/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Cello%20Section/susvib/susvib_G1_v1_1.wav
+Source SHA-256: 9e5d24e8e28d6c7f650f9bb2b33d43c13e341a8bd33124c64e23881378b181ba
+Bundled SHA-256: 60241e75c64043f34e32483705eb3effef93cd382fbefa47a7f1d2c61921d482
+Measured median: 97.96663394844622 Hz; nominal G2: 97.99885899543733 Hz.
+Observed sustained range relative to nominal: -5.532 to 4.534 cents; median detector confidence 0.995470.
+Constant gain: 4.926744652141419.
+
+cello-d3.wav
+Source: https://github.com/sgossner/VSCO-2-CE/blob/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Cello%20Section/susvib/susvib_D2_v1_1.wav
+Source SHA-256: e8640dec9febc6e39fcf06b19d2c95a85d5ff8c38f13c9879e69f551eaf38ab8
+Bundled SHA-256: 3abd0373b312c2fc6743db7df0252b09ee393e31312865284abc37d930fee898
+Measured median: 147.04697656093282 Hz; nominal D3: 146.83238395870379 Hz.
+Observed sustained range relative to nominal: -2.137 to 5.144 cents; median detector confidence 0.992684.
+Constant gain: 4.806531303062926.
+
+cello-a3.wav
+Source: https://github.com/sgossner/VSCO-2-CE/blob/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Cello%20Section/susvib/susvib_A2_v1_1.wav
+Source SHA-256: c97a003184fdcb153d6b6c0bae8d82a90592a1b04b06bd7caaeda8b9776d5284
+Bundled SHA-256: 9bac024ae978f90360399d71ef1401b280db112671deab51dae6bb789b0faa0a
+Measured median: 219.89828166261523 Hz; nominal A3: 220.00000000000000 Hz.
+Observed sustained range relative to nominal: -6.666 to 2.271 cents; median detector confidence 0.992187.
+Constant gain: 8.588320304889892.
+
+Full machine-readable edit/analysis metadata is in cello/sources.json. A copy of the upstream CC0 license is in cello/CC0-1.0.txt.
+
+Source, credits and license verified on 10 November 2026.

@@ -1,8 +1,7 @@
 import Foundation
 
-/// A softly edged reference sound with clear upper harmonics for phone speakers.
-/// The fundamental remains strongest and determines the selected pitch.
-enum ReferenceTone {
+/// Independent synthetic test signal. Never part of the shipped app.
+enum SyntheticReferenceTone {
     static let sampleRate = 48_000
     static let duration = 2.0
 

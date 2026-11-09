@@ -73,7 +73,7 @@ final class RecordingAudioTests: XCTestCase {
     private func audioMovie(in root: URL, context: MelodyPracticeContext,
                             leadingOffset: Double = 0, interiorGap: Double = 0) async throws -> URL {
         let wav = root.appendingPathComponent("reference.wav")
-        try MelodyReferenceTone.wavData(context: context).write(to: wav)
+        try SyntheticMelodyReference.wavData(context: context).write(to: wav)
         let asset = AVURLAsset(url: wav)
         let tracks = try await asset.loadTracks(withMediaType: .audio)
         let source = try XCTUnwrap(tracks.first)

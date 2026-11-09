@@ -1,6 +1,6 @@
 # Hot Cross Buns score and reference
 
-Traditional melody. Original three-note teaching arrangement and synthesized reference tones created for Cello. No source score image, modern publisher arrangement or third-party performance recording is included.
+Traditional melody. Original three-note teaching arrangement created for Cello, played with licensed recorded human and cello sources. No source score image or modern publisher arrangement is included.
 
 ## Arrangement version 1
 
@@ -18,12 +18,16 @@ The US Bureau of Education's *Music in the Public Schools* (1922), printed page 
 
 All frequencies use equal temperament with A4 = 440 Hz. Registers preserve the melody's relative intervals; the voice choices are starting options, not a measured vocal range. Use the register that feels comfortable. The cello reference does not assert readiness to finger or bow the notes.
 
-## Generated audio and frozen context
+## Recorded audio and frozen context
 
-References are generated locally as 48 kHz, mono, 16-bit PCM with harmonics, short fades and quiet articulation gaps. They are labelled reference tones, not a human hum or a cello recording. No additional recording licence is needed. The existing human example and its CC BY attribution remain separate.
+References are rendered locally as 48 kHz, mono, 16-bit PCM from recorded samples, with short fades and quiet articulation gaps. Low and higher voice use the licensed retropttam human hum, retuned and arranged per note; the higher source has an offline formant-preserving octave edit. This is an edited human recording, not a fresh continuous performance of the song. Cello playback uses four recorded VSCO 2 cello-section sustains, choosing the closest source and applying a small playback-rate tuning adjustment. Longer holds crossfade the recorded sustain instead of replaying a bow attack or adding synthesized partials.
+
+The app labels these references Recorded hum / Recorded cello. [Human source and adaptation credit](../CelloPractice/Resources/HUMMING-LICENSE.txt) and [cello source and CC0 credit](../CelloPractice/Resources/CELLO-LICENSE.txt) are bundled; the Music resources disclosure links to the original sources and licences. Missing assets are reported as playback errors. There is no synthetic fallback. The original foundation human example is unchanged.
 
 The UI uses 60 BPM: the complete melody lasts 16 seconds and each phrase lasts four seconds, including the final quiet boundary. The model supports 40–120 BPM for later exercises. The shared audio-session path suppresses reference sound from live pitch observations; playback starts only on a Hear action and stops when leaving the page or changing reference settings.
 
 `MelodyPracticeContext` stores immutable piece/version, key/register, A4 tuning, selected events relative to time zero, tempo, duration, section and optional grading version. Takes save and export that snapshot without consulting current settings. The first reference-only release used nil grading version; humming recording now uses melody grading version 1. Old fixed-note sessions and separate rhythm history files keep their existing formats and behavior. See [humming assessment](melody-humming.md).
 
 Tests verify score timing, phrase boundaries, transpositions, frequency detection, audio duration, fades, articulation gaps, explicit rests, invalid-input bounds and session save/reload/export compatibility.
+
+The recorded-reference release changes timbre only: expected note events, keys/registers, score and grading versions and completion keys remain unchanged. Independent synthetic fixtures stay in the test target; the shipped app contains only recorded-sample playback.

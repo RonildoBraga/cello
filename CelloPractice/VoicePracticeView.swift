@@ -218,7 +218,7 @@ struct VoicePracticeView<Header: View>: View {
     private var targetControls: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(melodyContext == nil ? "TARGET" : "REFERENCE TONES")
+                Text(melodyContext == nil ? "TARGET" : "RECORDED HUM")
                     .font(.system(size: 10, weight: .semibold)).tracking(1.4)
                     .foregroundStyle(Palette.muted)
                 Text(melodyContext.map { "\($0.referenceKey) · \($0.register.rangeLabel)" }
@@ -406,7 +406,7 @@ struct VoicePracticeView<Header: View>: View {
         // Hearing a reference needs playback only, without camera or mic setup.
         if let context = melodyContext { capture.playMelodyReference(context) }
         else if section == .humming { capture.playHummingExample() }
-        else { capture.playReferenceTone(frequency: targetFrequency) }
+        else { capture.playCelloReference(frequency: targetFrequency) }
     }
 
     private func requestRecording() {

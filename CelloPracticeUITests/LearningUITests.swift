@@ -468,6 +468,31 @@ final class LearningUITests: XCTestCase {
         assertNoPermissionAlerts(in: app)
     }
 
+    func testRecordedCelloReferencesPlayWithoutStartingCapture() {
+        let app = XCUIApplication()
+        launchPractice(in: app)
+        for (exercise, note) in [("Open C string", "C2"), ("Open G string", "G2"),
+                                 ("Open D string", "D3"), ("Open A string", "A3")] {
+            selectExercise(exercise, in: app)
+            let target = app.staticTexts["currentTargetLabel"]
+            XCTAssertTrue(target.label.contains(note))
+            let hear = app.buttons["previewTargetButton"]
+            XCTAssertTrue(hear.label.contains("Hear string"))
+            hear.tap()
+            let listening = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "label == %@", "Cancel"),
+                object: app.buttons["practiceRecordButton"])
+            XCTAssertEqual(XCTWaiter.wait(for: [listening], timeout: 3), .completed)
+            XCTAssertTrue(app.staticTexts["LISTEN"].exists)
+            waitForRecord(in: app)
+            XCTAssertTrue(target.label.contains(note))
+            XCTAssertFalse(app.staticTexts["captureMessage"].exists)
+            XCTAssertFalse(app.buttons["Turn off camera and microphone"].exists)
+        }
+        screenshot("Cello · recorded references without microphone setup")
+        assertNoPermissionAlerts(in: app)
+    }
+
     func testHumanHumPreviewWorksWithoutCaptureAndCancelsOnSectionSwitch() {
         let app = XCUIApplication()
         launchPractice(in: app)
@@ -527,7 +552,7 @@ final class LearningUITests: XCTestCase {
         XCTAssertFalse(app.buttons["practiceRecordButton"].exists, "Melody recording is a separate delivery")
         XCTAssertFalse(app.staticTexts["currentTargetLabel"].exists)
         XCTAssertFalse(app.buttons["Turn off camera and microphone"].exists)
-        XCTAssertTrue(app.staticTexts["Reference tones"].exists)
+        XCTAssertTrue(app.staticTexts["Recorded hum"].exists)
         XCTAssertTrue(key.label.contains("G major") && key.label.contains("G2–B2"))
         assertNoPermissionAlerts(in: app)
         assertNoWrittenInput(in: app)
