@@ -37,10 +37,12 @@ struct VoicePracticeView<Header: View>: View {
     private let onShowLessons: () -> Void
     private let header: (Bool) -> Header
 
-    init(store: SessionStore, capture: CaptureController, exercise: Exercise, section: PracticeSection,
+    init(store: SessionStore, capture: CaptureController, exercise: Exercise,
          nextLesson: PracticeLesson?, onStartLesson: @escaping (PracticeLesson) -> Void,
          onShowLessons: @escaping () -> Void, @ViewBuilder header: @escaping (Bool) -> Header) {
-        precondition(exercise.section == section, "A recording lesson must belong to its section")
+        guard let section = exercise.section else {
+            preconditionFailure("A guided recording must have a voice or cello target")
+        }
         self.store = store
         self.capture = capture
         self.exercise = exercise

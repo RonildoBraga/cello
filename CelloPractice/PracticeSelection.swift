@@ -1,21 +1,27 @@
 import Foundation
 
-/// Each section remembers one complete lesson selection, including tap lessons.
+/// Each learning area remembers its selected lesson independently.
 struct PracticeSelection: Equatable {
-    var section: PracticeSection = .humming
+    var area: LearningArea = .humming
     private var hummingLesson: PracticeLesson = .steadyHum
+    private var rhythmLesson: PracticeLesson = .pulse
     private var celloLesson: PracticeLesson = .openG
 
     init() {}
 
     var lesson: PracticeLesson {
-        section == .humming ? hummingLesson : celloLesson
+        switch area {
+        case .humming: return hummingLesson
+        case .rhythm: return rhythmLesson
+        case .cello: return celloLesson
+        }
     }
 
     mutating func select(_ lesson: PracticeLesson) {
-        section = lesson.section
-        switch lesson.section {
+        area = lesson.area
+        switch lesson.area {
         case .humming: hummingLesson = lesson
+        case .rhythm: rhythmLesson = lesson
         case .cello: celloLesson = lesson
         }
     }

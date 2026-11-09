@@ -4,17 +4,21 @@ A native iPhone practice companion for beginners learning music while preparing 
 
 ## Practice
 
-The **Humming** section includes voice and rhythm lessons that need no instrument:
+The **Music** library groups shared **Humming**, **Rhythm** and **Cello** foundations, then shows piece-based learning paths. **Practice** opens the selected exercise, and **Recordings** keeps the local history.
 
-| Lesson | Exercise | Focus |
-| --- | --- | --- |
-| 1 | Steady hum | Sustain one gentle note for three seconds. |
-| 2 | Listen & match | Hear a human example, then hum the same note. |
-| 3 | Pulse | Tap one steady beat each second. |
-| 4 | Two taps per beat | Count `1 & 2 &`, adding a tap halfway between beats. |
-| 5 | Mixed rhythm | Alternate one and two taps per beat: `1, 2-and, 3, 4-and`. |
+The foundations include:
 
-The **Cello** section has separate C/G/D/A open-string targets. Each section remembers its lesson selection. **Lessons** shows instructions, best/latest scores and earned completion; every exercise stays available.
+| Area | Lesson | Exercise | Focus |
+| --- | --- | --- | --- |
+| Humming | 1 | Steady hum | Sustain one gentle note for three seconds. |
+| Humming | 2 | Listen & match | Hear a human example, then hum the same note. |
+| Rhythm | 3 | Pulse | Tap one steady beat each second. |
+| Rhythm | 4 | Two taps per beat | Count `1 & 2 &`, adding a tap halfway between beats. |
+| Rhythm | 5 | Mixed rhythm | Alternate one and two taps per beat: `1, 2-and, 3, 4-and`. |
+
+The **Cello** area has separate C/G/D/A open-string targets. Each practice area remembers its lesson selection. Foundation lesson pages show instructions, best/latest scores and earned completion; every exercise stays available. Original IDs, lesson numbers and earned progress are retained.
+
+**Pieces** starts with a Hot Cross Buns learning path and a longer-term goal of Bach’s Cello Suite No. 1 Prelude. The piece pages describe planned milestones and link to existing foundations; melody playback and phrase/performance grading are future work. See the [learning-path design](docs/music-learning-path.md) and [delivery issues](https://github.com/RonildoBraga/cello/issues/1).
 
 - **Hear hum** plays the recorded human example. **Record** starts a three-second countdown, then records a three-second humming take. Cello takes finish when you tap Stop, with a 90-second limit.
 - Voice/instrument recordings include synchronized microphone audio, video and pitch observations. A tuning bar and end-of-take pitch chart show distance from the fixed target.
