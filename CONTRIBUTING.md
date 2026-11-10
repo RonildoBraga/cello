@@ -30,6 +30,7 @@ Simulator checks do not establish microphone, speaker, camera or haptic behaviou
 - **Content lives in the models.** Per-lesson and per-piece text belongs with `PracticeLesson`, `MelodyPiece` and friends, not in `if piece == …` branches inside views.
 - **Accessibility identifiers are a test contract.** The UI tests find controls by identifier. Keep existing identifiers when you restructure a view, and give new interactive controls one.
 - **Keep it small.** Prefer deleting or simplifying to adding an abstraction. One file per screen or type, named after what it contains.
+- **Sources are grouped by feature** under `CelloPractice/`: `App`, `Library`, `VoicePractice`, `Rhythm`, `Melody`, `Recordings`, `Capture` and `Shared`. Put a new file in its feature's folder and add it to the matching group in the Xcode project.
 
 ## Media and wording
 
