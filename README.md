@@ -16,6 +16,8 @@ The foundations include:
 | Rhythm | 4 | Two taps per beat | Count `1 & 2 &`, adding a tap halfway between beats. |
 | Rhythm | 5 | Mixed rhythm | Alternate one and two taps per beat: `1, 2-and, 3, 4-and`. |
 
+Open **Music → Foundations → Cello → Meet your cello** for an original labelled diagram, the four recorded string-pitch examples from low to high, and the route into playing. Hear is manual and needs no microphone/camera capture. Reading and listening leave performance scores and completion unchanged. The introduction returns to the existing playing lessons; setup, first-position instruction and cello melody assessment remain in [issue #6](https://github.com/RonildoBraga/cello/issues/6). See [the introductory sources and draft practical lesson plan](docs/first-cello-lessons.md).
+
 The **Cello** area has separate C/G/D/A open-string targets. Each practice area remembers its lesson selection. Foundation lesson pages show instructions, best/latest scores and earned completion; every exercise stays available. Original IDs, lesson numbers and earned progress are retained.
 
 **Pieces** starts with Hot Cross Buns and a longer-term goal of Bach’s Cello Suite No. 1 Prelude. Open **Music → Hot Cross Buns → Humming** to hear, record and review four short phrases, then join the whole melody. Voice references use G2–B2 or G3–B3 at 60 BPM. Record starts a three-second countdown, then captures four seconds for a phrase or sixteen for the whole tune. Results show separate **Notes**, **Timing** and **Clarity** stars, a moving-reference pitch chart and one next suggestion. Three three-star takes among the last five rated attempts earn completion for that exact phrase and reference. Every phrase stays available.

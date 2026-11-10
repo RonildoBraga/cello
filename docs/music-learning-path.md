@@ -15,7 +15,7 @@ Music
   Foundations
     Humming → Steady hum; Listen & match
     Rhythm → Pulse; Two taps per beat; Mixed rhythm
-    Cello → Open C/G/D/A strings
+    Cello → Meet your cello (parts and listening); Open C/G/D/A strings
   Pieces
     Hot Cross Buns → Humming; Rhythm (each: four phrases, then whole melody); Listen & follow
     Ode to Joy → Humming; Rhythm (opening: four phrases, then whole); Listen & follow
@@ -68,3 +68,9 @@ Melody rhythm uses that same immutable reference timeline with a separate rhythm
 [Issue #14](https://github.com/RonildoBraga/cello/issues/14) adds our independently encoded five-note opening excerpt while the learner waits for a cello. It introduces upward and downward steps across five notes and a dotted-quarter/eighth-note ending. Four bar-sized practice selections build to the sixteen-beat opening; these are practice divisions, not a claim to contain the complete symphonic theme. Both melodies use the same Humming, Rhythm and manual reference pages, charts, fixed grading versions and progress rules.
 
 `MelodyPiece` selects the built-in score before recording. The existing frozen context format is unchanged; each piece keeps a distinct ID and achievements. Hot Cross Buns factory output remains identical, preserving its prior progress keys and ratings. References reuse the existing licensed recorded sources. See [score and recording provenance](ode-to-joy-reference.md). Cello technique and acoustic validation remain in #6.
+
+## Cello orientation
+
+[Issue #17](https://github.com/RonildoBraga/cello/issues/17) delivers the first bounded part of #6: Meet your cello, reached from the Cello foundation list. An original SwiftUI illustration labels eight main parts; manual recorded examples identify C2, G2, D3 and A3 from low to high. Native Back/tab/background cancellation uses the existing shared audio controller. The page never starts capture or saves an attempt. It adds no foundation lesson ID, number, score or completion milestone; all four existing playing lessons retain their history and counts.
+
+The page shows the proposed route into teacher-supported setup, open strings, first notes, short phrases and the complete first melody. [The practical sequence and acoustic validation plan](first-cello-lessons.md) remain drafts for review. This introduction does not complete #6’s setup, technique, cello-performance assessment or real acoustic validation requirements.
