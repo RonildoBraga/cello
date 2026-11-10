@@ -148,8 +148,8 @@ final class PulsePracticeStore: ObservableObject {
     var bestStars: Int? { attempts.compactMap(\.starCount).max() }
     var latestStars: Int? { attempts.first?.starCount }
     var progress: PracticeProgress {
-        let successes = attempts.filter(\.isScored).prefix(5).filter { $0.starCount == 3 }.count
-        return PracticeProgress(successfulAttempts: completed ? 3 : successes,
+        let successes = CompletionRule.recentSuccesses(attempts.lazy.filter(\.isScored).map { $0.starCount == 3 })
+        return PracticeProgress(successfulAttempts: completed ? CompletionRule.requiredSuccesses : successes,
                                 completed: completed)
     }
 
@@ -178,15 +178,10 @@ final class PulsePracticeStore: ObservableObject {
         return attempt
     }
 
-    /// Replay all historical windows so an earned milestone survives later misses.
+    /// Attempts are stored newest first; the rule replays them in recorded order.
     private static func hasEarnedCompletion(in attempts: [PulseAttempt]) -> Bool {
-        var window: [Bool] = []
-        for attempt in attempts.reversed() where attempt.isScored {
-            window.append(attempt.starCount == 3)
-            if window.count > 5 { window.removeFirst() }
-            if window.filter({ $0 }).count >= 3 { return true }
-        }
-        return false
+        !CompletionRule.earnedKeys(attempts.reversed().lazy.filter(\.isScored)
+            .map { (key: 0, success: $0.starCount == 3) }).isEmpty
     }
 
     private struct Document: Codable {

@@ -104,9 +104,9 @@ enum EchoLevel: String, CaseIterable, Identifiable, Codable, Sendable {
 
 /// Echo completion spans fresh patterns within one exact level and voice register.
 /// This ledger is separate from the fixed-note and piece melody achievements.
-struct EchoProgressLedger: Codable {
+struct EchoProgressLedger: SessionProgressLedger {
     let schemaVersion: Int
-    private(set) var completedKeys: Set<String>
+    var completedKeys: Set<String>
 
     init(schemaVersion: Int = 1, completedKeys: Set<String> = []) {
         self.schemaVersion = schemaVersion
@@ -115,32 +115,12 @@ struct EchoProgressLedger: Codable {
 
     func progress(for level: EchoLevel, register: MelodyRegister,
                   sessions: [PracticeSession]) -> PracticeProgress {
-        guard let key = Self.key(for: level, register: register) else {
-            return PracticeProgress(successfulAttempts: 0, completed: false)
-        }
-        let recent = sessions.filter { Self.eligibleKey(for: $0) == key }
-            .sorted(by: Self.newestFirst).prefix(5)
-        let successes = recent.filter { $0.melodyRating?.goalReached == true }.count
-        let completed = completedKeys.contains(key) || successes >= 3
-        return PracticeProgress(successfulAttempts: completed ? 3 : successes, completed: completed)
+        progress(forKey: Self.key(for: level, register: register), sessions: sessions)
     }
 
-    @discardableResult
-    mutating func update(from sessions: [PracticeSession]) -> Bool {
-        var windows: [String: [Bool]] = [:]
-        var changed = false
-        for session in sessions.sorted(by: { Self.newestFirst($1, $0) }) {
-            guard let key = Self.eligibleKey(for: session) else { continue }
-            var window = windows[key, default: []]
-            window.append(session.melodyRating?.goalReached == true)
-            if window.count > 5 { window.removeFirst() }
-            windows[key] = window
-            if window.filter({ $0 }).count >= 3, completedKeys.insert(key).inserted { changed = true }
-        }
-        return changed
-    }
+    static func succeeded(_ session: PracticeSession) -> Bool { session.melodyRating?.goalReached == true }
 
-    private static func eligibleKey(for session: PracticeSession) -> String? {
+    static func eligibleKey(for session: PracticeSession) -> String? {
         guard session.exercise == .listen, session.rating == nil,
               let context = session.melodyContext, let rating = session.melodyRating,
               context.gradingVersion == MelodyRating.currentVersion,
@@ -161,11 +141,6 @@ struct EchoProgressLedger: Codable {
         encoder.outputFormatting = [.sortedKeys]
         guard let data = try? encoder.encode(contexts) else { return nil }
         return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-    }
-
-    private static func newestFirst(_ lhs: PracticeSession, _ rhs: PracticeSession) -> Bool {
-        if lhs.createdAt != rhs.createdAt { return lhs.createdAt > rhs.createdAt }
-        return lhs.id.uuidString > rhs.id.uuidString
     }
 }
 
