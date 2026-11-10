@@ -62,7 +62,6 @@ final class EchoPracticeUITests: XCTestCase {
         }
         screenshot("Listen and Echo · saved two-note reference and recorded pitch chart")
 
-        openHummingFoundation(in: app)
         openEcho(in: app)
         let progress = app.staticTexts["practiceProgressText"]
         XCTAssertTrue(progress.label.contains("0 of 3"), "Higher-voice evidence must not credit the low voice")
@@ -76,9 +75,8 @@ final class EchoPracticeUITests: XCTestCase {
     func testEchoLevelsAndVoiceRegistersHaveNoTargetHintsOrRecordingPermission() {
         let app = XCUIApplication()
         app.launch()
-        openHummingFoundation(in: app)
-        let summary = app.staticTexts["foundationCompletionSummary"].label
-        XCTAssertTrue(summary.contains("of 2 lessons completed"))
+        let summary = firstLevelSummary(in: app)
+        XCTAssertTrue(summary.contains("of 4 steps done"))
         openEcho(in: app)
         let duration = app.staticTexts["echoDuration"]
         let levels = app.segmentedControls["echoLevelPicker"]
@@ -99,15 +97,13 @@ final class EchoPracticeUITests: XCTestCase {
         assertRecordNeedsHear(in: app)
         assertNoWrittenInputOrPermissionAlerts(in: app)
         app.navigationBars["Listen & Echo"].buttons.firstMatch.tap()
-        XCTAssertTrue(app.navigationBars["Humming"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.staticTexts["foundationCompletionSummary"].label, summary)
-        for id in ["steadyHum", "matchHum"] { XCTAssertTrue(app.buttons["lesson-\(id)"].exists) }
+        XCTAssertEqual(firstLevelSummary(in: app), summary, "Echo practice is off the path and earns no step")
+        for id in ["steadyHum", "matchHum"] { XCTAssertTrue(app.pathRow("lesson-\(id)").isEnabled) }
     }
 
     func testFullManualHearUnlocksRecordButCancelAndNewSelectionsDoNot() {
         let app = XCUIApplication()
         app.launch()
-        openHummingFoundation(in: app)
         openEcho(in: app)
         let record = app.buttons["practiceRecordButton"]
         let hear = app.buttons["previewTargetButton"]
@@ -137,7 +133,6 @@ final class EchoPracticeUITests: XCTestCase {
     func testEchoRecordDoesNotAutoplayOrInventFeedbackWhenCaptureIsUnavailable() {
         let app = XCUIApplication()
         app.launch()
-        openHummingFoundation(in: app)
         openEcho(in: app)
         hearFullPattern(in: app, duration: 4)
         app.buttons["practiceRecordButton"].tap()
@@ -175,12 +170,7 @@ final class EchoPracticeUITests: XCTestCase {
         app.tabBars.buttons["Recordings"].tap()
         XCTAssertTrue(app.navigationBars["Recordings"].waitForExistence(timeout: 5))
         let recordingIDs = visibleRecordingIDs(in: app)
-        // Back from Steady hum practice to its lesson page, then to the Humming list.
-        app.tabBars.buttons["Music"].tap()
-        app.navigationBars["Humming"].buttons.firstMatch.tap()
-        app.navigationBars["Lesson 1"].buttons.firstMatch.tap()
-        XCTAssertTrue(app.staticTexts["foundationCompletionSummary"].waitForExistence(timeout: 5))
-        let summary = app.staticTexts["foundationCompletionSummary"].label
+        let summary = firstLevelSummary(in: app)
         openEcho(in: app)
         let echoProgress = app.staticTexts["practiceProgressText"].label
         let hear = app.buttons["previewTargetButton"]
@@ -201,15 +191,13 @@ final class EchoPracticeUITests: XCTestCase {
         hear.tap()
         waitForRecord(label: "Cancel", enabled: true, in: app)
         app.navigationBars["Listen & Echo"].buttons.firstMatch.tap()
-        XCTAssertTrue(app.navigationBars["Humming"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.staticTexts["foundationCompletionSummary"].label, summary)
+        XCTAssertEqual(firstLevelSummary(in: app), summary)
         openEcho(in: app)
         assertRecordNeedsHear(in: app)
         XCTAssertEqual(app.staticTexts["practiceProgressText"].label, echoProgress)
         XCTAssertFalse(app.staticTexts["melodyRatingStars"].exists)
         assertNoTargetHints(in: app)
         assertNoWrittenInputOrPermissionAlerts(in: app)
-        app.navigationBars["Listen & Echo"].buttons.firstMatch.tap()
         openSteadyHumPractice(in: app)
         waitForRecord(label: "Record", enabled: true, in: app)
         XCTAssertEqual(app.staticTexts["currentTargetLabel"].label, foundationTarget)
@@ -219,30 +207,23 @@ final class EchoPracticeUITests: XCTestCase {
         XCTAssertEqual(visibleRecordingIDs(in: app), recordingIDs)
     }
 
-    /// From the Music home or the Humming list, opens Steady hum's practice screen.
+    /// From anywhere, opens Steady hum's practice screen.
     private func openSteadyHumPractice(in app: XCUIApplication) {
-        let lesson = app.buttons["lesson-steadyHum"]
-        if !lesson.exists { openHummingFoundation(in: app) }
-        reveal(lesson, in: app)
-        lesson.tap()
+        app.pathStep("lesson-steadyHum").tap()
         let start = app.buttons["startLessonButton"]
         XCTAssertTrue(start.waitForExistence(timeout: 5))
         start.tap()
         XCTAssertTrue(app.staticTexts["practiceLessonTitle"].waitForExistence(timeout: 5))
     }
 
-    private func openHummingFoundation(in app: XCUIApplication) {
-        app.tabBars.buttons["Music"].tap()
-        let humming = app.buttons["foundation-humming"]
-        reveal(humming, in: app)
-        humming.tap()
-        XCTAssertTrue(app.navigationBars["Humming"].waitForExistence(timeout: 5))
+    /// Level 1's spoken summary on the path, including its count of finished steps.
+    private func firstLevelSummary(in app: XCUIApplication) -> String {
+        app.returnToPath()
+        return app.buttons["level-firstSounds"].label
     }
 
     private func openEcho(in app: XCUIApplication) {
-        let echo = app.buttons["echoPracticeLink"]
-        reveal(echo, in: app)
-        echo.tap()
+        app.pathStep("echoPracticeLink").tap()
         XCTAssertTrue(app.navigationBars["Listen & Echo"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "echoPracticeCard").firstMatch.exists)
         assertRecordNeedsHear(in: app)

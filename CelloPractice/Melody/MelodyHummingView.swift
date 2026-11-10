@@ -4,8 +4,15 @@ import SwiftUI
 struct MelodyHummingView: View {
     @ObservedObject var store: SessionStore
     @ObservedObject var capture: CaptureController
-    var piece: MelodyPiece = .hotCrossBuns
-    @State private var section = MelodySection.phrase1
+    let piece: MelodyPiece
+    @State private var section: MelodySection
+
+    init(store: SessionStore, capture: CaptureController, piece: MelodyPiece, section: MelodySection = .phrase1) {
+        self.store = store
+        self.capture = capture
+        self.piece = piece
+        _section = State(initialValue: section)
+    }
 
     private var context: MelodyPracticeContext { piece.humming(register: .lowVoice, section: section) }
 
@@ -13,7 +20,7 @@ struct MelodyHummingView: View {
         VoicePracticeView(store: store, capture: capture, mode: .phrase(context),
                           nextPhrase: section.next.map { next in (next.title, { section = next }) }) { locked in
             VStack(alignment: .leading, spacing: 17) {
-                ScreenHeader(eyebrow: piece.title, title: "Humming", subtitle: piece.hummingIntro,
+                ScreenHeader(eyebrow: piece.title, title: section == .whole ? "Whole melody" : "Hum it", subtitle: piece.hummingIntro,
                              collapsesSubtitle: store.melodyProgress(for: context).successfulAttempts > 0)
                 HStack {
                     SectionMenu(selection: $section) {
