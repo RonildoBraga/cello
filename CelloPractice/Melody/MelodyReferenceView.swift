@@ -10,13 +10,14 @@ struct MelodyReferenceView: View {
     @State private var section = MelodySection.whole
     @State private var hasRequestedPlayback = false
     @State private var isVisible = false
+    @AppStorage(ListenedMelodies.key) private var listened = ""
 
     private var context: MelodyPracticeContext { piece.reference(register: register, section: section) }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                ScreenHeader(eyebrow: piece.title, title: "Listen & follow", subtitle: piece.listenIntro)
+                ScreenHeader(eyebrow: piece.title, title: "Listen", subtitle: piece.listenIntro)
                 VStack(alignment: .leading, spacing: 12) {
                     Picker("Reference register", selection: $register) {
                         ForEach(MelodyRegister.offered) { item in
@@ -42,7 +43,7 @@ struct MelodyReferenceView: View {
                         .font(.subheadline.weight(.semibold)).foregroundStyle(Palette.forest)
                     Text(register == .cello
                          ? "Recorded bowed cello notes, tuned and arranged into the melody."
-                         : "A recorded human hum, with pitch and timing edited into the melody. Open Humming to record and earn stars.")
+                         : "A recorded human hum, with pitch and timing edited into the melody. Open Hum it to record and earn stars.")
                         .font(.footnote).foregroundStyle(Palette.muted)
                 }
                 if hasRequestedPlayback, !capture.isPlayingReference, let message = capture.message {
@@ -51,7 +52,7 @@ struct MelodyReferenceView: View {
                 }
             }.foregroundStyle(Palette.ink).screenContent()
         }.id(piece).background(Palette.paper)
-            .screenTitle("Listen & follow")
+            .screenTitle("Listen")
             .bottomActionBar { playbackControl }
             .onChange(of: piece) { _, _ in hasRequestedPlayback = false; capture.stop() }
             .onChange(of: register) { _, _ in hasRequestedPlayback = false; capture.stop() }
@@ -79,6 +80,7 @@ struct MelodyReferenceView: View {
                 if capture.isPlayingReference { capture.stop() }
                 else {
                     hasRequestedPlayback = true
+                    listened = ListenedMelodies.adding(piece, to: listened)
                     capture.playMelodyReference(context)
                 }
             } label: {

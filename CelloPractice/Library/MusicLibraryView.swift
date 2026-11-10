@@ -1,20 +1,33 @@
 import SwiftUI
 
-/// Every screen the Music tab can push. Practice is one of them: you choose in
-/// the library, practise, and go back.
+/// Every screen the Music tab can push. Practice is one of them: you choose a
+/// step on the path, practise, and go back.
 enum MusicRoute: Hashable {
-    case area(LearningArea)
     case lesson(PracticeLesson)
     case practice(PracticeLesson)
     case celloIntroduction
     case echo
-    case piece(MusicPiece)
-    case pieceHumming(MelodyPiece)
+    /// Humming a melody, opened at a phrase or at the whole melody.
+    case pieceHumming(MelodyPiece, MelodySection)
     case pieceRhythm(MelodyPiece)
     case pieceReference(MelodyPiece)
 }
 
-/// Shared foundations and piece goals live in one visible music library.
+extension PathStep {
+    var route: MusicRoute {
+        switch self {
+        case .lesson(let lesson): return .lesson(lesson)
+        case .listen(let piece): return .pieceReference(piece)
+        case .tap(let piece): return .pieceRhythm(piece)
+        case .hum(let piece): return .pieceHumming(piece, .phrase1)
+        case .wholeMelody(let piece): return .pieceHumming(piece, .whole)
+        case .celloIntroduction: return .celloIntroduction
+        case .echo: return .echo
+        }
+    }
+}
+
+/// The Music tab: one path of levels, from first sounds to melodies.
 @MainActor
 struct MusicLibraryView: View {
     @ObservedObject var store: SessionStore
@@ -22,55 +35,29 @@ struct MusicLibraryView: View {
     @ObservedObject var rhythmStores: RhythmStores
     @ObservedObject var melodyRhythmStore: MelodyRhythmStore
     @State private var path: [MusicRoute] = []
-    /// The foundation lesson practised most recently, for a quick way back in.
-    @AppStorage("lastFoundationLesson") private var lastLessonID = ""
+    @AppStorage(ListenedMelodies.key) private var listened = ""
+    /// The levels showing their steps. The level holding the next step opens
+    /// each time the path comes into view.
+    @State private var open: Set<String> = []
+
+    /// The first step on the path that is not done yet.
+    private var next: (level: Level, step: PathStep)? { Level.nextStep { state(for: $0).done } }
 
     var body: some View {
+        let next = next
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 26) {
-                    ScreenHeader(title: "Music", subtitle: "Build your way to the music you want to play.")
-                    if let lesson = PracticeLesson(rawValue: lastLessonID) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            SectionTitle("Continue")
-                            Button { practise(lesson) } label: {
-                                LibraryRow(leading: .number(lesson.number), title: lesson.title,
-                                           subtitle: "\(lesson.area.title) · Lesson \(lesson.number)") { EmptyView() }
-                            }.buttonStyle(.plain).accessibilityIdentifier("continueLessonButton")
-                                .accessibilityLabel("Continue \(lesson.title), \(lesson.area.title) lesson \(lesson.number)")
-                        }
-                    }
-                    VStack(alignment: .leading, spacing: 12) {
-                        SectionTitle("Foundations")
-                        ForEach(LearningArea.allCases) { area in
-                            let lessons = PracticeLesson.lessons(in: area)
-                            let completed = lessons.filter {
-                                LessonState(lesson: $0, store: store, rhythmStores: rhythmStores).progress.completed
-                            }.count
-                            NavigationLink(value: MusicRoute.area(area)) {
-                                LibraryRow(symbol: areaSymbol(area), title: area.title, subtitle: areaPurpose(area),
-                                           footer: "\(completed) of \(lessons.count) lessons completed")
-                            }.buttonStyle(.plain)
-                                .accessibilityIdentifier("foundation-\(area.id)")
-                                .accessibilityLabel("\(area.title), \(completed) of \(lessons.count) lessons completed")
-                        }
-                    }
-                    VStack(alignment: .leading, spacing: 12) {
-                        SectionTitle("Pieces")
-                        ForEach(MusicPiece.allCases) { piece in
-                            NavigationLink(value: MusicRoute.piece(piece)) {
-                                LibraryRow(symbol: "music.note.list", title: piece.title, subtitle: piece.subtitle,
-                                           footer: piece.statusLabel)
-                            }.buttonStyle(.plain)
-                                .accessibilityIdentifier("piece-\(piece.id)")
-                                .accessibilityLabel("\(piece.title), \(piece.subtitle), \(piece.statusLabel)")
-                        }
-                    }
+                    ScreenHeader(title: "Music", subtitle: "One path, from first sounds to melodies. The next step is marked; every step is open.")
+                    ForEach(Level.path) { section($0, next: next) }
+                    destinationNote
+                    ForEach(Level.extras) { section($0, next: next) }
                     resources
                 }.screenContent()
             }.background(Palette.paper)
                 .accessibilityIdentifier("musicLibraryHome")
                 .screenTitle("Music")
+                .onAppear { if let level = next?.level { open.insert(level.id) } }
                 .navigationDestination(for: MusicRoute.self) { destination($0) }
         }.tint(Palette.forest)
     }
@@ -78,8 +65,6 @@ struct MusicLibraryView: View {
     @ViewBuilder
     private func destination(_ route: MusicRoute) -> some View {
         switch route {
-        case .area(let area):
-            FoundationLessonsView(area: area, store: store, rhythmStores: rhythmStores)
         case .lesson(let lesson):
             LessonDetailView(lesson: lesson, store: store, rhythmStores: rhythmStores, onStartLesson: practise)
         case .practice(let lesson):
@@ -87,87 +72,100 @@ struct MusicLibraryView: View {
                                    onStartLesson: practise).id(lesson)
         case .celloIntroduction: CelloIntroductionView(capture: capture)
         case .echo: EchoPracticeView(store: store, capture: capture)
-        case .piece(let piece): piecePath(piece)
-        case .pieceHumming(let piece): MelodyHummingView(store: store, capture: capture, piece: piece)
+        case .pieceHumming(let piece, let section):
+            MelodyHummingView(store: store, capture: capture, piece: piece, section: section)
         case .pieceRhythm(let piece): MelodyRhythmView(store: melodyRhythmStore, capture: capture, piece: piece)
         case .pieceReference(let piece): MelodyReferenceView(capture: capture, piece: piece)
         }
     }
 
-    /// Opens a lesson's practice screen above its own area and lesson page, so Back
+    /// Opens a lesson's practice screen above its own lesson page, so Back
     /// always leads somewhere that matches what is on screen.
     private func practise(_ lesson: PracticeLesson) {
-        lastLessonID = lesson.id
-        let trail: [MusicRoute] = [.area(lesson.area), .lesson(lesson), .practice(lesson)]
-        if path.suffix(2) == [.area(lesson.area), .lesson(lesson)] {
-            path.append(.practice(lesson))
-        } else {
-            // Keep whatever led to the foundations, such as a piece page.
-            let lead = path.prefix { if case .area = $0 { return false } else { return true } }
-            path = Array(lead) + trail
-        }
+        path = [.lesson(lesson), .practice(lesson)]
     }
 
-    private func piecePath(_ piece: MusicPiece) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 25) {
-                ScreenHeader(eyebrow: piece.statusLabel, title: piece.title, subtitle: piece.summary,
-                             titleIdentifier: "pieceDetailTitle", eyebrowIdentifier: "pieceStatus")
-                if let melody = piece.melodyPiece {
-                    NavigationLink(value: MusicRoute.pieceHumming(melody)) {
-                        LibraryRow(symbol: "waveform", title: "Humming",
-                                   subtitle: "Record phrases and earn Notes, Timing and Clarity stars",
-                                   footer: "Four phrases, then the whole melody")
-                    }.buttonStyle(.plain)
-                        .accessibilityIdentifier("melodyHummingLink")
-                    NavigationLink(value: MusicRoute.pieceRhythm(melody)) {
-                        LibraryRow(symbol: "metronome", title: "Rhythm",
-                                   subtitle: "Tap the melody’s note starts and follow its longer notes",
-                                   footer: "Four phrases, then the whole melody")
-                    }.buttonStyle(.plain)
-                        .accessibilityIdentifier("melodyRhythmLink")
-                    NavigationLink(value: MusicRoute.pieceReference(melody)) {
-                        LibraryRow(symbol: "play.circle.fill", title: "Listen & follow",
-                                   subtitle: "Hear the melody or one short phrase",
-                                   footer: "Recorded hum & cello · 60 BPM")
-                    }.buttonStyle(.plain)
-                        .accessibilityIdentifier("melodyReferenceLink")
-                }
-                VStack(alignment: .leading, spacing: 18) {
-                    SectionTitle("Learning path")
-                    ForEach(Array(piece.milestones.enumerated()), id: \.offset) { index, milestone in
-                        NumberedStep(number: index + 1, title: milestone.title, detail: milestone.detail)
+    // MARK: Path
+
+    private func section(_ level: Level, next: (level: Level, step: PathStep)?) -> some View {
+        let isOpen = open.contains(level.id)
+        let done = level.steps.filter { state(for: $0).done }.count
+        // Only the numbered levels are counted: the others are not a course to finish.
+        let count = level.number == nil ? nil : "\(done) of \(level.steps.count) steps done"
+        return VStack(alignment: .leading, spacing: 12) {
+            Button { open.formSymmetricDifference([level.id]) } label: {
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        if let number = level.number {
+                            Eyebrow(text: "Level \(number)", color: Palette.goldText)
+                        }
+                        Text(level.title).font(.title3.weight(.semibold)).foregroundStyle(Palette.ink)
+                        Text(level.subtitle).font(.footnote).foregroundStyle(Palette.muted)
+                        if let count { Text(count).font(.caption).foregroundStyle(Palette.forest) }
                     }
-                }.card().accessibilityIdentifier("pieceMilestones")
-                VStack(alignment: .leading, spacing: 12) {
-                    SectionTitle("Practise foundations")
-                    Text(piece.melodyPiece != nil ? "Build the skills behind the melody." : "These shared skills are available now. Piece-specific exercises are planned.")
-                        .font(.footnote).foregroundStyle(Palette.muted)
-                    ForEach(LearningArea.allCases) { area in
-                        NavigationLink(value: MusicRoute.area(area)) {
-                            LibraryRow(symbol: areaSymbol(area), title: area.title, subtitle: areaPurpose(area))
-                        }.buttonStyle(.plain)
-                            .accessibilityIdentifier("pieceFoundation-\(area.id)")
-                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: isOpen ? "chevron.up" : "chevron.down")
+                        .font(.footnote.weight(.semibold)).foregroundStyle(Palette.forest)
+                        .frame(minWidth: 44, minHeight: 44)
+                }.contentShape(Rectangle())
+            }.buttonStyle(.plain)
+                .accessibilityIdentifier("level-\(level.id)")
+                .accessibilityLabel([level.number.map { "Level \($0)" }, level.title, level.subtitle, count]
+                    .compactMap { $0 }.joined(separator: ", "))
+                .accessibilityValue(isOpen ? "Expanded" : "Collapsed")
+                .accessibilityAddTraits(.isHeader)
+            if isOpen {
+                ForEach(Array(level.steps.enumerated()), id: \.element) { index, step in
+                    let state = state(for: step)
+                    let isNext = next?.step == step
+                    NavigationLink(value: step.route) {
+                        StepRow(step: step, number: level.number == nil ? nil : index + 1,
+                                state: state, isNext: isNext)
+                    }.buttonStyle(.plain)
+                        .accessibilityIdentifier(step.id)
+                        .accessibilityLabel(([isNext ? "Continue" : nil,
+                                              level.number == nil ? nil : "Step \(index + 1)",
+                                              step.title] + state.spoken).compactMap { $0 }.joined(separator: ", "))
                 }
-            }.screenContent()
-        }.background(Palette.paper).screenTitle(piece.title)
-    }
-
-    private func areaPurpose(_ area: LearningArea) -> String {
-        switch area {
-        case .humming: return "Hear and match a note"
-        case .rhythm: return "Feel the beat and learn tap patterns"
-        case .cello: return "Build a steady sound on open strings"
+            }
         }
     }
 
-    private func areaSymbol(_ area: LearningArea) -> String {
-        switch area {
-        case .humming: return "waveform"
-        case .rhythm: return "metronome"
-        case .cello: return "music.note"
+    private func state(for step: PathStep) -> StepState {
+        switch step {
+        case .lesson(let lesson):
+            let lesson = LessonState(lesson: lesson, store: store, rhythmStores: rhythmStores)
+            return StepState(done: lesson.progress.completed, status: lesson.status, bestStars: lesson.bestStars,
+                             showsScore: true)
+        case .listen(let piece):
+            let heard = ListenedMelodies.contains(piece, in: listened)
+            return StepState(done: heard, status: heard ? "Listened" : "Not heard yet")
+        case .tap(let piece):
+            return phrases { melodyRhythmStore.progress(for: piece.rhythm(section: $0)).completed }
+        case .hum(let piece):
+            return phrases { store.melodyProgress(for: piece.humming(register: .lowVoice, section: $0)).completed }
+        case .wholeMelody(let piece):
+            let progress = store.melodyProgress(for: piece.humming(register: .lowVoice, section: .whole))
+            return StepState(done: progress.completed,
+                             status: progress.completed ? "Completed"
+                                : progress.successfulAttempts > 0 ? "In progress" : "Not started")
+        case .celloIntroduction, .echo:
+            return StepState(done: false, status: nil)
         }
+    }
+
+    private func phrases(_ isCompleted: (MelodySection) -> Bool) -> StepState {
+        let all: [MelodySection] = [.phrase1, .phrase2, .phrase3, .phrase4]
+        let count = all.filter(isCompleted).count
+        return StepState(done: count == all.count, status: "\(count) of \(all.count) phrases completed")
+    }
+
+    private var destinationNote: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionTitle("Where this is heading")
+            Text("Bach’s Cello Suite No. 1 is the long-term goal. Each level builds the listening, rhythm and note skills it needs; more melodies will join the path on the way there.")
+                .font(.footnote).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
+        }.card().accessibilityElement(children: .combine).accessibilityIdentifier("pathDestinationNote")
     }
 
     private var resources: some View {
@@ -191,54 +189,67 @@ struct MusicLibraryView: View {
     }
 }
 
-@MainActor
-private struct FoundationLessonsView: View {
-    let area: LearningArea
-    @ObservedObject var store: SessionStore
-    @ObservedObject var rhythmStores: RhythmStores
+/// What a path row shows about its step.
+private struct StepState {
+    let done: Bool
+    /// Nil for steps that keep no progress, such as Meet your cello.
+    let status: String?
+    var bestStars: Int? = nil
+    /// Lessons show a best score, or say there is none yet.
+    var showsScore = false
 
-    private var lessons: [PracticeLesson] { PracticeLesson.lessons(in: area) }
-    private var completedCount: Int {
-        lessons.filter { LessonState(lesson: $0, store: store, rhythmStores: rhythmStores).progress.completed }.count
+    var spoken: [String?] {
+        [status, showsScore ? (bestStars.map { "Best score \($0) of 3 stars" } ?? "No score yet") : nil]
+    }
+}
+
+private struct StepRow: View {
+    let step: PathStep
+    let number: Int?
+    let state: StepState
+    let isNext: Bool
+
+    private var lessonID: String? {
+        if case .lesson(let lesson) = step { return lesson.id }
+        return nil
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                ScreenHeader(title: area.title,
-                             subtitle: "\(completedCount) of \(lessons.count) lessons completed · Choose any lesson",
-                             titleIdentifier: "foundationAreaTitle",
-                             subtitleIdentifier: "foundationCompletionSummary")
-                if area == .cello {
-                    NavigationLink(value: MusicRoute.celloIntroduction) {
-                        LibraryRow(symbol: "music.note", title: "Meet your cello",
-                                   subtitle: "Explore the parts and hear the four strings",
-                                   footer: "Start here · Listen and explore")
-                    }.buttonStyle(.plain).accessibilityIdentifier("celloIntroductionLink")
-                }
-                VStack(spacing: 12) {
-                    ForEach(lessons) { lesson in
-                        let state = LessonState(lesson: lesson, store: store, rhythmStores: rhythmStores)
-                        NavigationLink(value: MusicRoute.lesson(lesson)) {
-                            LessonRow(lesson: lesson, state: state)
-                        }.buttonStyle(.plain)
-                            .accessibilityIdentifier("lesson-\(lesson.id)")
-                            .accessibilityLabel("Lesson \(lesson.number), \(lesson.title), \(state.accessibilitySummary)")
-                            .accessibilityHint("Opens instructions and saved scores")
+        LibraryRow(leading: number.map { .number($0) } ?? .symbol(step.symbol),
+                   title: step.title, subtitle: step.subtitle) {
+            if isNext || state.status != nil {
+                HStack(spacing: 8) {
+                    if isNext {
+                        Text("Continue").font(.caption.weight(.semibold)).foregroundStyle(.white)
+                            .padding(.horizontal, 10).padding(.vertical, 4)
+                            .background(Palette.forest, in: Capsule())
                     }
-                }
-                if area == .humming {
-                    VStack(alignment: .leading, spacing: 12) {
-                        SectionTitle("Ear training")
-                        NavigationLink(value: MusicRoute.echo) {
-                            LibraryRow(symbol: "ear", title: "Listen & Echo",
-                                       subtitle: "Remember a short pattern and hum it back",
-                                       footer: "Two notes, then three")
-                        }.buttonStyle(.plain).accessibilityIdentifier("echoPracticeLink")
+                    if state.done, let status = state.status {
+                        Label(status, systemImage: "checkmark.circle.fill").foregroundStyle(Palette.forest)
+                            .accessibilityIdentifier("lessonCompletion-\(lessonID ?? step.id)")
+                    } else if let status = state.status {
+                        Text(status).foregroundStyle(Palette.muted)
                     }
-                }
-            }.screenContent()
-        }.background(Palette.paper).screenTitle(area.title)
+                    Spacer(minLength: 4)
+                    if state.showsScore {
+                        Group {
+                            if let best = state.bestStars {
+                                HStack(spacing: 6) {
+                                    Text("Best").foregroundStyle(Palette.muted)
+                                    Stars(count: best, font: .caption2)
+                                }
+                            } else {
+                                Text("No score yet").foregroundStyle(Palette.muted)
+                            }
+                        }.accessibilityIdentifier("lessonBestScore-\(lessonID ?? step.id)")
+                    }
+                }.font(.caption.weight(.medium))
+            }
+        }.overlay {
+            if isNext {
+                RoundedRectangle(cornerRadius: Layout.cardRadius).strokeBorder(Palette.forest, lineWidth: 2)
+            }
+        }
     }
 }
 
@@ -272,40 +283,6 @@ private struct LessonState {
         progress.completed ? "Completed" : hasAttempts ? "In progress" : "Not started"
     }
 
-    var accessibilitySummary: String {
-        if let bestStars { return "\(status), Best score \(bestStars) of 3 stars" }
-        return "\(status), No score yet"
-    }
-}
-
-@MainActor
-private struct LessonRow: View {
-    let lesson: PracticeLesson
-    let state: LessonState
-
-    var body: some View {
-        LibraryRow(leading: .number(lesson.number), title: lesson.title, subtitle: lesson.shortPurpose) {
-            HStack(spacing: 8) {
-                if state.progress.completed {
-                    Label("Completed", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(Palette.forest)
-                        .accessibilityIdentifier("lessonCompletion-\(lesson.id)")
-                } else {
-                    Text(state.status).foregroundStyle(Palette.muted)
-                }
-                Spacer(minLength: 4)
-                if let best = state.bestStars {
-                    HStack(spacing: 6) {
-                        Text("Best").foregroundStyle(Palette.muted)
-                        Stars(count: best, font: .caption2)
-                    }.accessibilityIdentifier("lessonBestScore-\(lesson.id)")
-                } else {
-                    Text("No score yet").foregroundStyle(Palette.muted)
-                        .accessibilityIdentifier("lessonBestScore-\(lesson.id)")
-                }
-            }.font(.caption.weight(.medium))
-        }
-    }
 }
 
 @MainActor

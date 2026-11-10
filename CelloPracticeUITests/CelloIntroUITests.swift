@@ -8,9 +8,7 @@ final class CelloIntroUITests: XCTestCase {
     func testIntroductionShowsPartsAndReturnsToFourUnchangedPlayingLessons() {
         let app = XCUIApplication()
         app.launch()
-        openCelloFoundation(in: app)
-        let summary = app.staticTexts["foundationCompletionSummary"].label
-        XCTAssertTrue(summary.contains("of 4 lessons completed"))
+        let summary = celloLessonSummary(in: app)
         openIntroduction(in: app)
 
         let diagram = app.descendants(matching: .any).matching(identifier: "celloPartsDiagram").firstMatch
@@ -31,13 +29,11 @@ final class CelloIntroUITests: XCTestCase {
         XCTAssertTrue(browse.isHittable && browse.isEnabled)
         screenshot("Meet your cello · next steps before playing")
         browse.tap()
-        XCTAssertTrue(app.navigationBars["Cello"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.staticTexts["foundationCompletionSummary"].label, summary,
+        XCTAssertTrue(app.buttons["level-cello"].waitForExistence(timeout: 5), "The lessons are on the path")
+        XCTAssertEqual(celloLessonSummary(in: app), summary,
                        "Reading an introduction must not award a playing achievement")
         for lesson in ["openC", "openG", "openD", "openA"] {
-            let row = app.buttons["lesson-\(lesson)"]
-            reveal(row, in: app)
-            XCTAssertTrue(row.isEnabled)
+            XCTAssertTrue(app.pathStep("lesson-\(lesson)").isEnabled)
         }
         XCTAssertFalse(app.buttons["practiceRecordButton"].exists, "Browsing lessons must not start capture")
         assertNoWrittenInputOrPermissionAlerts(in: app)
@@ -46,8 +42,7 @@ final class CelloIntroUITests: XCTestCase {
     func testFourStringReferencesPlayManuallyWithoutCaptureOrProgress() {
         let app = XCUIApplication()
         app.launch()
-        openCelloFoundation(in: app)
-        let summary = app.staticTexts["foundationCompletionSummary"].label
+        let summary = celloLessonSummary(in: app)
         openIntroduction(in: app)
         let status = app.descendants(matching: .any).matching(identifier: "celloIntroPlaybackStatus").firstMatch
         XCTAssertFalse(status.exists, "Opening the introduction must be silent")
@@ -73,8 +68,7 @@ final class CelloIntroUITests: XCTestCase {
         screenshot("Meet your cello · four recorded string references")
         assertNoWrittenInputOrPermissionAlerts(in: app)
         app.buttons["celloIntroBrowseLessons"].tap()
-        XCTAssertTrue(app.navigationBars["Cello"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.staticTexts["foundationCompletionSummary"].label, summary,
+        XCTAssertEqual(celloLessonSummary(in: app), summary,
                        "Hearing references must not earn performance stars or completion")
     }
 
@@ -84,8 +78,7 @@ final class CelloIntroUITests: XCTestCase {
         app.tabBars.buttons["Recordings"].tap()
         XCTAssertTrue(app.navigationBars["Recordings"].waitForExistence(timeout: 5))
         let recordingIDs = visibleRecordingIDs(in: app)
-        openCelloFoundation(in: app)
-        let summary = app.staticTexts["foundationCompletionSummary"].label
+        let summary = celloLessonSummary(in: app)
         openIntroduction(in: app)
         let status = app.descendants(matching: .any).matching(identifier: "celloIntroPlaybackStatus").firstMatch
 
@@ -114,8 +107,7 @@ final class CelloIntroUITests: XCTestCase {
         a.tap()
         waitForStop(a)
         app.navigationBars["Meet your cello"].buttons.firstMatch.tap()
-        XCTAssertTrue(app.navigationBars["Cello"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.staticTexts["foundationCompletionSummary"].label, summary)
+        XCTAssertEqual(celloLessonSummary(in: app), summary)
         openIntroduction(in: app)
         XCTAssertFalse(status.exists, "Back navigation must stop playback without autoplay on return")
         assertIntroductionHasNoRecordingOrRating(in: app)
@@ -126,22 +118,13 @@ final class CelloIntroUITests: XCTestCase {
                        "Listening and cancellation must not create learner recordings")
     }
 
-    private func openCelloFoundation(in app: XCUIApplication) {
-        app.tabBars.buttons["Music"].tap()
-        let cello = app.buttons["foundation-cello"]
-        reveal(cello, in: app)
-        cello.tap()
-        XCTAssertTrue(app.navigationBars["Cello"].waitForExistence(timeout: 5))
+    /// What the path says about the four playing lessons: status and best score.
+    private func celloLessonSummary(in app: XCUIApplication) -> [String] {
+        ["openC", "openG", "openD", "openA"].map { app.pathStep("lesson-\($0)").label }
     }
 
     private func openIntroduction(in app: XCUIApplication) {
-        let introduction = app.buttons["celloIntroductionLink"]
-        for _ in 0..<6 {
-            if introduction.exists && introduction.isHittable { break }
-            app.scrollViews.firstMatch.swipeDown()
-        }
-        XCTAssertTrue(introduction.isHittable)
-        introduction.tap()
+        app.pathStep("celloIntroductionLink").tap()
         XCTAssertTrue(app.navigationBars["Meet your cello"].waitForExistence(timeout: 5))
     }
 

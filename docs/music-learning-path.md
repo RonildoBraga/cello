@@ -11,33 +11,35 @@ The first delivery separates Humming, Rhythm and Cello inside a Music library. I
 ## Navigation
 
 ```text
-Music
-  Foundations
-    Humming → Steady hum; Listen & match; Listen & Echo (ear training)
-    Rhythm → Pulse; Two taps per beat; Mixed rhythm
-    Cello → Meet your cello (parts and listening); Open C/G/D/A strings
-  Pieces
-    Hot Cross Buns → Humming; Rhythm (each: four phrases, then whole melody); Listen & follow
-    Ode to Joy → Humming; Rhythm (opening: four phrases, then whole); Listen & follow
-    Bach, Suite No. 1 Prelude → long-term learning path
+Music (the path)
+  Level 1 · First sounds      Steady hum → Listen & match → Pulse → Two taps per beat
+  Level 2 · Hot Cross Buns    Listen → Tap it → Hum it → Whole melody
+  Level 3 · Ode to Joy        Listen → Tap it → Hum it → Whole melody
+  Where this is heading       a note naming Bach's Suite No. 1 as the long-term goal
+  Cello · open strings        Meet your cello; Open C/G/D/A strings
+  More practice               Mixed rhythm; Listen & Echo
 Recordings → existing local audio/video history
 ```
 
-Music and Recordings are the two iPhone tabs. Practice is a screen, not a tab: every activity — a foundation lesson, a piece's humming or rhythm, Listen & follow, Listen & Echo — is pushed inside Music and left with Back ([issue #33](https://github.com/RonildoBraga/cello/issues/33)). Starting a foundation lesson pushes a fresh, ready practice screen above that lesson's page; "Try lesson N" replaces it with the next lesson's page and practice screen, so Back always matches what is on screen. Music shows a Continue row for the foundation lesson practised last.
+The path replaced separate Foundations and Pieces libraries ([issue #49](https://github.com/RonildoBraga/cello/issues/49), design note [#53](https://github.com/RonildoBraga/cello/issues/53)). A `Level` is a title and an ordered list of `PathStep`s, and each step opens a screen that already existed: a lesson page, Listen (the reference player), Tap it (melody rhythm), and Hum it or Whole melody (melody humming opened at phrase 1 or at the whole melody). Adding a melody adds one level with the same steps.
 
-An earlier release had a separate Practice tab with its own area and lesson pickers. It was removed because it duplicated the library, could fall out of step with the Music tab, and could not host piece or Echo practice.
+The level holding the first unfinished step opens when the path appears, and that step is marked Continue. It is a suggestion only: every level can be opened and every step tapped. A step is finished when its existing goal is earned: a lesson's completion, all four phrases of Tap it or Hum it, or the whole melody. Listen is finished once the melody has been played. Cello and More practice are not counted and never become the next step. A lighter "passed" tier is planned in [issue #50](https://github.com/RonildoBraga/cello/issues/50), and a Meet the notes step in [issue #51](https://github.com/RonildoBraga/cello/issues/51).
+
+Music and Recordings are the two iPhone tabs. Practice is a screen, not a tab: every activity — a lesson, a melody's Listen, Tap it or Hum it step, Listen & Echo — is pushed inside Music and left with Back ([issue #33](https://github.com/RonildoBraga/cello/issues/33)). Starting a foundation lesson pushes a fresh, ready practice screen above that lesson's page; "Try lesson N" replaces it with the next lesson's page and practice screen, so Back always matches what is on screen.
+
+An earlier release had a separate Practice tab with its own area and lesson pickers. It was removed because it duplicated the Music tab's lists, could fall out of step with the Music tab, and could not host piece or Echo practice.
 
 This is a design choice informed by [Apple’s sidebar guidance](https://developer.apple.com/design/human-interface-guidelines/sidebars): a tab bar is worth considering where sidebar space is limited. A custom hidden drawer is unnecessary for this small iPhone library. A larger-screen sidebar can be considered if the catalogue grows.
 
 ## First-release requirements
 
-- Each existing exercise belongs to one visible area; the Rhythm menu contains only rhythm exercises.
-- Original lesson IDs and displayed numbers stay stable: Humming 1–2, Rhythm 3–5 and Cello 1–4. Saved ratings, raw media, references and earned completion are unchanged.
-- Library, Continue and next actions share the same lesson-opening action. Humming Lesson 2 can still recommend Rhythm Lesson 3.
+- Each existing lesson appears exactly once, on the path or below it.
+- Original lesson IDs and lesson numbers stay stable: Humming 1–2, Rhythm 3–5 and Cello 1–4. The path shows a step's place in its level; lesson pages keep the lesson number. Saved ratings, raw media, references and earned completion are unchanged.
+- The path and next actions share the same lesson-opening action. Humming Lesson 2 can still recommend Rhythm Lesson 3.
 - A navigation area never supplies a recording pitch target. Existing voice/cello target rules stay separate from the new `LearningArea` model.
 - Leaving practice cancels unfinished rounds/count-ins. A take already finishing saves under its original exercise and reference.
-- Piece pages show concrete milestones, planned status and usable links to shared foundations. They contain no inactive Start-piece control or fabricated readiness percentage.
-- Choosing an already selected lesson from the library starts a fresh ready screen; it does not reveal a stale result.
+- A melody level shows only steps that work today. It has no inactive control and no fabricated readiness percentage.
+- Choosing an already selected lesson from the path starts a fresh ready screen; it does not reveal a stale result.
 
 Success is verified through navigation tests, saved-history compatibility checks, screen inspection and physical-device installation. No analytics service or new learner-data collection is required.
 
