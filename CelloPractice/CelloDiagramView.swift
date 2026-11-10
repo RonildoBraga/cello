@@ -49,7 +49,7 @@ struct CelloDiagramView: View {
                 }.accessibilityHidden(true)
                 ForEach(callouts) { item in
                     Text(item.title)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.caption.weight(.medium)).dynamicTypeSize(...DynamicTypeSize.xLarge)
                         .foregroundStyle(Palette.ink)
                         .lineLimit(1).minimumScaleFactor(0.9)
                         .frame(width: geometry.size.width * 0.25,

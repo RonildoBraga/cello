@@ -71,8 +71,7 @@ struct PulsePracticeView<Header: View>: View {
                         .scaleEffect(pulseIsBright && !reduceMotion ? 1.035 : 1)
                     Circle().strokeBorder(.white.opacity(0.30), lineWidth: 1)
                         .frame(width: 132, height: 132)
-                    Text(beatLabel).font(.statusCount)
-                        .monospacedDigit().foregroundStyle(.white)
+                    StatusValue(text: beatLabel, isCount: true).frame(maxWidth: 120)
                 }.frame(height: 158)
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel("\(phaseTitle), \(beatLabel)")
@@ -107,7 +106,8 @@ struct PulsePracticeView<Header: View>: View {
                 ForEach(0..<4) { index in
                     VStack(spacing: 5) {
                         Text(tokens[index])
-                            .font(.system(size: 30, weight: .medium, design: .rounded))
+                            .font(.system(.title, design: .rounded).weight(.medium))
+                            .lineLimit(1).minimumScaleFactor(0.5)
                         Text(mixed ? (index.isMultiple(of: 2) ? "one tap" : "two taps")
                              : (index.isMultiple(of: 2) ? "beat" : "between")).font(.caption2)
                     }.frame(maxWidth: .infinity).padding(.vertical, 10)

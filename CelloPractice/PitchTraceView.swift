@@ -97,7 +97,7 @@ struct PitchTraceView: View {
                         .foregroundStyle(Palette.forest.opacity(0.65))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                         .annotation(position: .top, alignment: .trailing) {
-                            Text("Target 0").font(.system(size: 9, weight: .medium))
+                            Text("Target 0").font(.caption2.weight(.medium))
                                 .foregroundStyle(Palette.forest)
                         }
 

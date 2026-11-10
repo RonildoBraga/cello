@@ -193,7 +193,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
             Text("\(context.reference.tempoBPM) BPM")
         } content: {
             HStack(spacing: 18) {
-                Text(beatLabel).font(.system(size: 54, weight: .light, design: .rounded)).monospacedDigit()
+                StatusValue(text: beatLabel, isCount: true).padding(10)
                     .frame(width: 85, height: 85)
                     .background(.white.opacity(pulseIsBright ? 0.20 : 0.07), in: Circle())
                     .accessibilityIdentifier("melodyRhythmBeat")
@@ -213,6 +213,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
             }.buttonStyle(.plain).disabled(!running || !(timing?.canTap(at: now) ?? false))
                 .opacity(running && (timing?.canTap(at: now) ?? false) ? 1 : 0.45)
                 .accessibilityLabel("Tap at each note start")
+                .accessibilityHint(running ? "" : "Tap Start, then wait for the count-in.")
                 .accessibilityIdentifier("melodyRhythmTapButton")
             Text("\(timing?.offsets.count ?? 0) / \(context.expectedTapTimes.count) starts · \(timing?.unexpectedTapCount ?? 0) extra")
                 .font(.caption).foregroundStyle(.white.opacity(0.7))

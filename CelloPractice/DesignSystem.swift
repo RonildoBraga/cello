@@ -8,6 +8,8 @@ enum Palette {
     static let forest = Color(red: 0.16, green: 0.30, blue: 0.26)
     static let ink = Color(red: 0.16, green: 0.20, blue: 0.18)
     static let gold = Color(red: 0.69, green: 0.47, blue: 0.24)
+    /// Gold for small text: `gold` itself is below 4.5:1 on paper and white.
+    static let goldText = Color(red: 0.55, green: 0.36, blue: 0.16)
     static let muted = Color(red: 0.40, green: 0.44, blue: 0.41)
 }
 
@@ -26,9 +28,6 @@ enum Layout {
 extension Font {
     static let screenTitle = Font.system(.title, design: .serif).weight(.semibold)
     static let eyebrow = Font.system(.caption2, design: .rounded).weight(.bold)
-    /// Countdown digits and one-word states on the dark status cards.
-    static let statusValue = Font.system(size: 46, weight: .light, design: .rounded)
-    static let statusCount = Font.system(size: 62, weight: .light, design: .rounded)
 }
 
 extension View {
@@ -88,7 +87,7 @@ struct ScreenHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if let eyebrow {
-                Eyebrow(text: eyebrow, color: Palette.gold).accessibilityIdentifier(eyebrowIdentifier)
+                Eyebrow(text: eyebrow, color: Palette.goldText).accessibilityIdentifier(eyebrowIdentifier)
             }
             Text(title).font(.screenTitle).foregroundStyle(Palette.ink)
                 .accessibilityAddTraits(.isHeader).accessibilityIdentifier(titleIdentifier)
@@ -151,15 +150,13 @@ struct LibraryRow<Status: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 13) {
-                Group {
+                IconTile {
                     switch leading {
                     case .symbol(let name): Image(systemName: name).font(.title3)
                     case .number(let number):
                         Text(String(format: "%02d", number)).font(.system(.title3, design: .serif).weight(.semibold))
                     }
-                }.foregroundStyle(Palette.forest)
-                    .frame(width: Layout.tileSize, height: Layout.tileSize)
-                    .background(Palette.forest.opacity(0.07), in: RoundedRectangle(cornerRadius: Layout.tileRadius))
+                }
                 VStack(alignment: .leading, spacing: 5) {
                     Text(title).font(.headline).foregroundStyle(Palette.ink)
                     Text(subtitle).font(.footnote).foregroundStyle(Palette.muted)
@@ -179,10 +176,21 @@ extension LibraryRow where Status == EmptyView {
     }
 }
 
+/// The tinted square that leads a row. It grows with the text beside it.
+struct IconTile<Content: View>: View {
+    @ScaledMetric(relativeTo: .title3) private var size = Layout.tileSize
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        content.foregroundStyle(Palette.forest).frame(width: size, height: size)
+            .background(Palette.forest.opacity(0.07), in: RoundedRectangle(cornerRadius: Layout.tileRadius))
+    }
+}
+
 /// A score out of three.
 struct Stars: View {
     let count: Int
-    var size: CGFloat = 16
+    var font = Font.callout
 
     var body: some View {
         HStack(spacing: 3) {
@@ -190,7 +198,7 @@ struct Stars: View {
                 Image(systemName: index < count ? "star.fill" : "star")
                     .foregroundStyle(index < count ? Palette.gold : Palette.muted.opacity(0.45))
             }
-        }.font(.system(size: size, weight: .medium))
+        }.font(font.weight(.medium))
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(count) of 3 stars")
     }
@@ -201,11 +209,12 @@ struct NumberedStep: View {
     let number: Int
     var title: String? = nil
     let detail: String
+    @ScaledMetric(relativeTo: .caption) private var size: CGFloat = 24
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Text("\(number)").font(.caption.weight(.semibold)).foregroundStyle(Palette.forest)
-                .frame(width: 24, height: 24)
+                .frame(width: size, height: size)
                 .background(Palette.forest.opacity(0.08), in: Circle())
             VStack(alignment: .leading, spacing: 5) {
                 if let title { Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(Palette.ink) }
@@ -233,6 +242,21 @@ struct StatusCard<Trailing: View, Content: View>: View {
             content
         }.foregroundStyle(.white).padding(22).frame(maxWidth: .infinity)
             .background(Palette.forest, in: RoundedRectangle(cornerRadius: Layout.cardRadius))
+    }
+}
+
+/// The large word or countdown digit on a status card. It scales with Dynamic
+/// Type and shrinks rather than clipping when space is tight.
+struct StatusValue: View {
+    let text: String
+    var isCount = false
+    @ScaledMetric(relativeTo: .largeTitle) private var wordSize: CGFloat = 44
+    @ScaledMetric(relativeTo: .largeTitle) private var countSize: CGFloat = 62
+
+    var body: some View {
+        Text(text).font(.system(size: isCount ? countSize : wordSize, weight: .light, design: .rounded))
+            .monospacedDigit().lineLimit(1).minimumScaleFactor(0.4)
+            .dynamicTypeSize(...DynamicTypeSize.accessibility2)
     }
 }
 

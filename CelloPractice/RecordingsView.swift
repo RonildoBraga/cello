@@ -25,11 +25,7 @@ struct RecordingsView: View {
                                 SessionDetailView(session: session, store: store)
                             } label: {
                                 HStack(spacing: 12) {
-                                    Image(systemName: "play.fill").font(.subheadline)
-                                        .foregroundStyle(Palette.forest)
-                                        .frame(width: Layout.tileSize, height: Layout.tileSize)
-                                        .background(Palette.forest.opacity(0.07),
-                                                    in: RoundedRectangle(cornerRadius: Layout.tileRadius))
+                                    IconTile { Image(systemName: "play.fill").font(.subheadline) }
                                     VStack(alignment: .leading, spacing: 5) {
                                         Text(session.title).font(.subheadline.weight(.semibold))
                                             .foregroundStyle(Palette.ink)
@@ -41,7 +37,7 @@ struct RecordingsView: View {
                                         Text(timeString(session.duration)).font(.caption.monospacedDigit())
                                             .foregroundStyle(Palette.muted)
                                         if let stars = session.starCount {
-                                            Stars(count: stars, size: 10)
+                                            Stars(count: stars, font: .caption2)
                                         }
                                     }
                                 }.padding(.vertical, 8)

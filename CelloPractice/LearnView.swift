@@ -266,7 +266,7 @@ private struct LessonRow: View {
                 if let best = state.bestStars {
                     HStack(spacing: 6) {
                         Text("Best").foregroundStyle(Palette.muted)
-                        Stars(count: best, size: 10)
+                        Stars(count: best, font: .caption2)
                     }.accessibilityIdentifier("lessonBestScore-\(lesson.id)")
                 } else {
                     Text("No score yet").foregroundStyle(Palette.muted)
