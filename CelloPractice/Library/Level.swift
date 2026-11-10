@@ -6,6 +6,7 @@ enum PathStep: Hashable, Identifiable {
     case lesson(PracticeLesson)
     case listen(MelodyPiece)
     case tap(MelodyPiece)
+    case meetNotes(MelodyPiece)
     case hum(MelodyPiece)
     case wholeMelody(MelodyPiece)
     case celloIntroduction
@@ -17,6 +18,7 @@ enum PathStep: Hashable, Identifiable {
         case .lesson(let lesson): return "lesson-\(lesson.id)"
         case .listen(let piece): return "step-\(piece.rawValue)-listen"
         case .tap(let piece): return "step-\(piece.rawValue)-tap"
+        case .meetNotes(let piece): return "step-\(piece.rawValue)-notes"
         case .hum(let piece): return "step-\(piece.rawValue)-hum"
         case .wholeMelody(let piece): return "step-\(piece.rawValue)-whole"
         case .celloIntroduction: return "celloIntroductionLink"
@@ -29,6 +31,7 @@ enum PathStep: Hashable, Identifiable {
         case .lesson(let lesson): return lesson.title
         case .listen: return "Listen"
         case .tap: return "Tap it"
+        case .meetNotes: return "Meet the notes"
         case .hum: return "Hum it"
         case .wholeMelody: return "Whole melody"
         case .celloIntroduction: return "Meet your cello"
@@ -41,6 +44,7 @@ enum PathStep: Hashable, Identifiable {
         case .lesson(let lesson): return lesson.shortPurpose
         case .listen: return "Hear the melody and follow its notes"
         case .tap: return "Tap the rhythm, one phrase at a time"
+        case .meetNotes: return "Hear each note and hum it back"
         case .hum: return "Record each phrase and earn stars"
         case .wholeMelody: return "Join the four phrases and hum it through"
         case .celloIntroduction: return "Explore the parts and hear the four strings"
@@ -58,6 +62,7 @@ enum PathStep: Hashable, Identifiable {
             }
         case .listen: return "play.circle.fill"
         case .tap: return "metronome"
+        case .meetNotes: return "music.note"
         case .hum: return "waveform"
         case .wholeMelody: return "music.note.list"
         case .celloIntroduction: return "music.note"
@@ -75,14 +80,14 @@ struct Level: Identifiable {
     let subtitle: String
     let steps: [PathStep]
 
-    /// The path, in order. Adding a melody adds a level with the same four steps.
+    /// The path, in order. Adding a melody adds a level with the same five steps.
     static let path: [Level] = [
         Level(id: "firstSounds", number: 1, title: "First sounds",
               subtitle: "Hold a note, match a note and keep a beat",
               steps: [.lesson(.steadyHum), .lesson(.matchHum), .lesson(.pulse), .lesson(.twoTaps)])
     ] + MelodyPiece.allCases.enumerated().map { index, piece in
         Level(id: piece.rawValue, number: index + 2, title: piece.title, subtitle: piece.pathSubtitle,
-              steps: [.listen(piece), .tap(piece), .hum(piece), .wholeMelody(piece)])
+              steps: [.listen(piece), .tap(piece), .meetNotes(piece), .hum(piece), .wholeMelody(piece)])
     }
 
     /// Open to everyone, but off the path: the cello waits for an instrument,
@@ -122,10 +127,13 @@ struct StepProgress: Equatable {
     let passedParts: Int
     let goldParts: Int
     let totalParts: Int
+    /// What the parts are called when there are several: phrases or notes.
+    let partNoun: String
     /// Something has been tried, even if nothing has passed yet.
     let started: Bool
 
-    init(_ parts: [PracticeProgress], started: Bool = false) {
+    init(_ parts: [PracticeProgress], started: Bool = false, partNoun: String = "phrases") {
+        self.partNoun = partNoun
         passedParts = parts.filter(\.passed).count
         goldParts = parts.filter(\.completed).count
         totalParts = parts.count
@@ -139,7 +147,7 @@ struct StepProgress: Equatable {
     var status: String {
         if gold { return "Gold" }
         if passed { return "Passed" }
-        if totalParts > 1 { return "\(passedParts) of \(totalParts) phrases passed" }
+        if totalParts > 1 { return "\(passedParts) of \(totalParts) \(partNoun) passed" }
         return started ? "In progress" : "Not started"
     }
 }

@@ -9,8 +9,8 @@ A native iPhone practice companion for beginners learning music while preparing 
 | Level | Steps |
 | --- | --- |
 | 1 · First sounds | Steady hum → Listen & match → Pulse → Two taps per beat |
-| 2 · Hot Cross Buns | Listen → Tap it → Hum it → Whole melody |
-| 3 · Ode to Joy | Listen → Tap it → Hum it → Whole melody |
+| 2 · Hot Cross Buns | Listen → Tap it → Meet the notes → Hum it → Whole melody |
+| 3 · Ode to Joy | Listen → Tap it → Meet the notes → Hum it → Whole melody |
 
 Below the path, **Cello · open strings** holds Meet your cello and the four open-string lessons for when you have an instrument, and **More practice** holds Mixed rhythm and Listen & Echo. A short note names Bach’s Cello Suite No. 1 as the long-term goal. See [the path design](https://github.com/RonildoBraga/cello/issues/53).
 
@@ -30,7 +30,7 @@ Open **Music → Cello · open strings → Meet your cello** for an original lab
 
 The cello lessons have separate C/G/D/A open-string targets. Lesson pages show instructions, best/latest scores and earned completion; every exercise stays available. Original IDs, lesson numbers and earned progress are retained.
 
-The first melody is Hot Cross Buns. Open **Music → Hot Cross Buns → Hum it** to hear, record and review four short phrases, then join them in the **Whole melody** step. The voice reference uses G2–B2 at 60 BPM. Record starts a three-second countdown, then captures four seconds for a phrase or sixteen for the whole tune. Results show separate **Notes**, **Timing** and **Clarity** stars, a moving-reference pitch chart and one next suggestion. Three three-star takes among the last five rated attempts earn completion for that exact phrase and reference. Every phrase stays available.
+The first melody is Hot Cross Buns. **Meet the notes** plays each of its notes for you to hum back, one at a time, before you hum phrases. Open **Music → Hot Cross Buns → Hum it** to hear, record and review four short phrases, then join them in the **Whole melody** step. The voice reference uses G2–B2 at 60 BPM. Record starts a three-second countdown, then captures four seconds for a phrase or sixteen for the whole tune. Results show separate **Notes**, **Timing** and **Clarity** stars, a moving-reference pitch chart and one next suggestion. Three three-star takes among the last five rated attempts earn completion for that exact phrase and reference. Every phrase stays available.
 
 **Music → Hot Cross Buns → Tap it** applies the same score to tapping: four phrases, then the whole tune. Visible note lengths and recorded-hum playback help you learn the pattern before Start. A four-beat count-in leads into each round with automatic whole-beat haptics. Tap at each note start, then count through longer notes without tapping again. Results show **Pattern**, **Timing** and **Consistency** stars and a timing chart. Each phrase earns separate progress at its own tempo; humming and foundation scores do not complete it. Every phrase remains available.
 

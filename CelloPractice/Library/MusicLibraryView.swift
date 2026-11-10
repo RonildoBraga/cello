@@ -10,6 +10,7 @@ enum MusicRoute: Hashable {
     /// Humming a melody, opened at a phrase or at the whole melody.
     case pieceHumming(MelodyPiece, MelodySection)
     case pieceRhythm(MelodyPiece)
+    case pieceNotes(MelodyPiece)
     case pieceReference(MelodyPiece)
 }
 
@@ -19,6 +20,7 @@ extension PathStep {
         case .lesson(let lesson): return .lesson(lesson)
         case .listen(let piece): return .pieceReference(piece)
         case .tap(let piece): return .pieceRhythm(piece)
+        case .meetNotes(let piece): return .pieceNotes(piece)
         case .hum(let piece): return .pieceHumming(piece, .phrase1)
         case .wholeMelody(let piece): return .pieceHumming(piece, .whole)
         case .celloIntroduction: return .celloIntroduction
@@ -88,6 +90,7 @@ struct MusicLibraryView: View {
         case .pieceHumming(let piece, let section):
             MelodyHummingView(store: store, capture: capture, piece: piece, section: section)
         case .pieceRhythm(let piece): MelodyRhythmView(store: melodyRhythmStore, capture: capture, piece: piece)
+        case .pieceNotes(let piece): MeetNotesView(store: store, capture: capture, piece: piece)
         case .pieceReference(let piece): MelodyReferenceView(capture: capture, piece: piece)
         }
     }
@@ -159,6 +162,11 @@ struct MusicLibraryView: View {
             return StepState(progress: StepProgress(MelodySection.phrases.map {
                 melodyRhythmStore.progress(for: piece.rhythm(section: $0))
             }))
+        case .meetNotes(let piece):
+            // Every note needs a passing take; the two pairs are extra practice.
+            return StepState(progress: StepProgress(NoteDrill.notes(for: piece).map {
+                store.melodyProgress(for: $0.context)
+            }, partNoun: "notes"))
         case .hum(let piece):
             return StepState(progress: StepProgress(MelodySection.phrases.map {
                 store.melodyProgress(for: piece.humming(register: .lowVoice, section: $0))
