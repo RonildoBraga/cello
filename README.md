@@ -12,6 +12,8 @@ A native iPhone practice companion for beginners learning music while preparing 
 | 2 · Hot Cross Buns | Listen → Tap it → Meet the notes → Hum it → Whole melody |
 | 3 · Ode to Joy | Listen → Tap it → Meet the notes → Hum it → Whole melody |
 
+Each Level 1 lesson opens the first time with a short primer that explains its new idea in plain words: a note, higher and lower, a beat, two taps per beat.
+
 Below the path, **Cello · open strings** holds Meet your cello and the four open-string lessons for when you have an instrument, and **More practice** holds Mixed rhythm and Listen & Echo. A short note names Bach’s Cello Suite No. 1 as the long-term goal. See [the path design](https://github.com/RonildoBraga/cello/issues/53).
 
 The lessons include:
