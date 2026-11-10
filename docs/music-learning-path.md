@@ -23,7 +23,18 @@ Recordings → existing local audio/video history
 
 The path replaced separate Foundations and Pieces libraries ([issue #49](https://github.com/RonildoBraga/cello/issues/49), design note [#53](https://github.com/RonildoBraga/cello/issues/53)). A `Level` is a title and an ordered list of `PathStep`s, and each step opens a screen that already existed: a lesson page, Listen (the reference player), Tap it (melody rhythm), and Hum it or Whole melody (melody humming opened at phrase 1 or at the whole melody). Adding a melody adds one level with the same steps.
 
-The level holding the first unfinished step opens when the path appears, and that step is marked Continue. It is a suggestion only: every level can be opened and every step tapped. A step is finished when its existing goal is earned: a lesson's completion, all four phrases of Tap it or Hum it, or the whole melody. Listen is finished once the whole melody has played to its end. Cello and More practice are not counted and never become the next step. A lighter "passed" tier is planned in [issue #50](https://github.com/RonildoBraga/cello/issues/50), and a Meet the notes step in [issue #51](https://github.com/RonildoBraga/cello/issues/51).
+The level holding the first unfinished step opens when the path appears, and that step is marked Continue. It is a suggestion only: every level can be opened and every step tapped. Cello and More practice are not counted and never become the next step. A Meet the notes step is planned in [issue #51](https://github.com/RonildoBraga/cello/issues/51).
+
+### Passed and gold
+
+Progress has two tiers ([issue #50](https://github.com/RonildoBraga/cello/issues/50)), both defined once in `CompletionRule` and both computed from attempts that are already saved:
+
+- **Passed** moves the path on: one scored attempt with two stars or more. It is read from the saved takes and rounds, so deleting the only passing take un-passes it.
+- **Gold** is the earlier completion rule, unchanged: three 3-star attempts among five consecutive scored attempts. It is kept in the existing ledgers, survives later takes and always counts as passed.
+
+A lesson or the whole melody is one part. Tap it and Hum it roll up four phrases: the step shows "2 of 4 phrases passed", is passed when all four are, and is gold when all four are gold. Listen is passed once the whole melody has played to its end. A level shows how many of its steps are passed; when the last one passes, the path shows a completion card once and points at the next step.
+
+No saved format changed. Two small preferences hold what no take records: the melodies heard to the end and the levels already celebrated.
 
 Music and Recordings are the two iPhone tabs. Practice is a screen, not a tab: every activity — a lesson, a melody's Listen, Tap it or Hum it step, Listen & Echo — is pushed inside Music and left with Back ([issue #33](https://github.com/RonildoBraga/cello/issues/33)). Starting a foundation lesson pushes a fresh, ready practice screen above that lesson's page; "Try lesson N" replaces it with the next lesson's page and practice screen, so Back always matches what is on screen.
 

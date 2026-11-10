@@ -80,10 +80,10 @@ final class LearningUITests: XCTestCase {
             throw XCTSkip("Requires externally copied completed production Pulse history")
         }
         let pulse = app.pathRow("lesson-pulse")
-        XCTAssertTrue(pulse.label.contains("Completed"))
+        XCTAssertTrue(pulse.label.contains("Gold"))
         XCTAssertTrue(pulse.label.contains("Best score 3 of 3 stars"))
         let whole = app.pathRow("step-hotCrossBuns-whole")
-        XCTAssertFalse(whole.label.contains("Completed"), "A foundation success is not a melody performance")
+        XCTAssertFalse(whole.label.contains("Gold"), "A foundation success is not a melody performance")
         XCTAssertFalse(app.staticTexts["ratingStarCount"].exists)
         XCTAssertFalse(app.staticTexts["pulse.stars"].exists)
         screenshot("Music · foundation success remains separate from piece performances")
@@ -143,7 +143,7 @@ final class LearningUITests: XCTestCase {
 
         let lesson = app.pathRow("lesson-steadyHum")
         XCTAssertTrue(lesson.waitForExistence(timeout: 5))
-        XCTAssertTrue(lesson.label.contains("Completed"))
+        XCTAssertTrue(lesson.label.contains("Gold"))
         XCTAssertTrue(lesson.label.contains("Best score 3 of 3 stars"),
                       "The library should summarize the saved production ratings")
         lesson.tap()
@@ -555,7 +555,7 @@ final class LearningUITests: XCTestCase {
         assertNoPermissionAlerts(in: app)
     }
 
-    func testHearingTheWholeMelodyToTheEndFinishesTheListenStep() {
+    func testHearingTheWholeMelodyToTheEndPassesTheListenStep() {
         let app = XCUIApplication()
         app.launch()
         openMelodyReference(in: app, pieceID: "odeToJoy")
@@ -563,8 +563,14 @@ final class LearningUITests: XCTestCase {
         waitForMelodyButton("Stop", in: app)
         waitForMelodyButton("Hear melody", in: app, timeout: 25)
         app.navigationBars["Listen"].buttons.firstMatch.tap()
-        XCTAssertTrue(app.pathRow("step-odeToJoy-listen").label.contains("Listened"),
-                      "Playing the whole melody to its end finishes Listen")
+        let step = app.pathRow("step-odeToJoy-listen")
+        XCTAssertTrue(step.label.contains("Listened"), "Playing the whole melody to its end passes Listen")
+        let level = app.buttons["level-odeToJoy"]
+        XCTAssertFalse(level.label.contains("0 of 4 steps done"), "The level counts the passed step")
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.pathRow("step-odeToJoy-listen").label.contains("Listened"), "Listening survives relaunch")
+        screenshot("Ode to Joy · Listen passed")
     }
 
     func testMelodyPhrasePlaybackFinishesAndCancelsWhenSelectionChanges() {
@@ -1306,7 +1312,7 @@ final class LearningUITests: XCTestCase {
         }
         let completedPulse = progress.label
         let pulse = app.pathRow("lesson-pulse")
-        XCTAssertTrue(pulse.label.contains("Completed"))
+        XCTAssertTrue(pulse.label.contains("Gold"))
         XCTAssertTrue(pulse.label.contains("Best score 3 of 3 stars"))
         openLesson("pulse", title: "Pulse", in: app)
         app.buttons["startLessonButton"].tap()

@@ -33,5 +33,5 @@ struct MelodyProgressLedger: SessionProgressLedger {
         return key(for: context)
     }
 
-    static func succeeded(_ session: PracticeSession) -> Bool { session.melodyRating?.goalReached == true }
+    static func starCount(for session: PracticeSession) -> Int? { session.melodyRating?.starCount }
 }

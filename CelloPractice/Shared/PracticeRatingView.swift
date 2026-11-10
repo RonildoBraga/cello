@@ -55,7 +55,9 @@ struct PracticeProgressView: View {
                         .frame(width: 5, height: 5)
                 }
             }.accessibilityHidden(true)
-            Text(progress.completed ? "Goal reached" : "\(progress.successfulAttempts) of 3 successful \(attemptNoun)")
+            Text(progress.completed ? "Gold · Goal reached"
+                 : progress.passed ? "Passed · \(progress.successfulAttempts) of 3 for gold"
+                 : "\(progress.successfulAttempts) of 3 successful \(attemptNoun)")
                 .font(.caption.weight(.medium))
                 .foregroundStyle(progress.completed ? Palette.forest : Palette.muted)
                 .accessibilityIdentifier("practiceProgressText")
