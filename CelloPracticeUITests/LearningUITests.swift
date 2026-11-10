@@ -822,8 +822,9 @@ final class LearningUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 7), .completed)
         let deadline = ProcessInfo.processInfo.systemUptime + 6
         var touches = 0
+        let pad = fixedPoint(at: tap, in: app)
         while tap.exists && tap.isEnabled && ProcessInfo.processInfo.systemUptime < deadline {
-            tap.tap()
+            pad.tap()
             touches += 1
             Thread.sleep(forTimeInterval: 0.12)
         }
@@ -907,9 +908,11 @@ final class LearningUITests: XCTestCase {
         let deadline = ProcessInfo.processInfo.systemUptime + 6
         var touches = 0
         var continuingNoteTouches = 0
+        let pad = fixedPoint(at: tap, in: app)
+        let beatText = app.staticTexts["melodyRhythmBeat"]
         while tap.exists && tap.isEnabled && ProcessInfo.processInfo.systemUptime < deadline {
-            let beat = app.staticTexts["melodyRhythmBeat"].label
-            tap.tap()
+            let beat = beatText.exists ? beatText.label : ""
+            pad.tap()
             touches += 1
             if beat == "4" { continuingNoteTouches += 1 }
             Thread.sleep(forTimeInterval: 0.12)
@@ -1954,6 +1957,15 @@ final class LearningUITests: XCTestCase {
     private func assertNoPermissionAlerts(in app: XCUIApplication) {
         XCTAssertEqual(app.alerts.count, 0)
         XCTAssertEqual(XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.count, 0)
+    }
+
+    /// The screen position of an element, for taps that must not depend on the
+    /// element still existing. A round replaces its tap pad with the result the
+    /// moment it ends; tapping the pad element itself can race that and fail.
+    private func fixedPoint(at element: XCUIElement, in app: XCUIApplication) -> XCUICoordinate {
+        let frame = element.frame
+        return app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: frame.midX, dy: frame.midY))
     }
 
     private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
