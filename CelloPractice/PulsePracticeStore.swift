@@ -67,9 +67,10 @@ struct PulseAttempt: Codable, Identifiable {
 
     /// The middle 80% reduces the influence of one stray tap while detecting drift.
     var spreadMilliseconds: Double? {
-        guard tapCount >= 3 else { return nil }
         let sorted = offsets.values.sorted()
-        return (percentile(0.9, in: sorted) - percentile(0.1, in: sorted)) * 1_000
+        guard tapCount >= 3, let upper = RhythmStatistics.percentile(0.9, in: sorted),
+              let lower = RhythmStatistics.percentile(0.1, in: sorted) else { return nil }
+        return (upper - lower) * 1_000
     }
 
     var medianDistanceMilliseconds: Double? { median(offsets.values.map { abs($0) * 1_000 }) }
@@ -102,16 +103,8 @@ struct PulseAttempt: Codable, Identifiable {
         }
     }
 
-    private func percentile(_ fraction: Double, in sorted: [Double]) -> Double {
-        let position = Double(sorted.count - 1) * fraction
-        let lower = Int(position)
-        let upper = min(lower + 1, sorted.count - 1)
-        return sorted[lower] + (sorted[upper] - sorted[lower]) * (position - Double(lower))
-    }
-
     private func median(_ values: [Double]) -> Double? {
-        guard values.count >= 3 else { return nil }
-        return percentile(0.5, in: values.sorted())
+        values.count >= 3 ? RhythmStatistics.percentile(0.5, in: values.sorted()) : nil
     }
 }
 

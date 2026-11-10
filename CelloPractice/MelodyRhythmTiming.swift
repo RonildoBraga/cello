@@ -52,12 +52,8 @@ struct MelodyRhythmContext: Codable, Equatable, Sendable {
 }
 
 /// Taps are measured against absolute monotonic time, never UI refresh ticks.
-struct MelodyRhythmTiming {
-    enum Phase: Equatable {
-        case countIn(Int)
-        case tapping(Int)
-        case finished
-    }
+struct MelodyRhythmTiming: RhythmRoundTiming {
+    typealias Phase = RhythmPhase
 
     static let duplicateInterval: TimeInterval = 0.05
 
@@ -73,6 +69,7 @@ struct MelodyRhythmTiming {
         self.context = context
     }
 
+    var beatInterval: TimeInterval { context.beatInterval }
     var practiceStartTime: TimeInterval { startTime + context.countInDuration }
     var endTime: TimeInterval { practiceStartTime + context.duration }
 

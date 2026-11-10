@@ -49,7 +49,7 @@ struct MelodyRhythmAttempt: Codable, Identifiable, Equatable, Sendable {
     var onTimeFraction: Double { rating.onTimeFraction }
     var spreadMilliseconds: Double? { rating.spreadMilliseconds }
     var medianOffsetMilliseconds: Double? {
-        Self.percentile(0.5, offsets.values.map { $0 * 1_000 }.sorted())
+        RhythmStatistics.percentile(0.5, in: offsets.values.map { $0 * 1_000 }.sorted())
     }
 
     var cue: String {
@@ -77,8 +77,8 @@ struct MelodyRhythmAttempt: Codable, Identifiable, Equatable, Sendable {
             abs($0) <= timingTolerance + 1e-9
         }.count) / Double(offsets.count)
         let values = offsets.values.map { $0 * 1_000 }.sorted()
-        let spread = enoughMatches ? percentile(0.9, values).flatMap { upper in
-            percentile(0.1, values).map { upper - $0 }
+        let spread = enoughMatches ? RhythmStatistics.percentile(0.9, in: values).flatMap { upper in
+            RhythmStatistics.percentile(0.1, in: values).map { upper - $0 }
         } : nil
         return Rating(isScored: scored,
                       pattern: scored && offsets.count >= Int(ceil(Double(context.expectedTapTimes.count) * 0.8))
@@ -117,13 +117,6 @@ struct MelodyRhythmAttempt: Codable, Identifiable, Equatable, Sendable {
         let spreadMilliseconds: Double?
     }
 
-    private static func percentile(_ fraction: Double, _ sorted: [Double]) -> Double? {
-        guard !sorted.isEmpty else { return nil }
-        let position = Double(sorted.count - 1) * fraction
-        let lower = Int(position)
-        let upper = min(lower + 1, sorted.count - 1)
-        return sorted[lower] + (sorted[upper] - sorted[lower]) * (position - Double(lower))
-    }
 }
 
 /// All melody rhythm phrases share one document, separate from every foundation history.

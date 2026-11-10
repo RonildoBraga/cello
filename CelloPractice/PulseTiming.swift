@@ -2,17 +2,12 @@ import Foundation
 
 /// A small, fixed-tempo exercise. All timing is relative to a monotonic clock;
 /// the UI's refresh rate never determines when a beat is due.
-struct PulseTiming {
-    enum Phase: Equatable {
-        case countIn(Int)
-        case tapping(Int)
-        case finished
-    }
+struct PulseTiming: RhythmRoundTiming {
+    typealias Phase = RhythmPhase
 
     static let beatInterval: TimeInterval = 1
     static let countInBeats = 4
-    static let practiceBeats = 16
-    static let tapWindow: TimeInterval = 0.45
+    var beatInterval: TimeInterval { Self.beatInterval }
 
     let startTime: TimeInterval
     let exercise: RhythmExercise
@@ -71,10 +66,6 @@ struct PulseTiming {
     var medianDistanceMilliseconds: Double? { median(offsets.values.map { abs($0) * 1_000 }) }
 
     private func median(_ values: [Double]) -> Double? {
-        guard values.count >= 3 else { return nil }
-        let sorted = values.sorted()
-        let middle = sorted.count / 2
-        return sorted.count.isMultiple(of: 2)
-            ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle]
+        values.count >= 3 ? RhythmStatistics.percentile(0.5, in: values.sorted()) : nil
     }
 }
