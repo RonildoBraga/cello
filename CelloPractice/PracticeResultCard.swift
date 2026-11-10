@@ -34,8 +34,9 @@ struct PracticeResultCard: View {
                     Text("\(starCount) of 3 stars").font(.subheadline.weight(.semibold))
                         .foregroundStyle(Palette.forest).accessibilityIdentifier(identifiers.stars)
                 }
-                HStack(spacing: 12) {
-                    ForEach(goals.indices, id: \.self) { goal(goals[$0]) }
+                ViewThatFits(in: .horizontal) {
+                    goalsRow(stacked: false).fixedSize()
+                    goalsRow(stacked: true)
                 }.padding(.vertical, 2)
             } else {
                 Label(unscoredLabel, systemImage: unscoredSystemImage)
@@ -59,15 +60,24 @@ struct PracticeResultCard: View {
             }.accessibilityElement(children: .contain)
     }
 
-    private func goal(_ goal: PracticeGoal) -> some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 7) {
-                star(goal.earned)
-                Text(goal.title).font(.subheadline.weight(.medium)).foregroundStyle(Palette.forest)
-            }.fixedSize()
-            VStack(spacing: 6) {
-                star(goal.earned)
-                Text(goal.title).font(.caption.weight(.medium)).foregroundStyle(Palette.forest)
+    private func goalsRow(stacked: Bool) -> some View {
+        HStack(spacing: 12) {
+            ForEach(goals.indices, id: \.self) { goal(goals[$0], stacked: stacked) }
+        }
+    }
+
+    private func goal(_ goal: PracticeGoal, stacked: Bool) -> some View {
+        Group {
+            if stacked {
+                VStack(spacing: 6) {
+                    star(goal.earned)
+                    Text(goal.title).font(.caption.weight(.medium)).foregroundStyle(Palette.forest)
+                }
+            } else {
+                HStack(spacing: 7) {
+                    star(goal.earned)
+                    Text(goal.title).font(.subheadline.weight(.medium)).foregroundStyle(Palette.forest)
+                }
             }
         }.frame(maxWidth: .infinity, minHeight: 30)
             .accessibilityElement(children: .ignore)

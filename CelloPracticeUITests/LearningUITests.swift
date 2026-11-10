@@ -23,7 +23,7 @@ final class LearningUITests: XCTestCase {
         let first = app.buttons["piece-hotCrossBuns"]
         reveal(first, in: app)
         XCTAssertTrue(first.label.contains("Hot Cross Buns"))
-        XCTAssertTrue(first.label.contains("Humming available"))
+        XCTAssertTrue(first.label.contains("Humming & rhythm available"))
         let bach = app.buttons["piece-bachPrelude"]
         reveal(bach, in: app)
         XCTAssertTrue(bach.label.contains("Bach") && bach.label.contains("Long-term goal"))
@@ -41,7 +41,7 @@ final class LearningUITests: XCTestCase {
         let title = app.staticTexts["pieceDetailTitle"]
         XCTAssertTrue(title.waitForExistence(timeout: 5))
         XCTAssertEqual(title.label, "Hot Cross Buns")
-        XCTAssertEqual(app.staticTexts["pieceStatus"].label, "Humming available")
+        XCTAssertEqual(app.staticTexts["pieceStatus"].label, "Humming & rhythm available")
         let milestones = app.descendants(matching: .any).matching(identifier: "pieceMilestones").firstMatch
         reveal(milestones, in: app)
         XCTAssertTrue(milestones.exists)
@@ -92,7 +92,7 @@ final class LearningUITests: XCTestCase {
         reveal(piece, in: app)
         piece.tap()
         XCTAssertTrue(app.staticTexts["pieceDetailTitle"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.staticTexts["pieceStatus"].label, "Humming available")
+        XCTAssertEqual(app.staticTexts["pieceStatus"].label, "Humming & rhythm available")
         XCTAssertFalse(app.staticTexts["ratingStarCount"].exists)
         XCTAssertFalse(app.staticTexts["pulse.stars"].exists)
         XCTAssertFalse(app.buttons["startLessonButton"].exists)
@@ -647,6 +647,180 @@ final class LearningUITests: XCTestCase {
         XCTAssertFalse(status.exists, "A phrase change must cancel playback without automatically restarting")
         XCTAssertFalse(app.buttons["practiceRecordButton"].exists)
         XCTAssertFalse(app.staticTexts["ratingStarCount"].exists)
+        assertNoWrittenInput(in: app)
+        assertNoPermissionAlerts(in: app)
+    }
+
+    func testMelodyRhythmOpensFromMusicWithNoteLengthsAndManualReference() {
+        let app = XCUIApplication()
+        app.launch()
+        openMelodyRhythm(in: app)
+        let sections = app.descendants(matching: .any).matching(identifier: "melodyRhythmSectionPicker").firstMatch
+        let duration = app.staticTexts["melodyRhythmDuration"]
+        let tap = app.buttons["melodyRhythmTapButton"]
+        let progress = app.staticTexts["practiceProgressText"].label
+        XCTAssertTrue(sections.label.contains("Phrase 1"))
+        XCTAssertTrue(duration.label.contains("4 seconds") && duration.label.contains("60 BPM"))
+        XCTAssertTrue(app.staticTexts["Note, 2 beats"].exists, "The last note continues for two beats")
+        XCTAssertFalse(tap.isEnabled)
+        XCTAssertEqual(app.staticTexts["melodyRhythmPhase"].label, "Ready")
+        XCTAssertFalse(app.buttons["practiceRecordButton"].exists, "Rhythm takes native taps without camera or microphone capture")
+        selectMelodyRhythmSection("Phrase 3", in: app)
+        XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label == %@", "Note, 0.5 beats")).count, 8)
+        XCTAssertFalse(tap.isEnabled)
+        selectMelodyRhythmSection("Whole melody", in: app)
+        XCTAssertTrue(duration.label.contains("16 seconds"))
+        selectMelodyRhythmSection("Phrase 1", in: app)
+
+        let hear = app.buttons["melodyRhythmHearButton"]
+        reveal(hear, in: app)
+        hear.tap()
+        waitForMelodyRhythmButton("Cancel", in: app)
+        XCTAssertEqual(app.staticTexts["melodyRhythmPhase"].label, "Listen")
+        XCTAssertFalse(tap.isEnabled)
+        XCTAssertFalse(sections.isEnabled)
+        screenshot("Hot Cross Buns rhythm · manual human reference")
+        waitForMelodyRhythmButton("Start", in: app, timeout: 7)
+        XCTAssertEqual(app.staticTexts["melodyRhythmPhase"].label, "Ready")
+        XCTAssertFalse(tap.isEnabled, "Finishing Hear must not start a tapping round")
+        XCTAssertEqual(app.staticTexts["practiceProgressText"].label, progress)
+        XCTAssertFalse(app.staticTexts["melodyRhythmStars"].exists)
+        XCTAssertFalse(app.staticTexts["melodyRhythmUnscored"].exists)
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "melodyRhythmTimingChart").firstMatch.exists)
+        assertNoWrittenInput(in: app)
+        assertNoPermissionAlerts(in: app)
+    }
+
+    func testMelodyRhythmRealClockRoundShowsStarsChartAndCountsContinuingNoteTapsAsExtra() throws {
+        let app = XCUIApplication()
+        app.launch()
+        openMelodyRhythm(in: app)
+        let progress = app.staticTexts["practiceProgressText"].label
+        let tap = app.buttons["melodyRhythmTapButton"]
+        reveal(tap, in: app)
+        let startedAt = ProcessInfo.processInfo.systemUptime
+        app.buttons["melodyRhythmStartButton"].tap()
+        waitForMelodyRhythmButton("Stop", in: app)
+        XCTAssertFalse(tap.isEnabled, "Four real count-in beats come before tapping")
+        let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: tap)
+        XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 7), .completed)
+
+        // Exercise real native touches, including beat four while the final
+        // half note continues. The production clock and touches determine stars.
+        let deadline = ProcessInfo.processInfo.systemUptime + 6
+        var touches = 0
+        var continuingNoteTouches = 0
+        while tap.exists && tap.isEnabled && ProcessInfo.processInfo.systemUptime < deadline {
+            let beat = app.staticTexts["melodyRhythmBeat"].label
+            tap.tap()
+            touches += 1
+            if beat == "4" { continuingNoteTouches += 1 }
+            Thread.sleep(forTimeInterval: 0.12)
+        }
+        XCTAssertGreaterThanOrEqual(touches, 4)
+        XCTAssertGreaterThanOrEqual(continuingNoteTouches, 1, "Beat four remains open for taps, which are extra rather than a fourth note")
+        waitForMelodyRhythmButton("Try again", in: app)
+        XCTAssertGreaterThanOrEqual(ProcessInfo.processInfo.systemUptime - startedAt, 7.8,
+                                    "The full four-second phrase follows the four-second count-in")
+        let stars = app.staticTexts["melodyRhythmStars"]
+        reveal(stars, in: app)
+        XCTAssertTrue(stars.exists)
+        for id in ["melodyRhythmPattern", "melodyRhythmTiming", "melodyRhythmConsistency"] {
+            XCTAssertTrue(app.descendants(matching: .any).matching(identifier: id).firstMatch.exists)
+        }
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "melodyRhythmPattern").firstMatch.label.contains("keep practising"))
+        XCTAssertTrue(app.staticTexts["melodyRhythmFeedback"].exists)
+        XCTAssertEqual(app.staticTexts["practiceProgressText"].label, progress, "Extra taps cannot earn a successful round")
+        XCTAssertFalse(tap.exists)
+        let chart = app.descendants(matching: .any).matching(identifier: "melodyRhythmTimingChart").firstMatch
+        reveal(chart, in: app)
+        XCTAssertTrue(chart.isHittable)
+        let counts = try melodyRhythmCounts(in: chart.label)
+        XCTAssertEqual(counts.matched + counts.missed, 3, "The continuing fourth beat is not a missing note start")
+        XCTAssertGreaterThanOrEqual(try extraTapCount(in: chart.label), 1)
+        XCTAssertTrue(chart.label.contains("full 4 second phrase"))
+        screenshot("Hot Cross Buns rhythm · real taps and full-phrase chart")
+        assertNoWrittenInput(in: app)
+        assertNoPermissionAlerts(in: app)
+    }
+
+    func testMelodyRhythmWholeMelodyKeepsTapPadVisibleDuringCountInAndPractice() {
+        let app = XCUIApplication()
+        app.launch()
+        openMelodyRhythm(in: app)
+        selectMelodyRhythmSection("Phrase 3", in: app)
+        XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label == %@", "Note, 0.5 beats")).count, 8)
+        selectMelodyRhythmSection("Whole melody", in: app)
+        XCTAssertTrue(app.staticTexts["melodyRhythmDuration"].label.contains("16 seconds"))
+        let progress = app.staticTexts["practiceProgressText"].label
+        for number in 1...4 {
+            XCTAssertTrue(app.staticTexts["Phrase \(number)"].exists, "The ready preview includes all four phrases")
+        }
+        reveal(app.staticTexts["Phrase 4"], in: app)
+        screenshot("Hot Cross Buns rhythm · whole melody preview")
+        let start = app.buttons["melodyRhythmStartButton"]
+        let tap = app.buttons["melodyRhythmTapButton"]
+        XCTAssertTrue(start.isHittable, "Start remains reachable below the full preview")
+        start.tap()
+        waitForMelodyRhythmButton("Stop", in: app)
+        let padVisible = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: tap)
+        XCTAssertEqual(XCTWaiter.wait(for: [padVisible], timeout: 2), .completed,
+                       "Starting automatically brings the pattern and pad into view")
+        XCTAssertFalse(tap.isEnabled)
+        XCTAssertTrue(start.isHittable)
+        XCTAssertTrue(app.staticTexts["Phrase 1"].exists)
+        for number in 2...4 {
+            XCTAssertFalse(app.staticTexts["Phrase \(number)"].exists, "Only the active phrase occupies space during a round")
+        }
+        screenshot("Hot Cross Buns rhythm · whole melody count-in and visible pad")
+        let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: tap)
+        XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 7), .completed)
+        XCTAssertTrue(tap.isHittable, "The active whole-melody pad needs no manual scrolling")
+        XCTAssertTrue(start.isHittable)
+        tap.tap()
+        let accepted = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == true AND label != %@", "0 / 17 starts · 0 extra"),
+            object: app.staticTexts["melodyRhythmTapCount"])
+        XCTAssertEqual(XCTWaiter.wait(for: [accepted], timeout: 2), .completed)
+        screenshot("Hot Cross Buns rhythm · whole melody live tapping")
+        start.tap()
+        waitForMelodyRhythmButton("Start", in: app)
+        XCTAssertFalse(app.staticTexts["melodyRhythmStars"].exists)
+        XCTAssertFalse(app.staticTexts["melodyRhythmUnscored"].exists)
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "melodyRhythmTimingChart").firstMatch.exists)
+        XCTAssertEqual(app.staticTexts["practiceProgressText"].label, progress)
+        assertNoWrittenInput(in: app)
+        assertNoPermissionAlerts(in: app)
+    }
+
+    func testMelodyRhythmStopAndBackgroundDiscardUnfinishedRounds() {
+        let app = XCUIApplication()
+        app.launch()
+        openMelodyRhythm(in: app)
+        let progress = app.staticTexts["practiceProgressText"].label
+        let start = app.buttons["melodyRhythmStartButton"]
+        let tap = app.buttons["melodyRhythmTapButton"]
+        reveal(tap, in: app)
+        start.tap()
+        waitForMelodyRhythmButton("Stop", in: app)
+        start.tap()
+        waitForMelodyRhythmButton("Start", in: app)
+        XCTAssertFalse(app.staticTexts["melodyRhythmStars"].exists)
+        XCTAssertFalse(app.staticTexts["melodyRhythmUnscored"].exists)
+
+        start.tap()
+        let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: tap)
+        XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 7), .completed)
+        tap.tap()
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        waitForMelodyRhythmButton("Start", in: app)
+        XCTAssertEqual(app.staticTexts["melodyRhythmPhase"].label, "Ready")
+        XCTAssertFalse(tap.isEnabled)
+        XCTAssertFalse(app.staticTexts["melodyRhythmStars"].exists)
+        XCTAssertFalse(app.staticTexts["melodyRhythmUnscored"].exists, "An interrupted round must not create even an unscored attempt")
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "melodyRhythmTimingChart").firstMatch.exists)
+        XCTAssertEqual(app.staticTexts["practiceProgressText"].label, progress)
         assertNoWrittenInput(in: app)
         assertNoPermissionAlerts(in: app)
     }
@@ -1336,6 +1510,37 @@ final class LearningUITests: XCTestCase {
         waitForRecord(in: app)
     }
 
+    private func openMelodyRhythm(in app: XCUIApplication) {
+        let piece = app.buttons["piece-hotCrossBuns"]
+        reveal(piece, in: app)
+        piece.tap()
+        let rhythm = app.buttons["melodyRhythmLink"]
+        reveal(rhythm, in: app)
+        rhythm.tap()
+        XCTAssertTrue(app.navigationBars["Hot Cross Buns"].waitForExistence(timeout: 5))
+        waitForMelodyRhythmButton("Start", in: app)
+    }
+
+    private func selectMelodyRhythmSection(_ title: String, in app: XCUIApplication) {
+        let sections = app.descendants(matching: .any).matching(identifier: "melodyRhythmSectionPicker").firstMatch
+        for _ in 0..<5 {
+            if sections.isHittable { break }
+            app.scrollViews.firstMatch.swipeDown()
+        }
+        XCTAssertTrue(sections.isHittable)
+        sections.tap()
+        let choice = app.buttons.matching(NSPredicate(format: "label == %@ OR label BEGINSWITH %@", title, "\(title) ·")).firstMatch
+        XCTAssertTrue(choice.waitForExistence(timeout: 3))
+        choice.tap()
+        waitForMelodyRhythmButton("Start", in: app)
+    }
+
+    private func waitForMelodyRhythmButton(_ label: String, in app: XCUIApplication, timeout: TimeInterval = 5) {
+        let ready = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label == %@ AND enabled == true", label), object: app.buttons["melodyRhythmStartButton"])
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: timeout), .completed)
+    }
+
     private func waitForMelodyButton(_ label: String, in app: XCUIApplication, timeout: TimeInterval = 5) {
         let ready = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "label == %@ AND enabled == true", label), object: app.buttons["melodyPlayButton"])
@@ -1442,6 +1647,15 @@ final class LearningUITests: XCTestCase {
         let expression = try NSRegularExpression(pattern: "(\\d+) extra taps")
         let match = try XCTUnwrap(expression.firstMatch(in: summary, range: NSRange(location: 0, length: text.length)))
         return try XCTUnwrap(Int(text.substring(with: match.range(at: 1))))
+    }
+
+    private func melodyRhythmCounts(in summary: String) throws -> (matched: Int, missed: Int) {
+        let text = summary as NSString
+        let expression = try NSRegularExpression(pattern: "(\\d+) matched taps:.*?, (\\d+) missed note starts")
+        let match = try XCTUnwrap(expression.firstMatch(in: summary, range: NSRange(location: 0, length: text.length)))
+        let matched = try XCTUnwrap(Int(text.substring(with: match.range(at: 1))))
+        let missed = try XCTUnwrap(Int(text.substring(with: match.range(at: 2))))
+        return (matched, missed)
     }
 
     private func visibleRecordingIDs(in app: XCUIApplication) -> Set<String> {

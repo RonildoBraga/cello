@@ -8,6 +8,7 @@ struct MusicLibraryView: View {
     @ObservedObject var pulseStore: PulsePracticeStore
     @ObservedObject var twoTapsStore: PulsePracticeStore
     @ObservedObject var mixedRhythmStore: PulsePracticeStore
+    @ObservedObject var melodyRhythmStore: MelodyRhythmStore
     let onStartLesson: (PracticeLesson) -> Void
 
     private var rhythmStores: [RhythmExercise: PulsePracticeStore] {
@@ -83,6 +84,13 @@ struct MusicLibraryView: View {
                                         systemImage: "waveform", footer: "Four phrases, then the whole melody")
                     }.buttonStyle(.plain)
                         .accessibilityIdentifier("melodyHummingLink")
+                    NavigationLink {
+                        MelodyRhythmView(store: melodyRhythmStore, capture: capture)
+                    } label: {
+                        MusicLibraryRow(title: "Rhythm", subtitle: "Tap the melody’s note starts and follow its longer notes",
+                                        systemImage: "metronome", footer: "Four phrases, then the whole melody")
+                    }.buttonStyle(.plain)
+                        .accessibilityIdentifier("melodyRhythmLink")
                     NavigationLink {
                         MelodyReferenceView(capture: capture)
                     } label: {

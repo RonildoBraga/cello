@@ -13,7 +13,7 @@ enum MusicPiece: String, CaseIterable, Identifiable {
         self == .hotCrossBuns ? "A first three-note melody" : "Prelude · BWV 1007"
     }
     var statusLabel: String {
-        self == .hotCrossBuns ? "Humming available" : "Long-term goal"
+        self == .hotCrossBuns ? "Humming & rhythm available" : "Long-term goal"
     }
     var summary: String {
         self == .hotCrossBuns
@@ -25,7 +25,7 @@ enum MusicPiece: String, CaseIterable, Identifiable {
         case .hotCrossBuns:
             return [
                 ("Hear & hum", "Learn the three-note pattern and hum back short phrases."),
-                ("Tap the rhythm", "Count the melody’s beats and spaces."),
+                ("Tap the rhythm", "Follow note starts and count through longer notes."),
                 ("Play on cello", "Set up with a teacher, learn the three notes and join the phrases."),
                 ("Play it through", "Bring the notes, rhythm and a steady sound together.")
             ]
