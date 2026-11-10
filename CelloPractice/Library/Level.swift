@@ -162,11 +162,12 @@ private extension MelodyPiece {
 }
 
 /// A small set of identifiers kept as one preference string. The path uses it
-/// for the two things no take or round records: which melodies have been heard
-/// to the end, and which finished levels have already been celebrated.
+/// for the things no take or round records: which melodies have been heard to
+/// the end, which finished levels have been celebrated and which primers read.
 enum StoredIDs {
     static let listenedMelodies = "listenedMelodies"
     static let celebratedLevels = "celebratedLevels"
+    static let seenPrimers = "seenPrimers"
 
     static func contains(_ id: String, in stored: String) -> Bool {
         stored.split(separator: ",").contains(Substring(id))

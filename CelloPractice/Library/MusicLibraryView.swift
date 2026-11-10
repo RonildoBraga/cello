@@ -3,6 +3,8 @@ import SwiftUI
 /// Every screen the Music tab can push. Practice is one of them: you choose a
 /// step on the path, practise, and go back.
 enum MusicRoute: Hashable {
+    /// The idea a lesson introduces, shown before it the first time.
+    case primer(PracticeLesson)
     case lesson(PracticeLesson)
     case practice(PracticeLesson)
     case celloIntroduction
@@ -39,6 +41,7 @@ struct MusicLibraryView: View {
     @State private var path: [MusicRoute] = []
     @AppStorage(StoredIDs.listenedMelodies) private var listened = ""
     @AppStorage(StoredIDs.celebratedLevels) private var celebrated = ""
+    @AppStorage(StoredIDs.seenPrimers) private var seenPrimers = ""
     /// The level whose completion is being shown. It appears once.
     @State private var celebrating: Level?
     /// The levels showing their steps. The level holding the next step opens
@@ -80,6 +83,13 @@ struct MusicLibraryView: View {
     @ViewBuilder
     private func destination(_ route: MusicRoute) -> some View {
         switch route {
+        case .primer(let lesson):
+            if let primer = lesson.primer {
+                PrimerView(lesson: lesson, primer: primer, capture: capture) {
+                    seenPrimers = StoredIDs.adding(lesson.id, to: seenPrimers)
+                    path = [.lesson(lesson)]
+                }
+            }
         case .lesson(let lesson):
             LessonDetailView(lesson: lesson, store: store, rhythmStores: rhythmStores, onStartLesson: practise)
         case .practice(let lesson):
@@ -98,7 +108,17 @@ struct MusicLibraryView: View {
     /// Opens a lesson's practice screen above its own lesson page, so Back
     /// always leads somewhere that matches what is on screen.
     private func practise(_ lesson: PracticeLesson) {
-        path = [.lesson(lesson), .practice(lesson)]
+        path = needsPrimer(lesson) ? [.primer(lesson)] : [.lesson(lesson), .practice(lesson)]
+    }
+
+    /// A lesson's new idea is explained once, before the lesson is first opened.
+    private func needsPrimer(_ lesson: PracticeLesson) -> Bool {
+        lesson.primer != nil && !StoredIDs.contains(lesson.id, in: seenPrimers)
+    }
+
+    private func route(for step: PathStep) -> MusicRoute {
+        if case .lesson(let lesson) = step, needsPrimer(lesson) { return .primer(lesson) }
+        return step.route
     }
 
     // MARK: Path
@@ -134,7 +154,7 @@ struct MusicLibraryView: View {
                 ForEach(Array(level.steps.enumerated()), id: \.element) { index, step in
                     let state = state(for: step)
                     let isNext = next?.step == step
-                    NavigationLink(value: step.route) {
+                    NavigationLink(value: route(for: step)) {
                         StepRow(step: step, number: level.number == nil ? nil : index + 1,
                                 state: state, isNext: isNext)
                     }.buttonStyle(.plain)
@@ -363,6 +383,11 @@ private struct LessonDetailView: View {
                 ScreenHeader(eyebrow: "Lesson \(String(format: "%02d", lesson.number)) · \(lesson.area.title)",
                              title: lesson.title, subtitle: lesson.purpose, titleIdentifier: "lessonDetailTitle")
 
+                if let primer = lesson.primer {
+                    NavigationLink(value: MusicRoute.primer(lesson)) {
+                        Label("New to this? \(primer.title)", systemImage: "lightbulb")
+                    }.buttonStyle(SecondaryActionButtonStyle()).accessibilityIdentifier("lessonPrimerLink")
+                }
                 progressCard
                 recentRounds
 

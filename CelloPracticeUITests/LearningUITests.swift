@@ -6,7 +6,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testMusicShowsOnePathOfLevelsWithOneContinueStep() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         XCTAssertTrue(app.navigationBars["Music"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.tabBars.buttons["Music"].isSelected)
@@ -52,7 +52,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testMelodyLevelOpensWholeMelodyAndLessonsWithoutInventingScores() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         app.pathStep("step-hotCrossBuns-whole").tap()
         XCTAssertTrue(app.navigationBars["Hot Cross Buns"].waitForExistence(timeout: 5))
@@ -72,7 +72,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testEarnedRhythmCompletionDoesNotInventAPiecePerformance() throws {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         launchPractice(in: app)
         let hummingProgress = app.staticTexts["practiceProgressText"].label
         startLesson("Pulse", in: app)
@@ -96,7 +96,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testArchivedProductionRatingAndCompletedProgressSurviveRelaunch() throws {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         launchPractice(in: app)
         app.tabBars.buttons["Recordings"].tap()
         // Optional visual integration setup: copy the three public-hum movie
@@ -160,7 +160,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testArchivedPartialAndUnclearRatingsRenderDistinctStates() throws {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         launchPractice(in: app)
         app.tabBars.buttons["Recordings"].tap()
         // Optional design review setup: these Simulator-only fixture sessions
@@ -202,7 +202,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testArchivedMelodyFeedbackChartAndCompletionStaySeparateFromFoundations() throws {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         launchPractice(in: app)
         let foundationTarget = app.staticTexts["currentTargetLabel"].label
         let foundationProgress = app.staticTexts["practiceProgressText"].label
@@ -276,7 +276,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testArchivedTakeShowsPitchTraceWithoutChangingItsRatingOrPlayback() throws {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         launchPractice(in: app)
         app.tabBars.buttons["Recordings"].tap()
         // Optional Simulator setup: copy an archived production-rated recording folder,
@@ -323,7 +323,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testArchivedTakeShowsTwentyTwoPitchObservationsAndTwoStarLessonScores() throws {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         launchPractice(in: app)
         app.tabBars.buttons["Recordings"].tap()
         // Optional Simulator setup: use only these two archived production-rated fixtures,
@@ -380,7 +380,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testThreeAreasKeepLessonsAndTargetsSeparate() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         launchPractice(in: app)
         XCTAssertTrue(app.navigationBars["Humming"].exists)
         XCTAssertEqual(app.staticTexts["practiceLessonArea"].label, "Humming")
@@ -420,7 +420,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testRecordedCelloReferencesPlayWithoutStartingCapture() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         for (exercise, note) in [("Open C string", "C2"), ("Open G string", "G2"),
                                  ("Open D string", "D3"), ("Open A string", "A3")] {
@@ -445,7 +445,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testHumanHumPreviewWorksWithoutCaptureAndCancelsOnLeaving() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         startLesson("Listen & match", in: app)
         assertReadyToRecord(in: app)
@@ -490,7 +490,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testMelodyReferencePlaysOnlyOnRequestAndStopsOnNavigation() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         openMelodyReference(in: app)
         let play = app.buttons["melodyPlayButton"]
@@ -556,8 +556,57 @@ final class LearningUITests: XCTestCase {
         assertNoPermissionAlerts(in: app)
     }
 
+    func testEachLevelOnePrimerExplainsItsIdeaAndContinuesIntoItsLesson() {
+        let app = XCUIApplication.cello(seenPrimers: "")
+        app.launch()
+        for (id, lesson, idea) in [("steadyHum", "Steady hum", "A note"), ("matchHum", "Listen & match", "Higher and lower"),
+                                   ("pulse", "Pulse", "A beat"), ("twoTaps", "Two taps per beat", "Two taps per beat")] {
+            app.pathStep("lesson-\(id)").tap()
+            let title = app.staticTexts["primerTitle"]
+            XCTAssertTrue(title.waitForExistence(timeout: 5), "\(lesson) opens with its primer the first time")
+            XCTAssertEqual(title.label, idea)
+            let demo = app.buttons["primerDemoButton"]
+            XCTAssertNotEqual(demo.label, "Stop", "A primer plays only on request")
+            XCTAssertFalse(app.buttons["practiceRecordButton"].exists, "A primer never records")
+            demo.tap()
+            let playing = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Stop"), object: demo)
+            XCTAssertEqual(XCTWaiter.wait(for: [playing], timeout: 3), .completed)
+            if id == "pulse" {
+                let count = app.staticTexts["primerCount"]
+                let counted = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "3"), object: count)
+                XCTAssertEqual(XCTWaiter.wait(for: [counted], timeout: 4), .completed, "The beats are counted one by one")
+                screenshot("Primer · a beat")
+            }
+            assertNoPermissionAlerts(in: app)
+            app.buttons["primerContinueButton"].tap()
+            let heading = app.staticTexts["lessonDetailTitle"]
+            XCTAssertTrue(heading.waitForExistence(timeout: 5))
+            XCTAssertEqual(heading.label, lesson, "Continue leads into the lesson")
+
+            // The primer can be reopened from the lesson page.
+            app.buttons["lessonPrimerLink"].tap()
+            XCTAssertTrue(title.waitForExistence(timeout: 5))
+            XCTAssertEqual(title.label, idea)
+            XCTAssertNotEqual(demo.label, "Stop", "Leaving a primer stops its sound")
+            app.buttons["primerContinueButton"].tap()
+            XCTAssertTrue(heading.waitForExistence(timeout: 5))
+        }
+        assertNoWrittenInput(in: app)
+    }
+
+    func testReadPrimersAreSkippedAndOtherLessonsHaveNone() {
+        let app = XCUIApplication.cello()
+        app.launch()
+        for id in ["steadyHum", "mixedRhythm"] {
+            app.pathStep("lesson-\(id)").tap()
+            XCTAssertTrue(app.staticTexts["lessonDetailTitle"].waitForExistence(timeout: 5))
+            XCTAssertFalse(app.staticTexts["primerTitle"].exists)
+            XCTAssertEqual(app.buttons["lessonPrimerLink"].exists, id == "steadyHum")
+        }
+    }
+
     func testMeetTheNotesListsThePieceNotesAndPlaysOneOnRequest() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         let step = app.pathStep("step-hotCrossBuns-notes")
         XCTAssertTrue(step.label.contains("Step 3, Meet the notes"))
@@ -595,7 +644,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testHearingTheWholeMelodyToTheEndPassesTheListenStep() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         openMelodyReference(in: app, pieceID: "odeToJoy")
         app.buttons["melodyPlayButton"].tap()
@@ -613,7 +662,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testMelodyPhrasePlaybackFinishesAndCancelsWhenSelectionChanges() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         openMelodyReference(in: app)
         // Menu pickers can expose a pop-up button instead of a button on iOS27.
@@ -658,7 +707,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testOdeToJoyReferenceRegistersPhrasePlaybackAndCancellation() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         openMelodyReference(in: app, pieceID: "odeToJoy")
         let play = app.buttons["melodyPlayButton"]
@@ -710,7 +759,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testOdeToJoyPathHummingRegistersAndManualReferenceStaySeparate() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         launchPractice(in: app)
         let foundationTarget = app.staticTexts["currentTargetLabel"].label
         let foundationProgress = app.staticTexts["practiceProgressText"].label
@@ -767,7 +816,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testOdeToJoyRecordDoesNotAutoplayOrInventFeedbackWithoutCapture() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         openMelodyHumming(in: app, pieceID: "odeToJoy")
         let record = app.buttons["practiceRecordButton"]
@@ -796,7 +845,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testOdeToJoyRhythmUsesDottedEndingAndWholeMelodyPad() throws {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         openMelodyRhythm(in: app, pieceID: "odeToJoy")
         XCTAssertEqual(app.staticTexts["melodyRhythmTapCount"].label, "0 / 4 starts · 0 extra")
@@ -865,7 +914,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testMelodyRhythmOpensFromMusicWithNoteLengthsAndManualReference() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         openMelodyRhythm(in: app)
         let sections = app.descendants(matching: .any).matching(identifier: "melodyRhythmSectionPicker").firstMatch
@@ -905,7 +954,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testMelodyRhythmRealClockRoundShowsStarsChartAndCountsContinuingNoteTapsAsExtra() throws {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         openMelodyRhythm(in: app)
         let progress = app.staticTexts["practiceProgressText"].label
@@ -959,7 +1008,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testMelodyRhythmWholeMelodyKeepsTapPadVisibleDuringCountInAndPractice() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         openMelodyRhythm(in: app)
         selectMelodyRhythmSection("Phrase 3", in: app)
@@ -1008,7 +1057,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testMelodyRhythmStopAndBackgroundDiscardUnfinishedRounds() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         openMelodyRhythm(in: app)
         let progress = app.staticTexts["practiceProgressText"].label
@@ -1039,7 +1088,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testMelodyHummingHasSeparatePhrasesRegistersAndManualReference() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         launchPractice(in: app)
         let foundationTarget = app.staticTexts["currentTargetLabel"].label
         let foundationProgress = app.staticTexts["practiceProgressText"].label
@@ -1092,7 +1141,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testMelodyRecordDoesNotAutoplayAndUnavailableCaptureDoesNotCreateFeedback() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         openMelodyHumming(in: app)
         let record = app.buttons["practiceRecordButton"]
@@ -1128,7 +1177,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testLessonsOpenBothGuidedHummingActivities() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         launchPractice(in: app)
         assertReadyToRecord(in: app)
         let target = app.staticTexts["currentTargetLabel"].label
@@ -1165,7 +1214,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testPathKeepsEveryLessonOpenWithItsOwnTarget() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         launchPractice(in: app)
         let hummingTarget = app.staticTexts["currentTargetLabel"].label
         XCTAssertFalse(app.buttons["How to practise"].exists)
@@ -1203,7 +1252,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testPulseRunsCountInAndShowsDescriptiveTapFeedback() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         launchPractice(in: app)
         let target = app.staticTexts["currentTargetLabel"].label
         openLessons(in: app)
@@ -1284,7 +1333,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testListenAndMatchCanContinueAcrossAreasAndCancelUnfinishedRhythm() throws {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         launchPractice(in: app)
         startLesson("Listen & match", in: app)
         let target = app.staticTexts["currentTargetLabel"].label
@@ -1336,7 +1385,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testArchivedCompletedPulseCanContinueToLessonFourWithoutChangingEarlierProgress() throws {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         launchPractice(in: app)
         let voiceTarget = app.staticTexts["currentTargetLabel"].label
         startLesson("Pulse", in: app)
@@ -1377,7 +1426,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testLessonFourRunsTwoTapsPerBeatInlineAndKeepsItsOwnProgress() throws {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         launchPractice(in: app)
         let voiceTarget = app.staticTexts["currentTargetLabel"].label
         app.tabBars.buttons["Recordings"].tap()
@@ -1483,7 +1532,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testArchivedCompletedLessonFourCanContinueToMixedRhythm() throws {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         launchPractice(in: app)
         startLesson("Two taps per beat", in: app)
         assertInlinePulseReady(in: app, title: "Two taps per beat")
@@ -1510,7 +1559,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testMixedRhythmRunsInlineAndKeepsPatternScoreAndProgressSeparate() throws {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         launchPractice(in: app)
         let voiceTarget = app.staticTexts["currentTargetLabel"].label
         app.tabBars.buttons["Recordings"].tap()
@@ -1619,7 +1668,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testProgressSuggestsNextExerciseWithoutLockingPractice() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         launchPractice(in: app)
         assertReadyToRecord(in: app)
         let target = app.staticTexts["currentTargetLabel"].label

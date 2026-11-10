@@ -121,14 +121,14 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
         case .pulse:
             return [
                 "Start the pulse and watch four count-in beats.",
-                "Tap the large pad for 16 beats. At 60 BPM, each beat is one second apart.",
+                "Tap the large pad for 16 beats. Each beat is one second apart.",
                 "Keep the gaps between taps even. This lesson uses taps, so there’s no voice recording."
             ]
         case .twoTaps:
             return [
                 "Tap Start and wait through 4–3–2–1 before tapping. This lesson uses the Tap pad, not your voice.",
                 "Count 1 and 2 and: & means “and”. Tap with each vibration on a number, then once halfway to the next vibration for “and”.",
-                "Continue through 8 and, making 16 evenly spaced taps. The vibrations stay one second apart at 60 BPM; your taps are half a second apart."
+                "Continue through 8 and, making 16 evenly spaced taps. The vibrations stay one second apart; your taps are half a second apart."
             ]
         case .mixedRhythm:
             return [
@@ -162,7 +162,7 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
         switch activity {
         case .recording:
             return [("Match", "Stay close to the target note."),
-                    ("Steady", "Keep the pitch even."),
+                    ("Steady", "Keep the note even, without wobbling."),
                     ("Hold", "Keep a clear note going for two seconds.")]
         case .rhythm:
             return [("Find the beat", "Land close to each tap’s place in the pulse."),

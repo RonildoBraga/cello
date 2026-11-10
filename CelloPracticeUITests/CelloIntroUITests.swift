@@ -6,7 +6,7 @@ final class CelloIntroUITests: XCTestCase {
     }
 
     func testIntroductionShowsPartsAndReturnsToFourUnchangedPlayingLessons() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         let summary = celloLessonSummary(in: app)
         openIntroduction(in: app)
@@ -40,7 +40,7 @@ final class CelloIntroUITests: XCTestCase {
     }
 
     func testFourStringReferencesPlayManuallyWithoutCaptureOrProgress() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         let summary = celloLessonSummary(in: app)
         openIntroduction(in: app)
@@ -73,7 +73,7 @@ final class CelloIntroUITests: XCTestCase {
     }
 
     func testReferenceStopsOnTabBackgroundAndBackWithoutSavingHistory() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         app.tabBars.buttons["Recordings"].tap()
         XCTAssertTrue(app.navigationBars["Recordings"].waitForExistence(timeout: 5))
