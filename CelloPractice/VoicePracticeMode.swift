@@ -110,9 +110,6 @@ enum VoicePracticeMode: Equatable {
         }
     }
 
-    func nextStepLabel(completed: Bool) -> String {
-        isEcho ? "New pattern" : completed ? "Next phrase" : "Try next phrase"
-    }
     var nextStepIdentifier: String { isEcho ? "nextEchoPatternButton" : "nextMelodyPhraseButton" }
 
     var idleLabel: String { isEcho ? "READY" : "LIVE TUNER" }

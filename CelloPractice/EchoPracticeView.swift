@@ -30,10 +30,11 @@ struct EchoPracticeView: View {
 
     var body: some View {
         VoicePracticeView(store: store, capture: capture, mode: .echo(context, level: level),
-                          onNextPhrase: newPattern) { locked in
+                          nextPhrase: ("New pattern", newPattern)) { locked in
             VStack(alignment: .leading, spacing: 16) {
                 ScreenHeader(eyebrow: "Ear training", title: "Listen & Echo",
-                             subtitle: "Hear the pattern, then hum it back. Follow the tuning bar as you record.")
+                             subtitle: "Hear the pattern, then hum it back. Follow the tuning bar as you record.",
+                             collapsesSubtitle: store.echoProgress(for: level, register: register).successfulAttempts > 0)
                 VoiceRegisterPicker(selection: registerSelection).disabled(locked)
                     .accessibilityIdentifier("echoRegisterPicker")
                 Picker("Pattern length", selection: levelSelection) {

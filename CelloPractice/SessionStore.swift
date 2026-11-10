@@ -7,6 +7,9 @@ final class SessionStore: ObservableObject {
     @Published private(set) var sessions: [PracticeSession] = []
     @Published private(set) var pendingRecordingCount: Int = 0
     @Published var errorMessage: String?
+    /// What went wrong saving the most recent take, for the screen that recorded it.
+    /// Problems reading older history belong to Recordings, not to a practice screen.
+    @Published private(set) var lastSaveError: String?
 
     private let directory: URL
     private var foundationProgress: LedgerFile<PracticeProgressLedger>
@@ -62,7 +65,11 @@ final class SessionStore: ObservableObject {
                        notes: String = "", duration: Double, targetFrequency: Double? = nil,
                        melodyContext: MelodyPracticeContext? = nil) async -> PracticeSession? {
         errorMessage = progressPersistenceError
-        defer { refreshPendingRecordings() }
+        lastSaveError = nil
+        defer {
+            refreshPendingRecordings()
+            lastSaveError = errorMessage
+        }
         guard melodyContext?.isValid != false else {
             errorMessage = "Could not save this session because its melody reference is invalid. The original recording is preserved at \(source.lastPathComponent)."
             return nil

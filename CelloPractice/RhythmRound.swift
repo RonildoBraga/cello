@@ -136,8 +136,12 @@ struct RhythmTapCard<Timing: RhythmRoundTiming, Idle: View>: View {
         StatusCard(label: phaseTitle, labelIdentifier: identifiers.phase) {
             Text("\(tempoBPM) BPM")
         } content: {
-            if showsIdle, round.timing == nil, !listening {
-                idle
+            if isIdle {
+                // Before a round there is nothing to tap: show what to expect, not a dead pad.
+                if showsIdle { idle } else {
+                    Text(cue).font(.subheadline).foregroundStyle(.white.opacity(0.85))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             } else {
                 HStack(spacing: 18) {
                     StatusValue(text: beat, isCount: true).padding(10)
@@ -149,17 +153,21 @@ struct RhythmTapCard<Timing: RhythmRoundTiming, Idle: View>: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            Button { round.tap() } label: {
-                Label("Tap", systemImage: "hand.tap").font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: 72)
-                    .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: Layout.controlRadius))
-            }.buttonStyle(.plain).disabled(!round.canTap).opacity(round.canTap ? 1 : 0.45)
-                .accessibilityLabel(tapLabel).accessibilityHint(tapHint)
-                .accessibilityIdentifier(identifiers.tap)
+            if round.timing != nil {
+                Button { round.tap() } label: {
+                    Label("Tap", systemImage: "hand.tap").font(.headline)
+                        .frame(maxWidth: .infinity, minHeight: 72)
+                        .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: Layout.controlRadius))
+                }.buttonStyle(.plain).disabled(!round.canTap).opacity(round.canTap ? 1 : 0.45)
+                    .accessibilityLabel(tapLabel).accessibilityHint(tapHint)
+                    .accessibilityIdentifier(identifiers.tap)
+            }
             Text(count).font(.caption).foregroundStyle(.white.opacity(0.7))
                 .accessibilityIdentifier(identifiers.count)
         }.accessibilityElement(children: .contain)
     }
+
+    private var isIdle: Bool { round.timing == nil && !listening }
 
     private var phaseTitle: String {
         if listening { return "Listen" }

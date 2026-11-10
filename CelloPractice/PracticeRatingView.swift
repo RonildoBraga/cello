@@ -16,10 +16,34 @@ struct PracticeRatingView: View {
     }
 }
 
+/// The suggested step after this activity: the next lesson, phrase or pattern.
+/// It is a suggestion only; every activity stays available.
+struct NextStep {
+    /// "Try" before the current goal is reached, "Continue to" after.
+    let caption: String
+    let title: String
+    let spokenLabel: String
+    let identifier: String
+    let action: () -> Void
+
+    static func lesson(_ lesson: PracticeLesson, completed: Bool, action: @escaping () -> Void) -> NextStep {
+        let verb = completed ? "Continue to" : "Try"
+        return NextStep(caption: "\(verb) lesson \(lesson.number)", title: lesson.title,
+                        spokenLabel: "\(verb) Lesson \(lesson.number), \(lesson.title)",
+                        identifier: "nextExerciseButton", action: action)
+    }
+
+    static func item(_ title: String, completed: Bool, identifier: String, action: @escaping () -> Void) -> NextStep {
+        let verb = completed ? "Continue to" : "Try"
+        return NextStep(caption: verb, title: title, spokenLabel: "\(verb) \(title)",
+                        identifier: identifier, action: action)
+    }
+}
+
+/// Progress towards this activity's goal, with the suggested next step beside it.
 struct PracticeProgressView: View {
     let progress: PracticeProgress
-    var nextLesson: PracticeLesson? = nil
-    var onNext: ((PracticeLesson) -> Void)? = nil
+    var next: NextStep? = nil
     var disabled = false
     var attemptNoun = "takes"
 
@@ -36,12 +60,11 @@ struct PracticeProgressView: View {
                 .foregroundStyle(progress.completed ? Palette.forest : Palette.muted)
                 .accessibilityIdentifier("practiceProgressText")
             Spacer(minLength: 0)
-            if let next = nextLesson, let onNext {
-                Button { onNext(next) } label: {
+            if let next {
+                Button(action: next.action) {
                     HStack(spacing: 5) {
                         VStack(alignment: .trailing, spacing: 3) {
-                            Text("\(progress.completed ? "Continue to" : "Try") lesson \(next.number)")
-                                .font(.caption2)
+                            Text(next.caption).font(.caption2)
                             Text(next.title).font(.caption.weight(.semibold))
                         }
                         Image(systemName: "arrow.right")
@@ -49,8 +72,8 @@ struct PracticeProgressView: View {
                         .contentShape(Rectangle())
                 }.buttonStyle(.plain).foregroundStyle(Palette.forest)
                     .disabled(disabled).opacity(disabled ? 0.45 : 1)
-                    .accessibilityLabel("\(progress.completed ? "Continue to" : "Try") Lesson \(next.number), \(next.title)")
-                    .accessibilityIdentifier("nextExerciseButton")
+                    .accessibilityLabel(next.spokenLabel)
+                    .accessibilityIdentifier(next.identifier)
             }
         }.frame(minHeight: 44).padding(.horizontal, 2)
             .accessibilityElement(children: .contain)

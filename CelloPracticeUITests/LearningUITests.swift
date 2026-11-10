@@ -338,7 +338,7 @@ final class LearningUITests: XCTestCase {
         let playback = app.descendants(matching: .any).matching(identifier: "sessionPlaybackPlayer").firstMatch
         reveal(playback, in: app)
         XCTAssertTrue(playback.isHittable, "Adding a pitch trace must keep the recorded video reachable")
-        let share = app.buttons["Prepare session to share"]
+        let share = app.buttons["shareSessionButton"]
         reveal(share, in: app)
         XCTAssertTrue(share.isEnabled, "The existing recording actions should remain accessible below the chart")
         for _ in 0..<8 {
@@ -814,7 +814,6 @@ final class LearningUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Note, 0.5 beats"].exists)
         XCTAssertTrue(app.staticTexts["Note, 2 beats"].exists)
         XCTAssertTrue(app.staticTexts["Tap on 1, the & after 2, and 3. Count 4 while the last note continues."].exists)
-        reveal(tap, in: app)
         screenshot("Ode to Joy rhythm · dotted ending explained before Start")
         let startedAt = ProcessInfo.processInfo.systemUptime
         start.tap()
@@ -861,12 +860,12 @@ final class LearningUITests: XCTestCase {
         XCTAssertTrue(sections.label.contains("Phrase 1"))
         XCTAssertTrue(duration.label.contains("4 seconds") && duration.label.contains("60 BPM"))
         XCTAssertTrue(app.staticTexts["Note, 2 beats"].exists, "The last note continues for two beats")
-        XCTAssertFalse(tap.isEnabled)
+        XCTAssertFalse(tap.exists, "The tap pad appears with the count-in, not before")
         XCTAssertEqual(app.staticTexts["melodyRhythmPhase"].label, "Ready")
         XCTAssertFalse(app.buttons["practiceRecordButton"].exists, "Rhythm takes native taps without camera or microphone capture")
         selectMelodyRhythmSection("Phrase 3", in: app)
         XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label == %@", "Note, 0.5 beats")).count, 8)
-        XCTAssertFalse(tap.isEnabled)
+        XCTAssertFalse(tap.exists)
         selectMelodyRhythmSection("Whole melody", in: app)
         XCTAssertTrue(duration.label.contains("16 seconds"))
         selectMelodyRhythmSection("Phrase 1", in: app)
@@ -876,12 +875,12 @@ final class LearningUITests: XCTestCase {
         hear.tap()
         waitForMelodyRhythmButton("Cancel", in: app)
         XCTAssertEqual(app.staticTexts["melodyRhythmPhase"].label, "Listen")
-        XCTAssertFalse(tap.isEnabled)
+        XCTAssertFalse(tap.exists)
         XCTAssertFalse(sections.isEnabled)
         screenshot("Hot Cross Buns rhythm · manual human reference")
         waitForMelodyRhythmButton("Start", in: app, timeout: 7)
         XCTAssertEqual(app.staticTexts["melodyRhythmPhase"].label, "Ready")
-        XCTAssertFalse(tap.isEnabled, "Finishing Hear must not start a tapping round")
+        XCTAssertFalse(tap.exists, "Finishing Hear must not start a tapping round")
         XCTAssertEqual(app.staticTexts["practiceProgressText"].label, progress)
         XCTAssertFalse(app.staticTexts["melodyRhythmStars"].exists)
         XCTAssertFalse(app.staticTexts["melodyRhythmUnscored"].exists)
@@ -896,7 +895,6 @@ final class LearningUITests: XCTestCase {
         openMelodyRhythm(in: app)
         let progress = app.staticTexts["practiceProgressText"].label
         let tap = app.buttons["melodyRhythmTapButton"]
-        reveal(tap, in: app)
         let startedAt = ProcessInfo.processInfo.systemUptime
         app.buttons["melodyRhythmStartButton"].tap()
         waitForMelodyRhythmButton("Stop", in: app)
@@ -999,7 +997,6 @@ final class LearningUITests: XCTestCase {
         let progress = app.staticTexts["practiceProgressText"].label
         let start = app.buttons["melodyRhythmStartButton"]
         let tap = app.buttons["melodyRhythmTapButton"]
-        reveal(tap, in: app)
         start.tap()
         waitForMelodyRhythmButton("Stop", in: app)
         start.tap()
@@ -1015,7 +1012,7 @@ final class LearningUITests: XCTestCase {
         app.activate()
         waitForMelodyRhythmButton("Start", in: app)
         XCTAssertEqual(app.staticTexts["melodyRhythmPhase"].label, "Ready")
-        XCTAssertFalse(tap.isEnabled)
+        XCTAssertFalse(tap.exists)
         XCTAssertFalse(app.staticTexts["melodyRhythmStars"].exists)
         XCTAssertFalse(app.staticTexts["melodyRhythmUnscored"].exists, "An interrupted round must not create even an unscored attempt")
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "melodyRhythmTimingChart").firstMatch.exists)
@@ -1848,9 +1845,7 @@ final class LearningUITests: XCTestCase {
         assertInlinePulseHeader(in: app, title: title)
         XCTAssertTrue(app.buttons["Start"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["Start"].isEnabled)
-        let tap = app.buttons["pulseTapButton"]
-        XCTAssertTrue(tap.exists)
-        XCTAssertFalse(tap.isEnabled)
+        XCTAssertFalse(app.buttons["pulseTapButton"].exists, "The tap pad appears with the count-in, not before")
     }
 
     private func assertNoPulseHapticsSwitches(in app: XCUIApplication) {
