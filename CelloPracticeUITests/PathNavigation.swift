@@ -4,8 +4,10 @@ import XCTest
 extension XCUIApplication {
     /// Goes back to the Music path from wherever the app is.
     func returnToPath() {
-        tabBars.buttons["Music"].tap()
         let firstLevel = buttons["level-firstSounds"]
+        // Tapping the selected tab would scroll the path back to its top.
+        if firstLevel.exists { return }
+        tabBars.buttons["Music"].tap()
         for _ in 0..<5 where !firstLevel.waitForExistence(timeout: 1) {
             let back = navigationBars.buttons.firstMatch
             XCTAssertTrue(back.exists, "A Music destination should have native back navigation")
@@ -14,16 +16,24 @@ extension XCUIApplication {
         XCTAssertTrue(firstLevel.waitForExistence(timeout: 5))
     }
 
-    /// Returns to the path, opens the step's level if it is closed, and brings
-    /// the step into reach. Steps are named by their accessibility identifier.
-    func pathStep(_ identifier: String) -> XCUIElement {
+    /// Returns to the path and opens the step's level if it is closed. The row
+    /// can then be read; use `pathStep` to tap it. Steps are named by their
+    /// accessibility identifier.
+    func pathRow(_ identifier: String) -> XCUIElement {
         returnToPath()
         let step = buttons[identifier]
         if !step.exists {
             let level = buttons["level-\(Self.level(forStep: identifier))"]
             scroll(to: level)
             level.tap()
+            XCTAssertTrue(step.waitForExistence(timeout: 5))
         }
+        return step
+    }
+
+    /// The step's row, scrolled into reach for a tap.
+    func pathStep(_ identifier: String) -> XCUIElement {
+        let step = pathRow(identifier)
         scroll(to: step)
         return step
     }

@@ -98,7 +98,7 @@ final class EchoPracticeUITests: XCTestCase {
         assertNoWrittenInputOrPermissionAlerts(in: app)
         app.navigationBars["Listen & Echo"].buttons.firstMatch.tap()
         XCTAssertEqual(firstLevelSummary(in: app), summary, "Echo practice is off the path and earns no step")
-        for id in ["steadyHum", "matchHum"] { XCTAssertTrue(app.pathStep("lesson-\(id)").isEnabled) }
+        for id in ["steadyHum", "matchHum"] { XCTAssertTrue(app.pathRow("lesson-\(id)").isEnabled) }
     }
 
     func testFullManualHearUnlocksRecordButCancelAndNewSelectionsDoNot() {

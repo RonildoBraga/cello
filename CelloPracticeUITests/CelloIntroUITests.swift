@@ -33,7 +33,7 @@ final class CelloIntroUITests: XCTestCase {
         XCTAssertEqual(celloLessonSummary(in: app), summary,
                        "Reading an introduction must not award a playing achievement")
         for lesson in ["openC", "openG", "openD", "openA"] {
-            XCTAssertTrue(app.pathStep("lesson-\(lesson)").isEnabled)
+            XCTAssertTrue(app.pathRow("lesson-\(lesson)").isEnabled)
         }
         XCTAssertFalse(app.buttons["practiceRecordButton"].exists, "Browsing lessons must not start capture")
         assertNoWrittenInputOrPermissionAlerts(in: app)
@@ -120,7 +120,7 @@ final class CelloIntroUITests: XCTestCase {
 
     /// What the path says about the four playing lessons: status and best score.
     private func celloLessonSummary(in app: XCUIApplication) -> [String] {
-        ["openC", "openG", "openD", "openA"].map { app.pathStep("lesson-\($0)").label }
+        ["openC", "openG", "openD", "openA"].map { app.pathRow("lesson-\($0)").label }
     }
 
     private func openIntroduction(in app: XCUIApplication) {
