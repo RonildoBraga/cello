@@ -25,6 +25,12 @@ The path replaced separate Foundations and Pieces libraries ([issue #49](https:/
 
 The level holding the first unfinished step opens when the path appears, and that step is marked Continue. It is a suggestion only: every level can be opened and every step tapped. Cello and More practice are not counted and never become the next step.
 
+### Primers
+
+Level 1 starts from zero ([issue #52](https://github.com/RonildoBraga/cello/issues/52)). Each of its four lessons introduces one idea, and opens the first time with a one-screen primer: **A note** (with pitch and cents, which the tuning bar uses), **Higher and lower**, **A beat** and **Two taps per beat**. A primer is a few plain sentences, one button to hear or feel the idea, and Continue into the lesson. The sound primers reuse the recorded hum; the beat primers count on screen with a vibration on each beat. Nothing is recorded or scored.
+
+The content is `PracticeLesson.primer`; the screen is `PrimerView`. Reading a primer is remembered as a preference, and the lesson page offers it again under "New to this?". A unit test checks that no Level 1 lesson's own copy uses pitch, beat, cents, register, BPM or pulse before a primer has explained it.
+
 ### Meet the notes
 
 Each melody level introduces its notes before asking for whole phrases ([issue #51](https://github.com/RonildoBraga/cello/issues/51)): three for Hot Cross Buns (G2, A2, B2), five for Ode to Joy (G2 to D3). For each note the learner hears the recorded hum and hums it back for three seconds with the live tuning bar. Two pairs follow, the lowest then the highest note and the reverse, to hear and feel "higher" and "lower".

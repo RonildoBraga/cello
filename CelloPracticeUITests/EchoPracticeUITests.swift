@@ -6,7 +6,7 @@ final class EchoPracticeUITests: XCTestCase {
     }
 
     func testLegacyEchoArchiveKeepsItsFrozenStarsAndPitchChart() throws {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         app.tabBars.buttons["Recordings"].tap()
         let recording = app.descendants(matching: .any)["recording-EC000000-0000-4000-8000-000000000002"]
@@ -32,7 +32,7 @@ final class EchoPracticeUITests: XCTestCase {
     }
 
     func testArchivedEchoResultAndVoiceSpecificProgressUseSavedPattern() throws {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         app.tabBars.buttons["Recordings"].tap()
         XCTAssertTrue(app.navigationBars["Recordings"].waitForExistence(timeout: 5))
@@ -73,7 +73,7 @@ final class EchoPracticeUITests: XCTestCase {
     }
 
     func testEchoLevelsAndVoiceRegistersHaveNoTargetHintsOrRecordingPermission() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         let summary = firstLevelSummary(in: app)
         XCTAssertTrue(summary.contains("of 4 steps done"))
@@ -102,7 +102,7 @@ final class EchoPracticeUITests: XCTestCase {
     }
 
     func testFullManualHearUnlocksRecordButCancelAndNewSelectionsDoNot() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         openEcho(in: app)
         let record = app.buttons["practiceRecordButton"]
@@ -131,7 +131,7 @@ final class EchoPracticeUITests: XCTestCase {
     }
 
     func testEchoRecordDoesNotAutoplayOrInventFeedbackWhenCaptureIsUnavailable() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         openEcho(in: app)
         hearFullPattern(in: app, duration: 4)
@@ -160,7 +160,7 @@ final class EchoPracticeUITests: XCTestCase {
     }
 
     func testInterruptedHearNeverUnlocksRecordOrChangesFoundationHistory() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.cello()
         app.launch()
         openSteadyHumPractice(in: app)
         XCTAssertTrue(app.staticTexts["currentTargetLabel"].waitForExistence(timeout: 5))

@@ -2,6 +2,15 @@ import XCTest
 
 /// Finding a step on the Music path, shared by every UI test.
 extension XCUIApplication {
+    /// The app as a returning learner sees it: every primer already read, so a
+    /// lesson opens on its own page. Pass `seenPrimers: ""` for a first visit.
+    /// Launch arguments override the stored preference without changing it.
+    static func cello(seenPrimers: String = "steadyHum,matchHum,pulse,twoTaps") -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments += ["-seenPrimers", seenPrimers]
+        return app
+    }
+
     /// Goes back to the Music path from wherever the app is.
     func returnToPath() {
         let firstLevel = buttons["level-firstSounds"]

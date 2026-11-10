@@ -55,6 +55,34 @@ final class PracticeLessonTests: XCTestCase {
         }
     }
 
+    func testOnlyTheFirstLevelLessonsHavePrimersAndEachHasSomethingToHearOrFeel() {
+        let withPrimers = PracticeLesson.allCases.filter { $0.primer != nil }
+        XCTAssertEqual(withPrimers, [.steadyHum, .matchHum, .pulse, .twoTaps])
+        XCTAssertEqual(withPrimers.map(PathStep.lesson), Level.path[0].steps, "Every Level 1 step explains its new idea")
+        XCTAssertEqual(PracticeLesson.steadyHum.primer?.demo, .hum)
+        XCTAssertEqual(PracticeLesson.matchHum.primer?.demo, .twoNotes)
+        guard case .beats(let beat)? = PracticeLesson.pulse.primer?.demo,
+              case .beats(let twoTaps)? = PracticeLesson.twoTaps.primer?.demo else { return XCTFail("Rhythm primers count beats") }
+        XCTAssertEqual(beat.map(\.label), ["1", "2", "3", "4"])
+        XCTAssertEqual(beat.map(\.seconds).reduce(0, +), 4)
+        XCTAssertEqual(twoTaps.map(\.label), ["1", "&", "2", "&", "3", "&", "4", "&"])
+        XCTAssertEqual(twoTaps.filter(\.onBeat).count, 4, "Only the numbers vibrate")
+        XCTAssertEqual(twoTaps.map(\.seconds).reduce(0, +), 4, "The beat stays one second long")
+    }
+
+    func testNoLevelOneLessonUsesATermBeforeAPrimerHasExplainedIt() {
+        var explained = ""
+        for step in Level.path[0].steps {
+            guard case .lesson(let lesson) = step, let primer = lesson.primer else { return XCTFail("Level 1 is lessons") }
+            explained += " " + primer.paragraphs.joined(separator: " ").lowercased()
+            let copy = ([lesson.purpose, lesson.shortPurpose, lesson.practicePrompt] + lesson.instructions
+                        + lesson.goals.flatMap { [$0.title, $0.detail] }).joined(separator: " ").lowercased()
+            for term in ["pitch", "beat", "cents", "register", "bpm", "pulse"] where copy.contains(term) {
+                XCTAssertTrue(explained.contains(term), "\(lesson.title) uses “\(term)” before a primer explains it")
+            }
+        }
+    }
+
     func testEveryLessonRoutesToItsOwnAreaAndTypedActivityWithoutAddingRecordingTargets() {
         XCTAssertEqual(LearningArea.allCases, [.humming, .rhythm, .cello])
         XCTAssertEqual(PracticeSection.allCases, [.humming, .cello])
