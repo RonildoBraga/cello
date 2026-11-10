@@ -5,7 +5,7 @@ import SwiftUI
 struct PracticeView: View {
     @ObservedObject var store: SessionStore
     @ObservedObject var capture: CaptureController
-    let rhythmStores: [RhythmExercise: PulsePracticeStore]
+    let rhythmStores: RhythmStores
     @Binding var selection: PracticeSelection
     let restartToken: UUID
     let onStartLesson: (PracticeLesson) -> Void
@@ -40,7 +40,7 @@ struct PracticeView: View {
                 practiceHeader(disabled: locked)
             }.id(activityIdentity)
         case .rhythm(let exercise):
-            PulsePracticeView(store: rhythmStore(for: exercise), isActive: true,
+            PulsePracticeView(store: rhythmStores.store(for: exercise), isActive: true,
                               nextLesson: lesson.next, onNext: onStartLesson) {
                 practiceHeader(disabled: false)
             }.id(activityIdentity)
@@ -85,13 +85,6 @@ struct PracticeView: View {
                 .accessibilityIdentifier("exercisePicker")
                 .accessibilityLabel("Exercise: \(lesson.title)")
         }.id("practiceTop")
-    }
-
-    private func rhythmStore(for exercise: RhythmExercise) -> PulsePracticeStore {
-        guard let store = rhythmStores[exercise] else {
-            preconditionFailure("Every rhythm lesson must have its own practice store")
-        }
-        return store
     }
 }
 

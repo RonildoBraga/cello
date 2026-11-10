@@ -23,8 +23,6 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     /// Includes the short quiet tail after playback, while pitch analysis is paused.
     @Published private(set) var isPlayingReference = false
     @Published private(set) var frequency: Double?
-    @Published private(set) var confidence: Double = 0
-    @Published private(set) var rms: Double = 0
     @Published private(set) var message: String?
     @Published private(set) var elapsed: TimeInterval = 0
     /// Actual player position, independent of the recording timer.
@@ -49,7 +47,6 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     private var referenceCooldown: DispatchWorkItem?
     private var referenceUsesCapture = false
     private var referenceCancelled = false
-    private var referenceDiagnostics: ReferencePlaybackDiagnostics?
 
     // Accessed only on audioQueue.
     private var audioWindow: [Float] = []
@@ -132,8 +129,6 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         publish {
             self.isReady = false
             self.frequency = nil
-            self.confidence = 0
-            self.rms = 0
             // Invalidate the pending main-thread playback request immediately.
             // Session cleanup below waits for all player I/O to stop as well.
             self.referencePlayer?.delegate = nil
@@ -262,19 +257,6 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     private enum ReferenceSource: Sendable {
         case recordedCello, humanHum
         case melody(MelodyPracticeContext)
-
-        var name: String {
-            switch self {
-            case .recordedCello: return "recordedCello"
-            case .humanHum: return "humanHum"
-            case .melody(let context): return context.register == .cello ? "celloMelody" : "humanMelody"
-            }
-        }
-
-        var melodyContext: MelodyPracticeContext? {
-            if case .melody(let context) = self { return context }
-            return nil
-        }
     }
 
     private func playReference(frequency: Double, source: ReferenceSource) {
@@ -288,8 +270,6 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
             self.referenceElapsed = 0
             self.isPlayingReference = true
             self.message = nil
-            self.confidence = 0
-            self.rms = 0
             self.frequency = nil
             self.sessionQueue.async { [self] in
                 self.prepareReference(frequency: frequency, source: source, token: token)
@@ -311,9 +291,6 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         referenceToken = token
         referenceUsesCapture = session.isRunning && wantsToRun
         referenceCancelled = false
-        referenceDiagnostics = ReferencePlaybackDiagnostics(frequencyHz: frequency,
-            timestamp: ISO8601DateFormatter().string(from: Date()), source: source.name,
-            melodyContext: source.melodyContext)
         audioQueue.sync {
             analysisSuppressed = true
             generation += 1
@@ -336,8 +313,6 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
                 try audioSession.setCategory(.playback, mode: .default, options: [])
             }
             try audioSession.setActive(true)
-            snapshotReferenceOutput()
-            writeReferenceDiagnostics()
             // Player creation and delegates stay on the main run loop. stop()
             // invalidates this token before queued work can start stale playback.
             publish {
@@ -346,18 +321,8 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
                     let player = try AVAudioPlayer(data: data)
                     self.referencePlayer = player
                     player.delegate = self
-                    let prepared = player.prepareToPlay()
-                    let started = prepared && player.play()
+                    let started = player.prepareToPlay() && player.play()
                     if started { self.startReferenceTimer(token: token) }
-                    self.sessionQueue.async { [self] in
-                        guard self.referenceToken == token, !self.referenceCancelled else { return }
-                        self.referenceDiagnostics?.prepared = prepared
-                        self.referenceDiagnostics?.playStarted = started
-                        self.referenceDiagnostics?.outcome = started ? "playing" : "error"
-                        self.referenceDiagnostics?.failureStage = started ? nil : (prepared ? "play" : "prepare")
-                        self.snapshotReferenceOutput()
-                        self.writeReferenceDiagnostics()
-                    }
                     if !started {
                         self.referencePlaybackEnded(token: token,
                             message: "The reference note could not play. Try again.")
@@ -368,10 +333,6 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
                 }
             }
         } catch {
-            snapshotReferenceOutput()
-            referenceDiagnostics?.outcome = "error"
-            referenceDiagnostics?.failureStage = "setup"
-            writeReferenceDiagnostics()
             publish {
                 guard self.referenceRequestIsCurrent(token) else { return }
                 self.referencePlaybackEnded(token: token,
@@ -419,12 +380,6 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         referencePlayerToken = nil
         sessionQueue.async { [weak self] in
             guard let self, self.referenceToken == token, !self.referenceCancelled else { return }
-            self.referenceDiagnostics?.outcome = message == nil ? "finished" : "error"
-            if message != nil && self.referenceDiagnostics?.failureStage == nil {
-                self.referenceDiagnostics?.failureStage = "player"
-            }
-            self.snapshotReferenceOutput()
-            self.writeReferenceDiagnostics()
             let cooldown = DispatchWorkItem { [weak self] in
                 guard let self, self.referenceToken == token, !self.referenceCancelled else { return }
                 self.referenceCooldown = nil
@@ -437,9 +392,6 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
                     }
                     self.finishReferenceCleanup(message: message)
                 } catch {
-                    self.referenceDiagnostics?.outcome = "error"
-                    self.referenceDiagnostics?.failureStage = "cleanup"
-                    self.writeReferenceDiagnostics()
                     self.wantsToRun = false
                     self.finishStoppingSession()
                     self.finishReferenceCleanup(message: "Audio could not resume: \(error.localizedDescription). Please try again.")
@@ -469,43 +421,8 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
             self.referenceTimer = nil
             if let message { self.message = message }
             self.isPlayingReference = false
-            self.confidence = 0
-            self.rms = 0
             self.frequency = nil
         }
-    }
-
-    private struct ReferencePlaybackDiagnostics: Codable {
-        let frequencyHz: Double
-        let timestamp: String
-        let source: String
-        let melodyContext: MelodyPracticeContext?
-        var category: String?
-        var mode: String?
-        var outputVolume: Float?
-        var outputPortTypes: [String] = []
-        var prepared: Bool?
-        var playStarted: Bool?
-        var outcome = "preparing"
-        var failureStage: String?
-    }
-
-    // Latest playback only. Port types avoid storing accessory names or device IDs.
-    private func snapshotReferenceOutput() {
-        let audioSession = AVAudioSession.sharedInstance()
-        referenceDiagnostics?.category = audioSession.category.rawValue
-        referenceDiagnostics?.mode = audioSession.mode.rawValue
-        referenceDiagnostics?.outputVolume = audioSession.outputVolume
-        referenceDiagnostics?.outputPortTypes = audioSession.currentRoute.outputs.map { $0.portType.rawValue }
-    }
-
-    private func writeReferenceDiagnostics() {
-        guard let referenceDiagnostics,
-              let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        guard let data = try? encoder.encode(referenceDiagnostics) else { return }
-        try? data.write(to: directory.appendingPathComponent("ReferencePlaybackDiagnostics.json"), options: .atomic)
     }
 
     private func configureSession() throws {
@@ -578,9 +495,6 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         referenceCancelled = true
         referenceCooldown?.cancel()
         referenceCooldown = nil
-        referenceDiagnostics?.outcome = "cancelled"
-        snapshotReferenceOutput()
-        writeReferenceDiagnostics()
         // Stop the player on its run loop before deactivating the audio session.
         // Keep the reference token/Published flag until this continuation settles.
         publish {
@@ -608,8 +522,6 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         publish {
             self.isReady = false
             self.frequency = nil
-            self.confidence = 0
-            self.rms = 0
         }
         audioQueue.async { [weak self] in
             guard let self else { return }
@@ -721,7 +633,6 @@ extension CaptureController: AVCaptureAudioDataOutputSampleBufferDelegate {
         analysisQueue.async { [weak self] in
             guard let self else { return }
             let estimate = self.detector.estimate(samples: samples, sampleRate: sampleRate)
-            let level = sqrt(samples.reduce(0.0) { $0 + Double($1) * Double($1) } / Double(samples.count))
             self.audioQueue.async { [weak self] in
                 guard let self else { return }
                 self.analyzing = false
@@ -730,11 +641,7 @@ extension CaptureController: AVCaptureAudioDataOutputSampleBufferDelegate {
                     self.pitchSamples.append(PitchSample(time: capturedTime, frequency: estimate.frequency,
                                                         confidence: estimate.confidence, rms: estimate.rms))
                 }
-                self.publish {
-                    self.confidence = estimate?.confidence ?? 0
-                    self.rms = level
-                    self.frequency = estimate?.frequency
-                }
+                self.publish { self.frequency = estimate?.frequency }
             }
         }
     }
@@ -787,8 +694,6 @@ extension CaptureController: AVCaptureFileOutputRecordingDelegate {
             // after the new take's clear and appearing as a recorded reading.
             self.publish {
                 self.frequency = nil
-                self.confidence = 0
-                self.rms = 0
                 self.isRecording = true
                 self.displayTimer?.invalidate()
                 self.displayStartTime = CACurrentMediaTime()

@@ -5,15 +5,9 @@ import SwiftUI
 struct MusicLibraryView: View {
     @ObservedObject var store: SessionStore
     @ObservedObject var capture: CaptureController
-    @ObservedObject var pulseStore: PulsePracticeStore
-    @ObservedObject var twoTapsStore: PulsePracticeStore
-    @ObservedObject var mixedRhythmStore: PulsePracticeStore
+    @ObservedObject var rhythmStores: RhythmStores
     @ObservedObject var melodyRhythmStore: MelodyRhythmStore
     let onStartLesson: (PracticeLesson) -> Void
-
-    private var rhythmStores: [RhythmExercise: PulsePracticeStore] {
-        [.pulse: pulseStore, .twoTaps: twoTapsStore, .mixedRhythm: mixedRhythmStore]
-    }
 
     var body: some View {
         NavigationStack {
@@ -61,8 +55,7 @@ struct MusicLibraryView: View {
     }
 
     private func foundationLessons(_ area: LearningArea) -> some View {
-        FoundationLessonsView(area: area, store: store, capture: capture, pulseStore: pulseStore,
-                              twoTapsStore: twoTapsStore, mixedRhythmStore: mixedRhythmStore,
+        FoundationLessonsView(area: area, store: store, capture: capture, rhythmStores: rhythmStores,
                               onStartLesson: onStartLesson)
     }
 
@@ -176,14 +169,9 @@ private struct FoundationLessonsView: View {
     let area: LearningArea
     @ObservedObject var store: SessionStore
     @ObservedObject var capture: CaptureController
-    @ObservedObject var pulseStore: PulsePracticeStore
-    @ObservedObject var twoTapsStore: PulsePracticeStore
-    @ObservedObject var mixedRhythmStore: PulsePracticeStore
+    @ObservedObject var rhythmStores: RhythmStores
     let onStartLesson: (PracticeLesson) -> Void
 
-    private var rhythmStores: [RhythmExercise: PulsePracticeStore] {
-        [.pulse: pulseStore, .twoTaps: twoTapsStore, .mixedRhythm: mixedRhythmStore]
-    }
     private var lessons: [PracticeLesson] { PracticeLesson.lessons(in: area) }
 
     var body: some View {
@@ -211,8 +199,7 @@ private struct FoundationLessonsView: View {
                     ForEach(lessons) { lesson in
                         let state = LessonState(lesson: lesson, store: store, rhythmStores: rhythmStores)
                         NavigationLink {
-                            LessonDetailView(lesson: lesson, store: store, pulseStore: pulseStore,
-                                             twoTapsStore: twoTapsStore, mixedRhythmStore: mixedRhythmStore,
+                            LessonDetailView(lesson: lesson, store: store, rhythmStores: rhythmStores,
                                              onStartLesson: onStartLesson)
                         } label: {
                             LessonRow(lesson: lesson, state: state)
@@ -270,7 +257,7 @@ private struct LessonState {
     let latestStars: Int?
     let hasAttempts: Bool
 
-    init(lesson: PracticeLesson, store: SessionStore, rhythmStores: [RhythmExercise: PulsePracticeStore]) {
+    init(lesson: PracticeLesson, store: SessionStore, rhythmStores: RhythmStores) {
         switch lesson.activity {
         case .recording(let exercise):
             guard let section = exercise.section else {
@@ -284,9 +271,7 @@ private struct LessonState {
             latestStars = scores.latestStars
             hasAttempts = scores.hasAttempts
         case .rhythm(let exercise):
-            guard let rhythmStore = rhythmStores[exercise] else {
-                preconditionFailure("Every rhythm lesson must have its own practice store")
-            }
+            let rhythmStore = rhythmStores.store(for: exercise)
             progress = rhythmStore.progress
             bestStars = rhythmStore.bestStars
             latestStars = rhythmStore.attempts.compactMap(\.starCount).first
@@ -354,14 +339,8 @@ private struct LessonRow: View {
 private struct LessonDetailView: View {
     let lesson: PracticeLesson
     @ObservedObject var store: SessionStore
-    @ObservedObject var pulseStore: PulsePracticeStore
-    @ObservedObject var twoTapsStore: PulsePracticeStore
-    @ObservedObject var mixedRhythmStore: PulsePracticeStore
+    @ObservedObject var rhythmStores: RhythmStores
     let onStartLesson: (PracticeLesson) -> Void
-
-    private var rhythmStores: [RhythmExercise: PulsePracticeStore] {
-        [.pulse: pulseStore, .twoTaps: twoTapsStore, .mixedRhythm: mixedRhythmStore]
-    }
 
     private var state: LessonState { LessonState(lesson: lesson, store: store, rhythmStores: rhythmStores) }
 
