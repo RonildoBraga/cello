@@ -26,6 +26,7 @@ struct VoicePracticeView<Header: View>: View {
     @State private var stopRequested = false
     @State private var saving = false
     @State private var saved = false
+    @State private var referenceWasHeard = false
     @State private var latestSession: PracticeSession?
     private var hasResult: Bool { latestSession?.rating != nil || latestSession?.melodyRating != nil }
 
@@ -74,6 +75,12 @@ struct VoicePracticeView<Header: View>: View {
         self.header = header
     }
 
+    private var echoSelection: (level: EchoLevel, patternIndex: Int)? {
+        melodyContext.flatMap { EchoLevel.selection(for: $0) }
+    }
+    private var isEcho: Bool { echoSelection != nil }
+    private var needsEchoReference: Bool { isEcho && !referenceWasHeard && phase == .idle && !capture.isRecording }
+
     var body: some View {
         recordingPracticeScreen
             .toolbar {
@@ -95,13 +102,17 @@ struct VoicePracticeView<Header: View>: View {
                 }
             }
             .onAppear { isVisible = true }
-            .onDisappear { isVisible = false; cancelFlow(stopCapture: true) }
+            .onDisappear { isVisible = false; referenceWasHeard = false; cancelFlow(stopCapture: true) }
             .onChange(of: scenePhase) { _, newPhase in
                 guard isVisible else { return }
                 if newPhase == .background {
+                    referenceWasHeard = false
                     cancelFlow(stopCapture: true)
                 } else if newPhase == .active {
                     if phase == .preparing { dispatchPendingAction() }
+                } else if isEcho && phase == .previewing {
+                    referenceWasHeard = false
+                    cancelFlow(stopCapture: true)
                 } else if phase == .counting {
                     // An overlay must not start a recording behind itself. A
                     // permission dialog, while preparing, keeps the user's intent.
@@ -119,7 +130,12 @@ struct VoicePracticeView<Header: View>: View {
             .onChange(of: capture.isPlayingReference) { wasPlaying, playing in
                 guard isVisible else { return }
                 guard wasPlaying, !playing else { return }
-                if phase == .previewing { phase = .idle }
+                if phase == .previewing {
+                    if isEcho, capture.message == nil, capture.referenceElapsed >= recordingDuration - 0.05 {
+                        referenceWasHeard = true
+                    }
+                    phase = .idle
+                }
             }
             .onChange(of: capture.isRecording) { _, recording in
                 guard isVisible else { return }
@@ -149,12 +165,12 @@ struct VoicePracticeView<Header: View>: View {
         ScrollViewReader { scroll in
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    header(controlsLocked)
+                    header(controlsLocked || (isEcho && restSeconds > 0))
                     targetControls
                     if let session = latestSession, hasResult, !isBusy && !capture.isRecording && !saving {
                         VStack(spacing: 16) {
                             if let rating = session.melodyRating, let context = session.melodyContext {
-                                MelodyFeedbackView(rating: rating)
+                                MelodyFeedbackView(rating: rating, isEcho: isEcho)
                                 MelodyTraceView(context: context, rating: rating, duration: session.duration)
                             } else if let rating = session.rating {
                                 PracticeRatingView(rating: rating)
@@ -165,17 +181,19 @@ struct VoicePracticeView<Header: View>: View {
                             }
                             lessonProgress
                         }.id("latestRating")
+                    } else if isEcho {
+                        echoCard
                     } else {
                         tuner
                     }
                     if !hasResult && !isBusy && !capture.isRecording && !saving {
                         lessonProgress
                     }
-                    if hasResult && !isBusy && !capture.isRecording && !saving {
+                    if !isEcho && hasResult && !isBusy && !capture.isRecording && !saving {
                         DisclosureGroup("Live tuner") { tuner.padding(.top, 10) }
                             .font(.subheadline.weight(.medium)).foregroundStyle(Palette.forest)
                     }
-                    if capture.isReady {
+                    if capture.isReady && !isEcho {
                         DisclosureGroup("Camera preview", isExpanded: $cameraExpanded) {
                             camera.padding(.top, 10)
                         }.font(.subheadline.weight(.medium)).foregroundStyle(Palette.forest)
@@ -196,17 +214,18 @@ struct VoicePracticeView<Header: View>: View {
 
     @ViewBuilder private var lessonProgress: some View {
         if let context = melodyContext {
-            let progress = store.melodyProgress(for: context)
+            let progress = echoSelection.map { store.echoProgress(for: $0.level, register: context.register) }
+                ?? store.melodyProgress(for: context)
             HStack {
                 PracticeProgressView(progress: progress)
-                if let onNextPhrase {
-                    Button(progress.completed ? "Next phrase" : "Try next phrase") {
+                if let onNextPhrase, !isEcho || hasResult {
+                    Button(isEcho ? "New pattern" : progress.completed ? "Next phrase" : "Try next phrase") {
                         guard canStartAction else { return }
                         cancelFlow(stopCapture: true)
                         onNextPhrase()
                     }.font(.caption.weight(.semibold)).foregroundStyle(Palette.forest)
                         .disabled(controlsLocked || restSeconds > 0)
-                        .accessibilityIdentifier("nextMelodyPhraseButton")
+                        .accessibilityIdentifier(isEcho ? "nextEchoPatternButton" : "nextMelodyPhraseButton")
                 }
             }
         } else {
@@ -221,20 +240,25 @@ struct VoicePracticeView<Header: View>: View {
 
     private var targetControls: some View {
         HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(melodyContext == nil ? "TARGET" : "RECORDED HUM")
-                    .font(.system(size: 10, weight: .semibold)).tracking(1.4)
-                    .foregroundStyle(Palette.muted)
-                Text(melodyContext.map { "\($0.referenceKey) · \(referenceRange(for: $0))" }
-                     ?? String(format: "%@ · %.1f Hz", targetNote, targetFrequency))
-                    .font(.subheadline.weight(.medium)).foregroundStyle(Palette.ink)
-                    .accessibilityIdentifier("currentTargetLabel")
-                    .accessibilityLabel(melodyContext.map { "Reference \($0.referenceKey), \(referenceRange(for: $0))" }
-                                        ?? String(format: "Target %@ · %.1f Hz", targetNote, targetFrequency))
+            if isEcho {
+                Label("Recorded hum", systemImage: "waveform")
+                    .font(.subheadline).foregroundStyle(Palette.muted)
+            } else {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(melodyContext == nil ? "TARGET" : "RECORDED HUM")
+                        .font(.system(size: 10, weight: .semibold)).tracking(1.4)
+                        .foregroundStyle(Palette.muted)
+                    Text(melodyContext.map { "\($0.referenceKey) · \(referenceRange(for: $0))" }
+                         ?? String(format: "%@ · %.1f Hz", targetNote, targetFrequency))
+                        .font(.subheadline.weight(.medium)).foregroundStyle(Palette.ink)
+                        .accessibilityIdentifier("currentTargetLabel")
+                        .accessibilityLabel(melodyContext.map { "Reference \($0.referenceKey), \(referenceRange(for: $0))" }
+                                            ?? String(format: "Target %@ · %.1f Hz", targetNote, targetFrequency))
+                }
             }
             Spacer(minLength: 0)
             Button { previewReference() } label: {
-                Label(melodyContext.map { $0.section == .whole ? "Hear melody" : "Hear phrase" }
+                Label(isEcho ? "Hear pattern" : melodyContext.map { $0.section == .whole ? "Hear melody" : "Hear phrase" }
                       ?? (section == .humming ? "Hear hum" : "Hear string"), systemImage: "speaker.wave.2")
                     .font(.subheadline.weight(.medium)).frame(minHeight: 44)
                     .padding(.horizontal, 14)
@@ -273,13 +297,44 @@ struct VoicePracticeView<Header: View>: View {
                     .frame(maxWidth: .infinity, minHeight: 56)
                     .background(capture.isRecording ? Color.red : Palette.forest,
                                 in: RoundedRectangle(cornerRadius: 18))
-                    .opacity(saving || restSeconds > 0 ? 0.55 : 1)
+                    .opacity(saving || restSeconds > 0 || needsEchoReference ? 0.55 : 1)
             }.buttonStyle(.plain)
-                .disabled(saving || (restSeconds > 0 && !isBusy && !capture.isRecording))
+                .disabled(saving || needsEchoReference || (restSeconds > 0 && !isBusy && !capture.isRecording))
                 .accessibilityIdentifier("practiceRecordButton")
         }.padding(.horizontal, 22).padding(.top, 12).padding(.bottom, 12)
             .frame(maxWidth: .infinity)
             .background(Palette.paper)
+    }
+
+    private var echoCard: some View {
+        VStack(spacing: 22) {
+            HStack {
+                Text(saving ? "REVIEWING" : capture.isRecording ? "RECORDING" : phase == .previewing ? "LISTEN" : isBusy ? "GET READY" : "READY")
+                    .font(.system(size: 10, weight: .semibold)).tracking(1.6)
+                Spacer()
+                Image(systemName: "ear").font(.subheadline)
+            }.foregroundStyle(.white.opacity(0.65))
+            if saving {
+                ProgressView().tint(.white).frame(height: 62)
+            } else {
+                Text(countInSeconds > 0 ? "\(countInSeconds)" : phase == .previewing ? "Listen" : capture.isRecording ? "Hum it back" : "Your turn")
+                    .font(.system(size: countInSeconds > 0 ? 62 : 36, weight: .light, design: .rounded))
+                    .monospacedDigit().frame(minHeight: 62)
+                    .accessibilityIdentifier("echoPracticeStatus")
+            }
+            Text(saving ? "Checking your notes, timing and clarity…"
+                 : phase == .previewing ? "Remember the notes and their rhythm."
+                 : capture.isRecording ? "Repeat the pattern you heard."
+                 : isBusy ? "Start humming when the countdown ends."
+                 : referenceWasHeard ? "Tap Record, then hum after 3–2–1."
+                 : "Tap Hear pattern first.")
+                .font(.subheadline).multilineTextAlignment(.center).foregroundStyle(.white.opacity(0.85))
+            if capture.isRecording {
+                ProgressView(value: min(capture.elapsed, recordingDuration), total: recordingDuration).tint(.white)
+            }
+        }.foregroundStyle(.white).padding(22).frame(maxWidth: .infinity, minHeight: 220)
+            .background(Palette.forest, in: RoundedRectangle(cornerRadius: 26))
+            .accessibilityElement(children: .contain).accessibilityIdentifier("echoPracticeCard")
     }
 
     private var tuner: some View {
@@ -406,6 +461,7 @@ struct VoicePracticeView<Header: View>: View {
         guard canStartAction else { return }
         flowToken = UUID()
         pendingRecord = false
+        if isEcho { referenceWasHeard = false }
         phase = .previewing
         // Hearing a reference needs playback only, without camera or mic setup.
         if let context = melodyContext { capture.playMelodyReference(context) }
@@ -414,7 +470,7 @@ struct VoicePracticeView<Header: View>: View {
     }
 
     private func requestRecording() {
-        guard canStartAction else { return }
+        guard canStartAction, !isEcho || referenceWasHeard else { return }
         flowToken = UUID()
         saved = false
         latestSession = nil

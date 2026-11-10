@@ -18,6 +18,10 @@ final class SessionStore: ObservableObject {
     private var melodyPersistenceError: String?
     private var melodyFileIsUnreadable = false
     private var melodyNeedsSave = false
+    private var echoLedger = EchoProgressLedger()
+    private var echoPersistenceError: String?
+    private var echoFileIsUnreadable = false
+    private var echoNeedsSave = false
 
     init(directory overrideDirectory: URL? = nil) {
         directory = overrideDirectory ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -53,13 +57,14 @@ final class SessionStore: ObservableObject {
         }
         loadProgress()
         loadMelodyProgress()
+        loadEchoProgress()
         refreshPendingRecordings()
     }
 
     func saveRecording(from source: URL, samples: [PitchSample], exercise: Exercise,
                        notes: String = "", duration: Double, targetFrequency: Double? = nil,
                        melodyContext: MelodyPracticeContext? = nil) async -> PracticeSession? {
-        errorMessage = progressPersistenceError ?? melodyPersistenceError
+        errorMessage = progressPersistenceError ?? melodyPersistenceError ?? echoPersistenceError
         defer { refreshPendingRecordings() }
         guard melodyContext?.isValid != false else {
             errorMessage = "Could not save this session because its melody reference is invalid. The original recording is preserved at \(source.lastPathComponent)."
@@ -134,6 +139,10 @@ final class SessionStore: ObservableObject {
         melodyLedger.progress(for: context, sessions: sessions)
     }
 
+    func echoProgress(for level: EchoLevel, register: MelodyRegister) -> PracticeProgress {
+        echoLedger.progress(for: level, register: register, sessions: sessions)
+    }
+
     private var progressURL: URL {
         directory.deletingLastPathComponent().appendingPathComponent("PracticeProgress.json")
     }
@@ -159,6 +168,7 @@ final class SessionStore: ObservableObject {
     private func persistNewMilestones() {
         persistFoundationMilestones()
         persistMelodyMilestones()
+        persistEchoMilestones()
     }
 
     private func persistFoundationMilestones() {
@@ -213,15 +223,51 @@ final class SessionStore: ObservableObject {
         }
     }
 
+    private var echoProgressURL: URL {
+        directory.deletingLastPathComponent().appendingPathComponent("EchoProgress.json")
+    }
+
+    private func loadEchoProgress() {
+        if FileManager.default.fileExists(atPath: echoProgressURL.path) {
+            do {
+                let ledger = try JSONDecoder().decode(EchoProgressLedger.self,
+                    from: Data(contentsOf: echoProgressURL))
+                guard ledger.schemaVersion == 1 else { throw StorageError.invalidMetadata }
+                echoLedger = ledger
+            } catch {
+                echoPersistenceError = "Saved echo progress could not be read. Its file and all recordings have been preserved."
+                echoFileIsUnreadable = true
+                if errorMessage == nil { errorMessage = echoPersistenceError }
+            }
+        }
+        persistEchoMilestones()
+    }
+
+    private func persistEchoMilestones() {
+        if echoLedger.update(from: sessions) { echoNeedsSave = true }
+        guard echoNeedsSave, !echoFileIsUnreadable else { return }
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            try encoder.encode(echoLedger).write(to: echoProgressURL, options: .atomic)
+            echoNeedsSave = false
+            if errorMessage == echoPersistenceError { errorMessage = nil }
+            echoPersistenceError = nil
+        } catch {
+            echoPersistenceError = "Your recording is saved, but echo progress could not be saved. \(error.localizedDescription)"
+            errorMessage = echoPersistenceError
+        }
+    }
+
     func delete(_ session: PracticeSession) {
         // Rated recordings may be the only durable proof of an earned milestone.
         // Preserve that proof until the separate progress file is safely written.
         persistNewMilestones()
-        guard !progressNeedsSave, !melodyNeedsSave else {
-            errorMessage = progressPersistenceError ?? melodyPersistenceError
+        guard !progressNeedsSave, !melodyNeedsSave, !echoNeedsSave else {
+            errorMessage = progressPersistenceError ?? melodyPersistenceError ?? echoPersistenceError
             return
         }
-        errorMessage = progressPersistenceError ?? melodyPersistenceError
+        errorMessage = progressPersistenceError ?? melodyPersistenceError ?? echoPersistenceError
         do {
             try FileManager.default.removeItem(at: folderURL(for: session))
             sessions.removeAll { $0.id == session.id }
@@ -403,7 +449,8 @@ final class SessionStore: ObservableObject {
             }
         }
         if let rating = session.melodyRating {
-            result += "\n\n## Melody feedback\n\n"
+            let isEcho = session.melodyContext.flatMap { EchoLevel.selection(for: $0) } != nil
+            result += isEcho ? "\n\n## Listen & Echo feedback\n\n" : "\n\n## Melody feedback\n\n"
             result += "- Scoring version: \(rating.version)\n"
             if let stars = rating.starCount {
                 result += "- Goals reached: \(stars) of 3\n"
@@ -413,7 +460,7 @@ final class SessionStore: ObservableObject {
             } else {
                 result += "- Result: not rated (\(rating.status.rawValue))\n"
             }
-            result += "- Feedback: \(rating.feedback)\n"
+            result += "- Feedback: \(isEcho ? rating.echoFeedback : rating.feedback)\n"
             result += "- Octave mismatch: \(rating.octaveMismatch ? "detected; pitches were not shifted" : "not detected")\n"
         }
         result += """

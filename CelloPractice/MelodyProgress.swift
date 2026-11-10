@@ -39,7 +39,8 @@ struct MelodyProgressLedger: Codable {
     }
 
     private static func key(for context: MelodyPracticeContext) -> String? {
-        guard context.isValid, context.gradingVersion == MelodyRating.currentVersion else { return nil }
+        guard context.isValid, context.gradingVersion == MelodyRating.currentVersion,
+              !EchoLevel.allCases.contains(where: { $0.pieceID == context.pieceID }) else { return nil }
         // Hash the complete frozen score selection, including events and tuning,
         // rather than just its display labels. Sorted keys make reloads stable.
         let encoder = JSONEncoder()

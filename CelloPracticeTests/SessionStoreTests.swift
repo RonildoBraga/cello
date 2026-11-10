@@ -517,6 +517,62 @@ final class SessionStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testEchoRecordedMovieKeepsFrozenPatternRatingAndSeparateProgressThroughExport() async throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let directory = root.appendingPathComponent("PracticeSessions", isDirectory: true)
+        let context = try EchoLevel.twoNotes.context(patternIndex: 1, register: .higherVoice)
+        let source = try await makeAudioMovie(in: root.appendingPathComponent("PendingTakes", isDirectory: true),
+            audioData: RecordedReference.wavData(context: context), duration: context.duration)
+        let original = try Data(contentsOf: source)
+        let store = SessionStore(directory: directory)
+        let saved = await store.saveRecording(from: source, samples: [], exercise: .listen,
+                                              duration: context.duration, melodyContext: context)
+        let session = try XCTUnwrap(saved)
+        XCTAssertEqual(session.title, "Listen & Echo · Two notes")
+        XCTAssertEqual(session.starCount, 3)
+        XCTAssertEqual(session.melodyContext, context)
+        XCTAssertNil(session.rating)
+        XCTAssertNil(session.effectiveTargetFrequency)
+        XCTAssertEqual(store.echoProgress(for: .twoNotes, register: .higherVoice).successfulAttempts, 1)
+        XCTAssertEqual(store.echoProgress(for: .twoNotes, register: .lowVoice).successfulAttempts, 0)
+        XCTAssertEqual(store.echoProgress(for: .threeNotes, register: .higherVoice).successfulAttempts, 0)
+        XCTAssertEqual(store.melodyProgress(for: context).successfulAttempts, 0)
+        XCTAssertEqual(store.progress(for: .steadyHum, targetFrequency: HummingExample.frequency).successfulAttempts, 0)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: root.appendingPathComponent("MelodyProgress.json").path))
+
+        let reloaded = SessionStore(directory: directory)
+        let restored = try XCTUnwrap(reloaded.sessions.first)
+        XCTAssertEqual(restored.melodyContext, context)
+        XCTAssertEqual(restored.melodyRating, session.melodyRating)
+        XCTAssertEqual(reloaded.echoProgress(for: .twoNotes, register: .higherVoice).successfulAttempts, 1)
+        let archive = try await reloaded.export(restored)
+        defer { try? FileManager.default.removeItem(at: archive.deletingLastPathComponent()) }
+        let files = try readStoredZIP(at: archive)
+        XCTAssertEqual(files["recording.mov"], original)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let exported = try decoder.decode(PracticeSession.self, from: XCTUnwrap(files["session.json"]))
+        XCTAssertEqual(exported.melodyContext, context)
+        XCTAssertEqual(exported.melodyRating, session.melodyRating)
+        XCTAssertEqual(exported.title, "Listen & Echo · Two notes")
+        let review = try XCTUnwrap(files["review.md"]).utf8String
+        XCTAssertTrue(review.contains("## Listen & Echo feedback"))
+        XCTAssertTrue(review.contains("echoTwoNotes"))
+        // Keep a real production-rated fixture for external Simulator UI review.
+        // No app fixture mode or fabricated rating is involved.
+        let metadataAttachment = XCTAttachment(data: try XCTUnwrap(files["session.json"]),
+                                               uniformTypeIdentifier: "public.json")
+        metadataAttachment.name = "Echo production-rated session.json"
+        metadataAttachment.lifetime = .keepAlways
+        add(metadataAttachment)
+        let movieAttachment = XCTAttachment(data: original, uniformTypeIdentifier: "com.apple.quicktime-movie")
+        movieAttachment.name = "Echo production-rated recording.mov"
+        movieAttachment.lifetime = .keepAlways
+        add(movieAttachment)
+    }
+
+    @MainActor
     func testUnsupportedMelodyGradingVersionSavesOriginalWithoutInventingFeedback() async throws {
         let root = try makeRoot()
         defer { try? FileManager.default.removeItem(at: root) }

@@ -193,7 +193,7 @@ struct SessionDetailView: View {
                         .font(.caption).foregroundStyle(Palette.muted)
                 }
                 if let rating = session.melodyRating, let context = session.melodyContext {
-                    MelodyFeedbackView(rating: rating)
+                    MelodyFeedbackView(rating: rating, isEcho: EchoLevel.selection(for: context) != nil)
                     MelodyTraceView(context: context, rating: rating, duration: session.duration)
                 } else if let rating = session.rating {
                     PracticeRatingView(rating: rating)
