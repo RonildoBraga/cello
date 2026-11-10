@@ -12,18 +12,21 @@ The first delivery separates Humming, Rhythm and Cello inside a Music library. I
 
 ```text
 Music (the path)
-  Level 1 · First sounds      Steady hum → Listen & match → Pulse → Two taps per beat
+  Level 1 · First sounds      Steady hum → Listen & match → Pulse → Two taps per beat → Mixed rhythm → Listen & Echo
   Level 2 · Hot Cross Buns    Listen → Tap it → Meet the notes → Hum it → Whole melody
   Level 3 · Ode to Joy        Listen → Tap it → Meet the notes → Hum it → Whole melody
-  Where this is heading       a note naming Bach's Suite No. 1 as the long-term goal
-  Cello · open strings        Meet your cello; Open C/G/D/A strings
-  More practice               Mixed rhythm; Listen & Echo
+  Level 4 · Cello             Meet your cello → Open C → Open G → Open D → Open A
+  (info button)               long-term goal, further reading, recording credits
 Recordings → existing local audio/video history
 ```
 
 The path replaced separate Foundations and Pieces libraries ([issue #49](https://github.com/RonildoBraga/cello/issues/49), design note [#53](https://github.com/RonildoBraga/cello/issues/53)). A `Level` is a title and an ordered list of `PathStep`s, and each step opens a screen that already existed: a lesson page, Listen (the reference player), Tap it (melody rhythm), Meet the notes, and Hum it or Whole melody (melody humming opened at phrase 1 or at the whole melody). Adding a melody adds one level with the same steps.
 
-The level holding the first unfinished step opens when the path appears, and that step is marked Continue. It is a suggestion only: every level can be opened and every step tapped. Cello and More practice are not counted and never become the next step.
+The level holding the first unfinished step opens when the path appears, and that step is marked Continue. It is a suggestion only: every level can be opened and every step tapped.
+
+Everything belongs to a level. An earlier version kept the cello lessons, Mixed rhythm, Listen & Echo, a note about Bach and the credits below the levels; on the phone that read as clutter with no place in the journey. Mixed rhythm and Listen & Echo now close Level 1, the cello is the last level because it needs an instrument, and the Bach note and credits moved behind an info button. Listen & Echo is passed by a passing two-note take; Meet your cello is passed by reading it.
+
+Every step uses one compact row, whatever it opens: step number, title, progress in words and the best score out of three. A step made of phrases or notes shows the weakest best score across them, so three stars means every part reached three. Listen and Meet your cello are not scored and show no stars. A level's steps share one card, so a whole level fits on a screen.
 
 ### Primers
 

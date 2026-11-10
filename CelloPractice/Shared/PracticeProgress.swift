@@ -7,12 +7,15 @@ struct PracticeProgress: Equatable {
     let requiredAttempts = CompletionRule.requiredSuccesses
     let completed: Bool
     let passed: Bool
+    /// The best saved score; three once gold is earned, nil before any score.
+    let bestStars: Int?
 
     /// Gold always counts as passed, even if its takes were later deleted.
-    init(successfulAttempts: Int, completed: Bool, passed: Bool = false) {
+    init(successfulAttempts: Int, completed: Bool, passed: Bool = false, bestStars: Int? = nil) {
         self.successfulAttempts = successfulAttempts
         self.completed = completed
         self.passed = passed || completed
+        self.bestStars = completed ? CompletionRule.goldStars : bestStars
     }
 
     /// Applies both tiers to one activity's scored attempts, newest first.
@@ -20,7 +23,8 @@ struct PracticeProgress: Equatable {
         let successes = CompletionRule.recentSuccesses(newestFirst.map { $0 == CompletionRule.goldStars })
         let completed = alreadyCompleted || successes >= CompletionRule.requiredSuccesses
         self.init(successfulAttempts: completed ? CompletionRule.requiredSuccesses : successes,
-                  completed: completed, passed: CompletionRule.passed(newestFirst))
+                  completed: completed, passed: CompletionRule.passed(newestFirst),
+                  bestStars: newestFirst.max())
     }
 }
 

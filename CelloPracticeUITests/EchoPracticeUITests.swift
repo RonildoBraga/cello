@@ -76,7 +76,7 @@ final class EchoPracticeUITests: XCTestCase {
         let app = XCUIApplication.cello()
         app.launch()
         let summary = firstLevelSummary(in: app)
-        XCTAssertTrue(summary.contains("of 4 steps done"))
+        XCTAssertTrue(summary.contains("of 6 steps done"))
         openEcho(in: app)
         let duration = app.staticTexts["echoDuration"]
         let levels = app.segmentedControls["echoLevelPicker"]
@@ -97,7 +97,7 @@ final class EchoPracticeUITests: XCTestCase {
         assertRecordNeedsHear(in: app)
         assertNoWrittenInputOrPermissionAlerts(in: app)
         app.navigationBars["Listen & Echo"].buttons.firstMatch.tap()
-        XCTAssertEqual(firstLevelSummary(in: app), summary, "Echo practice is off the path and earns no step")
+        XCTAssertEqual(firstLevelSummary(in: app), summary, "Opening Echo without a take earns no step")
         for id in ["steadyHum", "matchHum"] { XCTAssertTrue(app.pathRow("lesson-\(id)").isEnabled) }
     }
 

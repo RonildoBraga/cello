@@ -8,6 +8,7 @@ struct CelloIntroductionView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var isVisible = false
     @State private var selectedString: Exercise?
+    @AppStorage(StoredIDs.seenPrimers) private var seenPrimers = ""
 
     private let strings: [Exercise] = [.openC, .openG, .openD, .openA]
     private let nextSteps = [
@@ -44,7 +45,10 @@ struct CelloIntroductionView: View {
                     Label("View open-string lessons", systemImage: "arrow.right")
                 }.buttonStyle(PrimaryActionButtonStyle()).accessibilityIdentifier("celloIntroBrowseLessons")
             }
-            .onAppear { isVisible = true }
+            .onAppear {
+                isVisible = true
+                seenPrimers = StoredIDs.adding(StoredIDs.celloIntroduction, to: seenPrimers)
+            }
             .onDisappear { isVisible = false; selectedString = nil; capture.stop() }
             .onChange(of: scenePhase) { _, phase in
                 if isVisible, phase != .active { selectedString = nil; capture.stop() }

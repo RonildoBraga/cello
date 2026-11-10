@@ -47,6 +47,7 @@ struct MusicLibraryView: View {
     /// The levels showing their steps. The level holding the next step opens
     /// each time the path comes into view.
     @State private var open: Set<String> = []
+    @State private var showsAbout = false
 
     /// The first step on the path that has not been passed yet.
     private var next: (level: Level, step: PathStep)? { Level.nextStep(isPassed: isPassed) }
@@ -57,17 +58,21 @@ struct MusicLibraryView: View {
         let next = next
         NavigationStack(path: $path) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 26) {
-                    ScreenHeader(title: "Music", subtitle: "One path, from first sounds to melodies. The next step is marked; every step is open.")
+                VStack(alignment: .leading, spacing: 18) {
+                    ScreenHeader(title: "Music", subtitle: "Follow the path. The next step is marked; every step is open.")
                     if let celebrating { completionCard(celebrating, next: next) }
                     ForEach(Level.path) { section($0, next: next) }
-                    destinationNote
-                    ForEach(Level.extras) { section($0, next: next) }
-                    resources
                 }.screenContent()
             }.background(Palette.paper)
                 .accessibilityIdentifier("musicLibraryHome")
                 .screenTitle("Music")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button { showsAbout = true } label: { Image(systemName: "info.circle") }
+                            .accessibilityLabel("About this path").accessibilityIdentifier("aboutButton")
+                    }
+                }
+                .sheet(isPresented: $showsAbout) { AboutPathView() }
                 .onAppear {
                     if let level = next?.level { open.insert(level.id) }
                     if let level = Level.newlyCompleted(celebrated: celebrated, isPassed: isPassed) {
@@ -123,47 +128,45 @@ struct MusicLibraryView: View {
 
     // MARK: Path
 
+    /// One level: a compact header, and its steps in a single card when open.
     private func section(_ level: Level, next: (level: Level, step: PathStep)?) -> some View {
         let isOpen = open.contains(level.id)
         let done = level.passedSteps(isPassed: isPassed)
-        // Only the numbered levels are counted: the others are not a course to finish.
-        let count = level.number == nil ? nil : "\(done) of \(level.steps.count) steps done"
-        return VStack(alignment: .leading, spacing: 12) {
+        let complete = done == level.steps.count
+        return VStack(alignment: .leading, spacing: 8) {
             Button { open.formSymmetricDifference([level.id]) } label: {
-                HStack(alignment: .top, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 5) {
-                        if let number = level.number {
-                            Eyebrow(text: "Level \(number)", color: Palette.goldText)
-                        }
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Eyebrow(text: "Level \(level.number)", color: Palette.goldText)
                         Text(level.title).font(.title3.weight(.semibold)).foregroundStyle(Palette.ink)
-                        Text(level.subtitle).font(.footnote).foregroundStyle(Palette.muted)
-                        if let count { Text(count).font(.caption).foregroundStyle(Palette.forest) }
                     }
                     Spacer(minLength: 0)
+                    Label("\(done) of \(level.steps.count)", systemImage: complete ? "checkmark.circle.fill" : "circle")
+                        .labelStyle(.titleAndIcon).font(.caption.weight(.medium))
+                        .foregroundStyle(complete ? Palette.forest : Palette.muted)
                     Image(systemName: isOpen ? "chevron.up" : "chevron.down")
                         .font(.footnote.weight(.semibold)).foregroundStyle(Palette.forest)
-                        .frame(minWidth: 44, minHeight: 44)
-                }.contentShape(Rectangle())
+                }.frame(minHeight: 44).contentShape(Rectangle())
             }.buttonStyle(.plain)
                 .accessibilityIdentifier("level-\(level.id)")
-                .accessibilityLabel([level.number.map { "Level \($0)" }, level.title, level.subtitle, count]
-                    .compactMap { $0 }.joined(separator: ", "))
+                .accessibilityLabel("Level \(level.number), \(level.title), \(done) of \(level.steps.count) steps done")
                 .accessibilityValue(isOpen ? "Expanded" : "Collapsed")
                 .accessibilityAddTraits(.isHeader)
             if isOpen {
-                ForEach(Array(level.steps.enumerated()), id: \.element) { index, step in
-                    let state = state(for: step)
-                    let isNext = next?.step == step
-                    NavigationLink(value: route(for: step)) {
-                        StepRow(step: step, number: level.number == nil ? nil : index + 1,
-                                state: state, isNext: isNext)
-                    }.buttonStyle(.plain)
-                        .accessibilityIdentifier(step.id)
-                        .accessibilityLabel(([isNext ? "Continue" : nil,
-                                              level.number == nil ? nil : "Step \(index + 1)",
-                                              step.title, state.status, state.spokenScore])
-                            .compactMap { $0 }.joined(separator: ", "))
-                }
+                VStack(spacing: 0) {
+                    ForEach(Array(level.steps.enumerated()), id: \.element) { index, step in
+                        let state = state(for: step)
+                        let isNext = next?.step == step
+                        if index > 0 { Divider() }
+                        NavigationLink(value: route(for: step)) {
+                            StepRow(step: step, number: index + 1, state: state, isNext: isNext)
+                        }.buttonStyle(.plain)
+                            .accessibilityIdentifier(step.id)
+                            .accessibilityLabel([isNext ? "Continue" : nil, "Step \(index + 1)",
+                                                 step.title, state.status, state.spokenScore]
+                                .compactMap { $0 }.joined(separator: ", "))
+                    }
+                }.card(padding: 0)
             }
         }
     }
@@ -172,12 +175,12 @@ struct MusicLibraryView: View {
         switch step {
         case .lesson(let lesson):
             let lesson = LessonState(lesson: lesson, store: store, rhythmStores: rhythmStores)
-            return StepState(progress: lesson.step, bestStars: lesson.bestStars, showsScore: true)
+            return StepState(progress: lesson.step, stars: lesson.bestStars ?? 0)
         case .listen(let piece):
             let heard = StoredIDs.contains(piece.rawValue, in: listened)
             return StepState(progress: StepProgress([PracticeProgress(successfulAttempts: 0, completed: false,
                                                                       passed: heard)]),
-                             status: heard ? "Listened" : "Not heard yet")
+                             status: heard ? "Listened" : "Not heard yet", stars: nil)
         case .tap(let piece):
             return StepState(progress: StepProgress(MelodySection.phrases.map {
                 melodyRhythmStore.progress(for: piece.rhythm(section: $0))
@@ -195,15 +198,20 @@ struct MusicLibraryView: View {
             return StepState(progress: StepProgress([
                 store.melodyProgress(for: piece.humming(register: .lowVoice, section: .whole))
             ]))
-        case .celloIntroduction, .echo:
-            return StepState(progress: StepProgress([]), tracksProgress: false)
+        case .echo:
+            return StepState(progress: StepProgress([store.echoProgress(for: .twoNotes, register: .lowVoice)]))
+        case .celloIntroduction:
+            let read = StoredIDs.contains(StoredIDs.celloIntroduction, in: seenPrimers)
+            return StepState(progress: StepProgress([PracticeProgress(successfulAttempts: 0, completed: false,
+                                                                      passed: read)]),
+                             status: read ? "Read" : "Not read yet", stars: nil)
         }
     }
 
     /// Shown once when a level's last step is passed, pointing at what comes next.
     private func completionCard(_ level: Level, next: (level: Level, step: PathStep)?) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Eyebrow(text: "Level \(level.number ?? 0) complete", color: Palette.goldText)
+            Eyebrow(text: "Level \(level.number) complete", color: Palette.goldText)
             Text(level.title).font(.title3.weight(.semibold)).foregroundStyle(Palette.ink)
             Text(next.map { "Every step is passed. Next: \($0.level.title) · \($0.step.title)." }
                  ?? "Every step on the path is passed. More melodies are on the way.")
@@ -221,103 +229,67 @@ struct MusicLibraryView: View {
             RoundedRectangle(cornerRadius: Layout.cardRadius).strokeBorder(Palette.gold, lineWidth: 2)
         }.accessibilityElement(children: .contain).accessibilityIdentifier("levelCompleteCard")
     }
-
-    private var destinationNote: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionTitle("Where this is heading")
-            Text("Bach’s Cello Suite No. 1 is the long-term goal. Each level builds the listening, rhythm and note skills it needs; more melodies will join the path on the way there.")
-                .font(.footnote).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
-        }.card().accessibilityElement(children: .combine).accessibilityIdentifier("pathDestinationNote")
-    }
-
-    private var resources: some View {
-        DisclosureGroup("Resources & recording credit") {
-            VStack(alignment: .leading, spacing: 12) {
-                Link("ABRSM · Listening and aural skills", destination: URL(string: "https://teacherhub.abrsm.org/mod/page/view.php?id=2020")!)
-                Link("Royal Conservatory · Ear training", destination: URL(string: "https://www.rcmusic.com/learning/digital-learning/rcm-online-ear-training-rcm-online-sight-reading/ear-training")!)
-                Link("Frimley Health · Gentle humming", destination: URL(string: "https://www.fhft.nhs.uk/patients-and-visitors/patient-information-library/oral-resonance-bringing-voice-forward")!)
-                Divider()
-                Link("Deep Humming Noise · retropttam", destination: HummingExample.sourceURL)
-                Link("Creative Commons Attribution 3.0", destination: HummingExample.licenseURL)
-                Text("Foundation example: shortened and volume adjusted, with original pitch preserved. Melody examples: pitch and timing edited from the same human recording.")
-                    .foregroundStyle(Palette.muted)
-                Divider()
-                Link("VSCO 2 Community Edition · recorded cello", destination: URL(string: "https://github.com/sgossner/VSCO-2-CE")!)
-                Link("Creative Commons CC0 1.0", destination: URL(string: "https://creativecommons.org/publicdomain/zero/1.0/")!)
-                Text("Bowed cello-section excerpts from Versilian Studios and Ivy Audio, shortened, volume adjusted and tuned for reference playback.")
-                    .foregroundStyle(Palette.muted)
-            }.font(.footnote).padding(.top, 12)
-        }.font(.subheadline.weight(.medium)).foregroundStyle(Palette.forest)
-    }
 }
 
 /// What a path row shows about its step.
 private struct StepState {
     let progress: StepProgress
-    /// Words for the step's progress; nil for steps that keep none, such as Meet your cello.
-    let status: String?
-    var bestStars: Int?
-    /// Lessons show a best score, or say there is none yet.
-    var showsScore: Bool
+    let status: String
+    /// The best score out of three; nil for steps that are not scored, such as Listen.
+    let stars: Int?
 
-    init(progress: StepProgress, status: String? = nil, bestStars: Int? = nil, showsScore: Bool = false,
-         tracksProgress: Bool = true) {
+    init(progress: StepProgress, status: String? = nil, stars: Int?) {
         self.progress = progress
-        self.status = tracksProgress ? (status ?? progress.status) : nil
-        self.bestStars = bestStars
-        self.showsScore = showsScore
+        self.status = status ?? progress.status
+        self.stars = stars
+    }
+
+    /// A scored step shows the weakest best score across its parts.
+    init(progress: StepProgress) {
+        self.init(progress: progress, stars: progress.bestStars)
     }
 
     var spokenScore: String? {
-        showsScore ? (bestStars.map { "Best score \($0) of 3 stars" } ?? "No score yet") : nil
+        stars.map { $0 > 0 ? "Best score \($0) of 3 stars" : "No score yet" }
     }
 }
 
+/// One step on the path. Every step uses this row, whatever it opens: its
+/// place in the level, its title, how far it has got and its best score.
 private struct StepRow: View {
     let step: PathStep
-    let number: Int?
+    let number: Int
     let state: StepState
     let isNext: Bool
 
-    private var lessonID: String? {
+    private var lessonID: String {
         if case .lesson(let lesson) = step { return lesson.id }
-        return nil
+        return step.id
     }
 
     var body: some View {
-        LibraryRow(leading: number.map { .number($0) } ?? .symbol(step.symbol),
-                   title: step.title, subtitle: step.subtitle) {
-            if isNext || state.status != nil {
-                HStack(spacing: 8) {
+        HStack(spacing: 12) {
+            IconTile {
+                Text(String(format: "%02d", number)).font(.system(.callout, design: .serif).weight(.semibold))
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(step.title).font(.body.weight(.semibold)).foregroundStyle(Palette.ink)
+                HStack(spacing: 6) {
                     if isNext {
-                        Text("Continue").font(.caption.weight(.semibold)).foregroundStyle(.white)
-                            .padding(.horizontal, 10).padding(.vertical, 4)
+                        Text("Continue").font(.caption2.weight(.semibold)).foregroundStyle(.white)
+                            .padding(.horizontal, 8).padding(.vertical, 2)
                             .background(Palette.forest, in: Capsule())
                     }
-                    if let status = state.status {
-                        TierLabel(progress: state.progress, text: status,
-                                  goldIdentifier: "lessonCompletion-\(lessonID ?? step.id)")
-                    }
-                    Spacer(minLength: 4)
-                    if state.showsScore {
-                        Group {
-                            if let best = state.bestStars {
-                                HStack(spacing: 6) {
-                                    Text("Best").foregroundStyle(Palette.muted)
-                                    Stars(count: best, font: .caption2)
-                                }
-                            } else {
-                                Text("No score yet").foregroundStyle(Palette.muted)
-                            }
-                        }.accessibilityIdentifier("lessonBestScore-\(lessonID ?? step.id)")
-                    }
+                    TierLabel(progress: state.progress, text: state.status,
+                              goldIdentifier: "lessonCompletion-\(lessonID)")
                 }.font(.caption.weight(.medium))
             }
-        }.overlay {
-            if isNext {
-                RoundedRectangle(cornerRadius: Layout.cardRadius).strokeBorder(Palette.forest, lineWidth: 2)
+            Spacer(minLength: 4)
+            if let stars = state.stars {
+                Stars(count: stars, font: .caption2).accessibilityIdentifier("lessonBestScore-\(lessonID)")
             }
-        }
+            Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
+        }.padding(.horizontal, 14).padding(.vertical, 10).contentShape(Rectangle())
     }
 }
 
