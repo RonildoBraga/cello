@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 @MainActor
 struct MelodyRhythmView: View {
@@ -70,18 +69,15 @@ private struct MelodyRhythmRoundView<Header: View>: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isVisible = false
-    @State private var timing: MelodyRhythmTiming?
-    @State private var now = ProcessInfo.processInfo.systemUptime
-    @State private var running = false
-    @State private var ticker: Task<Void, Never>?
-    @State private var attemptID: UUID?
+    @StateObject private var round = RhythmRound<MelodyRhythmTiming>()
     @State private var finishedAttempt: MelodyRhythmAttempt?
 
+    private var running: Bool { round.running }
     private var locked: Bool { running || capture.isPlayingReference }
     private var elapsed: Double? {
         if capture.isPlayingReference { return capture.referenceElapsed }
-        guard running, let timing, now >= timing.practiceStartTime else { return nil }
-        return max(0, now - timing.practiceStartTime)
+        guard running, let timing = round.timing, round.now >= timing.practiceStartTime else { return nil }
+        return max(0, round.now - timing.practiceStartTime)
     }
 
     var body: some View {
@@ -121,7 +117,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
                             .accessibilityIdentifier("melodyRhythmAudioMessage")
                     }
                 }.screenContent()
-            }.onChange(of: running) { _, active in
+            }.onChange(of: round.running) { _, active in
                 if active {
                     withAnimation(reduceMotion ? nil : .default) {
                         scroll.scrollTo("melodyRhythmPattern", anchor: .top)
@@ -140,11 +136,17 @@ private struct MelodyRhythmRoundView<Header: View>: View {
                 }
             }
         }.background(Palette.paper)
-            .bottomActionBar { actionControls }
+            .bottomActionBar {
+                RhythmStartButton(round: round, listening: capture.isPlayingReference) {
+                    if running { round.stop() }
+                    else if capture.isPlayingReference { capture.stop() }
+                    else { start() }
+                }.accessibilityIdentifier("melodyRhythmStartButton")
+            }
             .onAppear { isVisible = true }
-            .onDisappear { isVisible = false; stop(); capture.stop() }
+            .onDisappear { isVisible = false; round.stop(); capture.stop() }
             .onChange(of: scenePhase) { _, phase in
-                if isVisible, phase != .active { stop(); capture.stop() }
+                if isVisible, phase != .active { round.stop(); capture.stop() }
             }
     }
 
@@ -189,113 +191,26 @@ private struct MelodyRhythmRoundView<Header: View>: View {
     }
 
     private var tapCard: some View {
-        StatusCard(label: phaseTitle, labelIdentifier: "melodyRhythmPhase") {
-            Text("\(context.reference.tempoBPM) BPM")
-        } content: {
-            HStack(spacing: 18) {
-                StatusValue(text: beatLabel, isCount: true).padding(10)
-                    .frame(width: 85, height: 85)
-                    .background(.white.opacity(pulseIsBright ? 0.20 : 0.07), in: Circle())
-                    .accessibilityIdentifier("melodyRhythmBeat")
-                Text(capture.isPlayingReference ? "Listen to the pattern."
-                     : running ? elapsed == nil ? "Get ready to tap." : "Feel each beat. Tap only when a note starts."
-                        : "Wait for 4–3–2–1, then tap the pattern.")
-                    .font(.subheadline).foregroundStyle(.white.opacity(0.85))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            Button {
-                guard isVisible, running else { return }
-                timing?.recordTap(at: ProcessInfo.processInfo.systemUptime)
-            } label: {
-                Label("Tap", systemImage: "hand.tap").font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: 68)
-                    .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: Layout.controlRadius))
-            }.buttonStyle(.plain).disabled(!running || !(timing?.canTap(at: now) ?? false))
-                .opacity(running && (timing?.canTap(at: now) ?? false) ? 1 : 0.45)
-                .accessibilityLabel("Tap at each note start")
-                .accessibilityHint(running ? "" : "Tap Start, then wait for the count-in.")
-                .accessibilityIdentifier("melodyRhythmTapButton")
-            Text("\(timing?.offsets.count ?? 0) / \(context.expectedTapTimes.count) starts · \(timing?.unexpectedTapCount ?? 0) extra")
-                .font(.caption).foregroundStyle(.white.opacity(0.7))
-                .accessibilityIdentifier("melodyRhythmTapCount")
-        }
-    }
-
-    private var actionControls: some View {
-        Button {
-            if running { stop() }
-            else if capture.isPlayingReference { capture.stop() }
-            else { start() }
-        } label: {
-            Label(running ? "Stop" : capture.isPlayingReference ? "Cancel" : timing == nil ? "Start" : "Try again",
-                  systemImage: running || capture.isPlayingReference ? "stop.fill" : "play.fill")
-        }.buttonStyle(PrimaryActionButtonStyle()).accessibilityIdentifier("melodyRhythmStartButton")
-    }
-
-    private var phaseTitle: String {
-        if capture.isPlayingReference { return "Listen" }
-        guard let timing else { return "Ready" }
-        switch timing.phase(at: now) {
-        case .countIn: return "Count in"
-        case .tapping: return "Tap"
-        case .finished: return "Complete"
-        }
-    }
-
-    private var beatLabel: String {
-        guard !capture.isPlayingReference else { return "♪" }
-        guard let timing else { return "—" }
-        switch timing.phase(at: now) {
-        case .countIn(let value): return "\(value)"
-        case .tapping: return "\(Int(max(0, now - timing.practiceStartTime) / context.beatInterval) + 1)"
-        case .finished: return "✓"
-        }
-    }
-
-    private var pulseIsBright: Bool {
-        guard running, let timing else { return false }
-        return max(0, now - timing.startTime).truncatingRemainder(dividingBy: context.beatInterval) < 0.18
+        RhythmTapCard(round: round, tempoBPM: context.reference.tempoBPM, listening: capture.isPlayingReference,
+                      cue: capture.isPlayingReference ? "Listen to the pattern."
+                        : running ? elapsed == nil ? "Get ready to tap." : "Feel each beat. Tap only when a note starts."
+                        : "Wait for 4–3–2–1, then tap the pattern.",
+                      count: "\(round.timing?.offsets.count ?? 0) / \(context.expectedTapTimes.count) starts · \(round.timing?.unexpectedTapCount ?? 0) extra",
+                      tapLabel: "Tap at each note start",
+                      tapHint: running ? "" : "Tap Start, then wait for the count-in.",
+                      identifiers: .init(phase: "melodyRhythmPhase", beat: "melodyRhythmBeat",
+                                         tap: "melodyRhythmTapButton", count: "melodyRhythmTapCount"),
+                      beatLabel: { timing, _, now in
+                          "\(Int(max(0, now - timing.practiceStartTime) / timing.beatInterval) + 1)"
+                      })
     }
 
     private func start() {
-        guard isVisible, !running, !capture.isPlayingReference, !capture.isRecording, scenePhase == .active else { return }
-        stop()
-        let startTime = ProcessInfo.processInfo.systemUptime
-        timing = MelodyRhythmTiming(startTime: startTime, context: context)
-        let id = UUID()
-        attemptID = id
+        guard isVisible, !running, !capture.isPlayingReference, !capture.isRecording,
+              scenePhase == .active else { return }
         finishedAttempt = nil
-        now = startTime
-        running = true
-        ticker = Task { @MainActor in
-            var previousBeat = -1
-            while !Task.isCancelled {
-                guard running, attemptID == id, isVisible, scenePhase == .active,
-                      UIApplication.shared.applicationState == .active else { stop(); return }
-                now = ProcessInfo.processInfo.systemUptime
-                guard let timing else { return }
-                if timing.phase(at: now) == .finished {
-                    finishedAttempt = store.record(timing: timing, at: now, id: id)
-                    running = false
-                    ticker = nil
-                    return
-                }
-                let beat = Int(max(0, now - startTime) / context.beatInterval)
-                if beat != previousBeat {
-                    previousBeat = beat
-                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                }
-                do { try await Task.sleep(nanoseconds: 33_000_000) }
-                catch { return }
-            }
+        round.start({ MelodyRhythmTiming(startTime: $0, context: context) }) { timing, time, id in
+            finishedAttempt = store.record(timing: timing, at: time, id: id)
         }
-    }
-
-    private func stop() {
-        ticker?.cancel()
-        ticker = nil
-        running = false
-        attemptID = nil
-        if finishedAttempt == nil { timing = nil }
     }
 }

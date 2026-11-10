@@ -1,25 +1,18 @@
 import SwiftUI
-import UIKit
 
 struct PulsePracticeView<Header: View>: View {
     @ObservedObject var store: PulsePracticeStore
-    let isActive: Bool
     let nextLesson: PracticeLesson?
     let onNext: ((PracticeLesson) -> Void)?
     private let header: Header
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var timing: PulseTiming?
-    @State private var now = ProcessInfo.processInfo.systemUptime
-    @State private var running = false
-    @State private var ticker: Task<Void, Never>?
-    @State private var attemptID: UUID?
+    @StateObject private var round = RhythmRound<PulseTiming>()
     @State private var finishedAttempt: PulseAttempt?
 
-    init(store: PulsePracticeStore, isActive: Bool, nextLesson: PracticeLesson? = nil,
+    init(store: PulsePracticeStore, nextLesson: PracticeLesson? = nil,
          onNext: ((PracticeLesson) -> Void)? = nil, @ViewBuilder header: () -> Header) {
         self.store = store
-        self.isActive = isActive
         self.nextLesson = nextLesson
         self.onNext = onNext
         self.header = header()
@@ -38,11 +31,11 @@ struct PulsePracticeView<Header: View>: View {
                             PulseTimingChartView(attempt: finishedAttempt)
                         }.id("pulseResult")
                     } else {
-                        if timing == nil {
+                        if round.timing == nil {
                             PracticeProgressView(progress: store.progress, nextLesson: nextLesson,
                                                  onNext: onNext, attemptNoun: "rounds")
                         }
-                        pulseCard
+                        tapCard
                     }
                 }.screenContent()
             }
@@ -51,50 +44,23 @@ struct PulsePracticeView<Header: View>: View {
                     scroll.scrollTo(id == nil ? "pulseTop" : "pulseResult", anchor: .top)
                 }
             }
-        }.bottomActionBar { actionControls }
+        }.bottomActionBar {
+            RhythmStartButton(round: round) {
+                if round.running { round.stop() } else { start() }
+            }
+        }
             .background(Palette.paper)
-            .onDisappear { stop() }
-            .onChange(of: isActive) { _, active in if !active { stop() } }
-            .onChange(of: scenePhase) { _, phase in if phase != .active { stop() } }
+            .onDisappear { round.stop() }
+            .onChange(of: scenePhase) { _, phase in if phase != .active { round.stop() } }
     }
 
-    private var pulseCard: some View {
-        StatusCard(label: phaseTitle) {
-            Text("60 BPM")
-        } content: {
-            if store.exercise != .pulse && timing == nil {
-                rhythmInstructions
-            } else {
-                ZStack {
-                    Circle().fill(.white.opacity(pulseIsBright ? 0.20 : 0.07))
-                        .frame(width: 150, height: 150)
-                        .scaleEffect(pulseIsBright && !reduceMotion ? 1.035 : 1)
-                    Circle().strokeBorder(.white.opacity(0.30), lineWidth: 1)
-                        .frame(width: 132, height: 132)
-                    StatusValue(text: beatLabel, isCount: true).frame(maxWidth: 120)
-                }.frame(height: 158)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("\(phaseTitle), \(beatLabel)")
-                Text(phaseCue).font(.subheadline).foregroundStyle(.white.opacity(0.85))
-                    .multilineTextAlignment(.center).frame(minHeight: 40)
-            }
-            Button {
-                guard isActive, running else { return }
-                timing?.recordTap(at: ProcessInfo.processInfo.systemUptime)
-            } label: {
-                Label("Tap", systemImage: "hand.tap")
-                    .font(.headline).foregroundStyle(.white)
-                    .frame(maxWidth: .infinity, minHeight: 72)
-                    .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: Layout.controlRadius))
-            }.buttonStyle(.plain)
-                .disabled(!isActive || !running || !(timing?.canTap(at: now) ?? false))
-                .opacity(running && (timing?.canTap(at: now) ?? false) ? 1 : 0.45)
-                .accessibilityLabel("Tap on the beat")
-                .accessibilityHint(tapHint)
-                .accessibilityIdentifier("pulseTapButton")
-            Text(roundCount)
-                .font(.caption).foregroundStyle(.white.opacity(0.7))
-        }.accessibilityElement(children: .contain)
+    private var tapCard: some View {
+        RhythmTapCard(round: round, tempoBPM: 60, cue: phaseCue, count: roundCount,
+                      tapLabel: "Tap on the beat", tapHint: tapHint,
+                      identifiers: .init(phase: "pulsePhase", beat: "pulseBeat", tap: "pulseTapButton",
+                                         count: "pulseTapCount"),
+                      beatLabel: { timing, tap, _ in timing.exercise.beatLabel(forTap: tap) },
+                      showsIdle: store.exercise != .pulse) { rhythmInstructions }
     }
 
     private var rhythmInstructions: some View {
@@ -138,7 +104,7 @@ struct PulsePracticeView<Header: View>: View {
     }
 
     private var roundCount: String {
-        guard let timing else {
+        guard let timing = round.timing else {
             switch store.exercise {
             case .pulse: return "One beat each second."
             case .twoTaps: return "Two taps each second · 8 beats."
@@ -150,51 +116,18 @@ struct PulsePracticeView<Header: View>: View {
         return "\(timing.offsets.count) / \(store.exercise.tapCount) \(noun)\(extra)"
     }
 
-    private var actionControls: some View {
-        Button {
-            if running { stop() } else { start() }
-        } label: {
-            Label(running ? "Stop" : timing == nil ? "Start" : "Try again",
-                  systemImage: running ? "stop.fill" : "play.fill")
-        }.buttonStyle(PrimaryActionButtonStyle()).disabled(!isActive)
-    }
-
-    private var phaseTitle: String {
-        guard let timing else { return "Ready" }
-        switch timing.phase(at: now) {
-        case .countIn: return "Count in"
-        case .tapping: return "Tap"
-        case .finished: return "Complete"
-        }
-    }
-
-    private var beatLabel: String {
-        guard let timing else { return "—" }
-        switch timing.phase(at: now) {
-        case .countIn(let remaining): return "\(remaining)"
-        case .tapping(let tap): return timing.exercise.beatLabel(forTap: tap)
-        case .finished: return "✓"
-        }
-    }
-
     private var phaseCue: String {
-        guard let timing else {
+        guard let timing = round.timing, let phase = round.phase else {
             return store.exercise == .pulse ? "Watch four count-in beats, then tap 16 pulses."
                 : "Count in four beats, then tap 1 & 2 & across 8 beats."
         }
-        switch timing.phase(at: now) {
+        switch phase {
         case .countIn: return "Get ready to tap."
         case .tapping:
             return timing.exercise == .pulse ? "Keep an even beat."
                 : timing.exercise == .twoTaps ? "Tap on each number and &." : "One tap on odd numbers; two on even numbers."
         case .finished: return "Round complete."
         }
-    }
-
-    private var pulseIsBright: Bool {
-        guard running, let timing else { return false }
-        let elapsed = max(0, now - timing.startTime)
-        return elapsed.truncatingRemainder(dividingBy: PulseTiming.beatInterval) < 0.2
     }
 
     private func result(for attempt: PulseAttempt) -> some View {
@@ -220,48 +153,10 @@ struct PulsePracticeView<Header: View>: View {
     }
 
     private func start() {
-        guard isActive, scenePhase == .active else { return }
-        stop()
-        let startTime = ProcessInfo.processInfo.systemUptime
-        timing = PulseTiming(startTime: startTime, exercise: store.exercise)
+        guard scenePhase == .active else { return }
         finishedAttempt = nil
-        let roundID = UUID()
-        attemptID = roundID
-        now = startTime
-        running = true
-        ticker = Task { @MainActor in
-            var previousBeat = -1
-            while !Task.isCancelled {
-                guard running, attemptID == roundID else { return }
-                guard isActive, scenePhase == .active, UIApplication.shared.applicationState == .active else {
-                    stop()
-                    return
-                }
-                let time = ProcessInfo.processInfo.systemUptime
-                now = time
-                guard let timing else { return }
-                if timing.phase(at: time) == .finished {
-                    finishedAttempt = store.record(timing: timing, at: time, id: roundID)
-                    running = false
-                    ticker = nil
-                    return
-                }
-                let beat = Int(max(0, time - timing.startTime) / PulseTiming.beatInterval)
-                if beat != previousBeat {
-                    previousBeat = beat
-                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                }
-                do { try await Task.sleep(nanoseconds: 33_000_000) }
-                catch { return }
-            }
+        round.start({ PulseTiming(startTime: $0, exercise: store.exercise) }) { timing, time, id in
+            finishedAttempt = store.record(timing: timing, at: time, id: id)
         }
-    }
-
-    private func stop() {
-        ticker?.cancel()
-        ticker = nil
-        running = false
-        attemptID = nil
-        if finishedAttempt == nil { timing = nil }
     }
 }

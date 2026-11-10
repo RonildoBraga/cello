@@ -39,7 +39,7 @@ struct PracticeView: View {
                 practiceHeader(disabled: locked)
             }.id(activityIdentity)
         case .rhythm(let exercise):
-            PulsePracticeView(store: rhythmStores.store(for: exercise), isActive: true,
+            PulsePracticeView(store: rhythmStores.store(for: exercise),
                               nextLesson: lesson.next, onNext: onStartLesson) {
                 practiceHeader(disabled: false)
             }.id(activityIdentity)
