@@ -62,6 +62,57 @@ enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
     func rangeLabel(for register: MelodyRegister) -> String {
         melodyNoteRange(score.events.compactMap(\.midiNote).map { $0 + register.transpositionSemitones })
     }
+
+    // MARK: Built-in selections. Enum choices at the standard tempo are always valid.
+
+    /// A listen-only selection.
+    func reference(register: MelodyRegister, section: MelodySection) -> MelodyPracticeContext {
+        .build(piece: self, register: register, section: section, tempoBPM: 60, gradingVersion: nil)
+    }
+
+    /// A humming take graded with the current rubric.
+    func humming(register: MelodyRegister, section: MelodySection) -> MelodyPracticeContext {
+        .build(piece: self, register: register, section: section, tempoBPM: 60,
+               gradingVersion: MelodyRating.currentVersion)
+    }
+
+    /// Rhythm progress ignores the playback register, so it always uses the low voice.
+    func rhythm(section: MelodySection) -> MelodyRhythmContext {
+        MelodyRhythmContext(reference: reference(register: .lowVoice, section: section))
+    }
+
+    // MARK: Wording for this piece's practice screens
+
+    var hummingIntro: String {
+        switch self {
+        case .hotCrossBuns: return "Hear the phrase, then record the same notes and rhythm. Start humming after 3–2–1."
+        case .odeToJoy: return "Follow five notes moving up and down. Hear the phrase, then record after 3–2–1."
+        }
+    }
+
+    var listenIntro: String {
+        switch self {
+        case .hotCrossBuns: return "Listen first, then gently hum along. Choose a register that feels easy."
+        case .odeToJoy: return "Hear the five-note opening, then gently hum along. Choose a register that feels easy."
+        }
+    }
+
+    var notesHint: String {
+        switch self {
+        case .hotCrossBuns: return "Longer tiles hold longer. The quick notes in phrase 3 last half a beat each."
+        case .odeToJoy: return "Longer tiles hold longer. Phrase 4 has a long note, a quick note, then a held ending."
+        }
+    }
+
+    func rhythmHint(for section: MelodySection) -> String {
+        switch (self, section) {
+        case (_, .whole): return "Tap at each new tile. Keep counting through the longer tiles."
+        case (.odeToJoy, .phrase4): return "Tap on 1, the & after 2, and 3. Count 4 while the last note continues."
+        case (.odeToJoy, _): return "Tap on each beat: 1, 2, 3, 4."
+        case (.hotCrossBuns, .phrase3): return "Two short notes per beat: 1 & 2 & 3 & 4 &."
+        case (.hotCrossBuns, _): return "Tap on 1, 2 and 3. Count 4 while the last note continues."
+        }
+    }
 }
 
 /// Note names describe the score's MIDI pitches, independently of reference tuning.
@@ -117,6 +168,17 @@ enum MelodySection: String, CaseIterable, Identifiable, Codable, Sendable {
         case .phrase2: return "Phrase 2"
         case .phrase3: return "Phrase 3"
         case .phrase4: return "Phrase 4"
+        }
+    }
+
+    /// Practice order: the four phrases, then the whole melody.
+    var next: MelodySection? {
+        switch self {
+        case .phrase1: return .phrase2
+        case .phrase2: return .phrase3
+        case .phrase3: return .phrase4
+        case .phrase4: return .whole
+        case .whole: return nil
         }
     }
 
@@ -189,6 +251,13 @@ struct MelodyPracticeContext: Codable, Equatable, Sendable {
                         tempoBPM: Int = 60, gradingVersion: Int? = nil) throws -> MelodyPracticeContext {
         guard supportedTempoRange.contains(tempoBPM) else { throw ContextError.invalidTempo }
         guard gradingVersion.map({ $0 > 0 }) ?? true else { throw ContextError.invalidGradingVersion }
+        return build(piece: piece, register: register, section: section, tempoBPM: tempoBPM,
+                     gradingVersion: gradingVersion)
+    }
+
+    /// Assembles a selection without validating tempo or grading version.
+    fileprivate static func build(piece: MelodyPiece, register: MelodyRegister, section: MelodySection,
+                                  tempoBPM: Int, gradingVersion: Int?) -> MelodyPracticeContext {
         let score = piece.score
         let range = section.beatRange
         let events = score.events.filter { range.contains($0.onsetBeat) }.map {

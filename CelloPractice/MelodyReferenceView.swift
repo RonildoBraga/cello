@@ -11,17 +11,12 @@ struct MelodyReferenceView: View {
     @State private var hasRequestedPlayback = false
     @State private var isVisible = false
 
-    // Enum selections and the fixed supported tempo make this built-in context valid.
-    private var context: MelodyPracticeContext {
-        try! .melody(piece: piece, register: register, section: section, tempoBPM: 60)
-    }
+    private var context: MelodyPracticeContext { piece.reference(register: register, section: section) }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                ScreenHeader(eyebrow: piece.title, title: "Listen & follow", subtitle: piece == .odeToJoy
-                             ? "Hear the five-note opening, then gently hum along. Choose a register that feels easy."
-                             : "Listen first, then gently hum along. Choose a register that feels easy.")
+                ScreenHeader(eyebrow: piece.title, title: "Listen & follow", subtitle: piece.listenIntro)
                 VStack(alignment: .leading, spacing: 12) {
                     Picker("Reference register", selection: $register) {
                         ForEach(MelodyRegister.allCases) { item in
@@ -36,28 +31,11 @@ struct MelodyReferenceView: View {
                     HStack {
                         SectionTitle("Follow the notes")
                         Spacer()
-                        Menu {
-                            ForEach(MelodySection.allCases) { item in
-                                Button { section = item } label: {
-                                    if item == section { Label(item.title, systemImage: "checkmark") }
-                                    else { Text(item.title) }
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 5) {
-                                Text(section.title)
-                                Image(systemName: "chevron.down").font(.caption.weight(.semibold))
-                            }.font(.subheadline)
-                        }.tint(Palette.forest)
-                            .accessibilityLabel("Section: \(section.title)")
-                            .accessibilityIdentifier("melodySectionPicker")
+                        SectionMenu(selection: $section).accessibilityIdentifier("melodySectionPicker")
                     }
                     MelodyNotesView(context: context,
                                     elapsed: capture.isPlayingReference ? capture.referenceElapsed : nil)
-                    Text(piece == .odeToJoy
-                         ? "Longer tiles hold longer. Phrase 4 has a long note, a quick note, then a held ending."
-                         : "Longer tiles hold longer. The quick notes in phrase 3 last half a beat each.")
-                        .font(.caption).foregroundStyle(Palette.muted)
+                    Text(piece.notesHint).font(.caption).foregroundStyle(Palette.muted)
                 }.card()
                 VStack(alignment: .leading, spacing: 7) {
                     Label(register == .cello ? "Recorded cello" : "Recorded hum", systemImage: "waveform")
