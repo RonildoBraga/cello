@@ -6,23 +6,17 @@ struct EchoPracticeView: View {
     @ObservedObject var store: SessionStore
     @ObservedObject var capture: CaptureController
 
-    private struct Choice {
-        let level: EchoLevel
-        let patternIndex: Int
-    }
-
-    @State private var choice = Choice(level: .twoNotes,
-                                      patternIndex: EchoLevel.twoNotes.nextPatternIndex(excluding: nil))
+    @State private var level = EchoLevel.twoNotes
     @State private var register = MelodyRegister.lowVoice
+    @State private var pattern = EchoLevel.twoNotes.newPattern(register: .lowVoice, excluding: nil)
 
-    private var context: MelodyPracticeContext {
-        try! choice.level.context(patternIndex: choice.patternIndex, register: register)
-    }
+    private var context: MelodyPracticeContext { pattern.context }
 
     private var levelSelection: Binding<EchoLevel> {
-        Binding(get: { choice.level }, set: { level in
-            guard level != choice.level else { return }
-            choice = Choice(level: level, patternIndex: level.nextPatternIndex(excluding: nil))
+        Binding(get: { level }, set: { next in
+            guard next != level else { return }
+            level = next
+            pattern = next.newPattern(register: register, excluding: nil)
         })
     }
 
@@ -35,15 +29,12 @@ struct EchoPracticeView: View {
     }
 
     var body: some View {
-        VoicePracticeView(store: store, capture: capture, context: context,
+        VoicePracticeView(store: store, capture: capture, mode: .echo(context, level: level),
                           onNextPhrase: newPattern) { locked in
             VStack(alignment: .leading, spacing: 16) {
                 ScreenHeader(eyebrow: "Ear training", title: "Listen & Echo",
                              subtitle: "Hear the pattern, then hum it back. Follow the tuning bar as you record.")
-                Picker("Voice register", selection: registerSelection) {
-                    Text("Low voice").tag(MelodyRegister.lowVoice)
-                    Text("Higher voice").tag(MelodyRegister.higherVoice)
-                }.pickerStyle(.segmented).disabled(locked)
+                VoiceRegisterPicker(selection: registerSelection).disabled(locked)
                     .accessibilityIdentifier("echoRegisterPicker")
                 Picker("Pattern length", selection: levelSelection) {
                     ForEach(EchoLevel.allCases) { level in
@@ -61,7 +52,7 @@ struct EchoPracticeView: View {
                     }.buttonStyle(SecondaryActionButtonStyle()).disabled(locked)
                         .accessibilityIdentifier("echoNewPatternButton")
                 }
-                if choice.level == .twoNotes,
+                if level == .twoNotes,
                    store.echoProgress(for: .twoNotes, register: register).completed {
                     Button {
                         levelSelection.wrappedValue = .threeNotes
@@ -71,12 +62,11 @@ struct EchoPracticeView: View {
                         .accessibilityIdentifier("echoNextLevelButton")
                 }
             }.id("practiceTop")
-        }.id("\(choice.level.pieceID)|\(register.rawValue)|\(choice.patternIndex)")
+        }.id("\(level.pieceID)|\(register.rawValue)|\(pattern.index)")
             .background(Palette.paper).screenTitle("Listen & Echo")
     }
 
     private func newPattern() {
-        choice = Choice(level: choice.level,
-                        patternIndex: choice.level.nextPatternIndex(excluding: choice.patternIndex))
+        pattern = level.newPattern(register: register, excluding: pattern.index)
     }
 }

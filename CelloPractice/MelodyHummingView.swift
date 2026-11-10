@@ -8,50 +8,18 @@ struct MelodyHummingView: View {
     @State private var register = MelodyRegister.lowVoice
     @State private var section = MelodySection.phrase1
 
-    private var context: MelodyPracticeContext {
-        try! .melody(piece: piece, register: register, section: section, gradingVersion: MelodyRating.currentVersion)
-    }
-
-    private var nextSection: MelodySection? {
-        switch section {
-        case .phrase1: return .phrase2
-        case .phrase2: return .phrase3
-        case .phrase3: return .phrase4
-        case .phrase4: return .whole
-        case .whole: return nil
-        }
-    }
+    private var context: MelodyPracticeContext { piece.humming(register: register, section: section) }
 
     var body: some View {
-        VoicePracticeView(store: store, capture: capture, context: context,
-                          onNextPhrase: nextSection.map { next in { section = next } }) { locked in
+        VoicePracticeView(store: store, capture: capture, mode: .phrase(context),
+                          onNextPhrase: section.next.map { next in { section = next } }) { locked in
             VStack(alignment: .leading, spacing: 17) {
-                ScreenHeader(eyebrow: piece.title, title: "Humming", subtitle: piece == .odeToJoy
-                             ? "Follow five notes moving up and down. Hear the phrase, then record after 3–2–1."
-                             : "Hear the phrase, then record the same notes and rhythm. Start humming after 3–2–1.")
-                Picker("Voice register", selection: $register) {
-                    Text("Low voice").tag(MelodyRegister.lowVoice)
-                    Text("Higher voice").tag(MelodyRegister.higherVoice)
-                }.pickerStyle(.segmented).disabled(locked)
+                ScreenHeader(eyebrow: piece.title, title: "Humming", subtitle: piece.hummingIntro)
+                VoiceRegisterPicker(selection: $register).disabled(locked)
                     .accessibilityIdentifier("melodyHummingRegisterPicker")
                 HStack {
-                    Menu {
-                        ForEach(MelodySection.allCases) { item in
-                            Button { section = item } label: {
-                                let choice = try! MelodyPracticeContext.melody(
-                                    piece: piece, register: register, section: item, gradingVersion: MelodyRating.currentVersion)
-                                if store.melodyProgress(for: choice).completed {
-                                    Label("\(item.title) · completed", systemImage: "checkmark.circle.fill")
-                                } else if item == section {
-                                    Label(item.title, systemImage: "checkmark")
-                                } else { Text(item.title) }
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 7) {
-                            Text(section.title).font(.headline)
-                            Image(systemName: "chevron.down").font(.caption.weight(.semibold))
-                        }.foregroundStyle(Palette.forest).frame(minHeight: 44)
+                    SectionMenu(selection: $section) {
+                        store.melodyProgress(for: piece.humming(register: register, section: $0)).completed
                     }.disabled(locked).accessibilityIdentifier("melodyHummingSectionPicker")
                     Spacer()
                     Text("\(Int(context.duration)) seconds · \(context.tempoBPM) BPM")

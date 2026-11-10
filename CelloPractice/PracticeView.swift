@@ -33,7 +33,7 @@ struct PracticeView: View {
     private var activityScreen: some View {
         switch lesson.activity {
         case .recording(let exercise):
-            VoicePracticeView(store: store, capture: capture, exercise: exercise,
+            VoicePracticeView(store: store, capture: capture, mode: .note(exercise),
                               nextLesson: lesson.next, onStartLesson: onStartLesson,
                               onShowLessons: onShowMusic) { locked in
                 practiceHeader(disabled: locked)

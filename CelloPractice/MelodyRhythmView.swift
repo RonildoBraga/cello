@@ -7,40 +7,18 @@ struct MelodyRhythmView: View {
     var piece: MelodyPiece = .hotCrossBuns
     @State private var section = MelodySection.phrase1
 
-    private var context: MelodyRhythmContext { try! .melody(piece: piece, section: section) }
-    private var nextSection: MelodySection? {
-        switch section {
-        case .phrase1: return .phrase2
-        case .phrase2: return .phrase3
-        case .phrase3: return .phrase4
-        case .phrase4: return .whole
-        case .whole: return nil
-        }
-    }
+    private var context: MelodyRhythmContext { piece.rhythm(section: section) }
 
     var body: some View {
         MelodyRhythmRoundView(store: store, capture: capture, context: context,
-                              onNext: nextSection.map { next in { section = next } }) { locked in
+                              patternHint: piece.rhythmHint(for: section),
+                              onNext: section.next.map { next in { section = next } }) { locked in
             VStack(alignment: .leading, spacing: 12) {
                 ScreenHeader(eyebrow: piece.title, title: "Rhythm",
                              subtitle: "Tap once when each note starts. Keep counting while a long note continues.")
                 HStack {
-                    Menu {
-                        ForEach(MelodySection.allCases) { item in
-                            Button { section = item } label: {
-                                let choice = try! MelodyRhythmContext.melody(piece: piece, section: item)
-                                if store.progress(for: choice).completed {
-                                    Label("\(item.title) · completed", systemImage: "checkmark.circle.fill")
-                                } else if item == section { Label(item.title, systemImage: "checkmark") }
-                                else { Text(item.title) }
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 7) {
-                            Text(section.title).font(.headline)
-                            Image(systemName: "chevron.down").font(.caption.weight(.semibold))
-                        }.foregroundStyle(Palette.forest).frame(minHeight: 44)
-                    }.disabled(locked).accessibilityIdentifier("melodyRhythmSectionPicker")
+                    SectionMenu(selection: $section) { store.progress(for: piece.rhythm(section: $0)).completed }
+                        .disabled(locked).accessibilityIdentifier("melodyRhythmSectionPicker")
                     Spacer()
                     Text("\(Int(context.duration)) seconds · \(context.reference.tempoBPM) BPM")
                         .font(.caption).foregroundStyle(Palette.muted)
@@ -64,6 +42,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
     @ObservedObject var store: MelodyRhythmStore
     @ObservedObject var capture: CaptureController
     let context: MelodyRhythmContext
+    let patternHint: String
     let onNext: (() -> Void)?
     @ViewBuilder let header: (Bool) -> Header
     @Environment(\.scenePhase) private var scenePhase
@@ -171,23 +150,8 @@ private struct MelodyRhythmRoundView<Header: View>: View {
             }
             MelodyNotesView(context: context.reference, elapsed: elapsed, labelStyle: .rhythm,
                             focusOnCurrentPhrase: running || capture.isPlayingReference)
-            Text(patternInstructions)
-                .font(.footnote).foregroundStyle(Palette.muted)
+            Text(patternHint).font(.footnote).foregroundStyle(Palette.muted)
         }.card().accessibilityIdentifier("melodyRhythmPatternInstructions").id("melodyRhythmPattern")
-    }
-
-    private var patternInstructions: String {
-        if context.reference.section == .whole {
-            return "Tap at each new tile. Keep counting through the longer tiles."
-        }
-        if context.reference.pieceID == MelodyPiece.odeToJoy.rawValue {
-            return context.reference.section == .phrase4
-                ? "Tap on 1, the & after 2, and 3. Count 4 while the last note continues."
-                : "Tap on each beat: 1, 2, 3, 4."
-        }
-        return context.reference.section == .phrase3
-            ? "Two short notes per beat: 1 & 2 & 3 & 4 &."
-            : "Tap on 1, 2 and 3. Count 4 while the last note continues."
     }
 
     private var tapCard: some View {

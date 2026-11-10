@@ -45,10 +45,21 @@ enum EchoLevel: String, CaseIterable, Identifiable, Codable, Sendable {
                     gradingVersion: MelodyRating.currentVersion)
     }
 
+    /// A fresh pattern for the practice screen, which offers only the two voice registers.
+    func newPattern(register: MelodyRegister, excluding previous: Int?) -> (index: Int, context: MelodyPracticeContext) {
+        let index = nextPatternIndex(excluding: previous)
+        return (index, build(patternIndex: index, register: register, gradingVersion: MelodyRating.currentVersion))
+    }
+
     private func context(patternIndex: Int, register: MelodyRegister,
                          gradingVersion: Int) throws -> MelodyPracticeContext {
         guard register != .cello else { throw ContextError.voiceRegisterRequired }
         guard patterns.indices.contains(patternIndex) else { throw ContextError.invalidPattern }
+        return build(patternIndex: patternIndex, register: register, gradingVersion: gradingVersion)
+    }
+
+    /// `patternIndex` must come from this level's catalogue.
+    private func build(patternIndex: Int, register: MelodyRegister, gradingVersion: Int) -> MelodyPracticeContext {
         let pitches = [50, 52, 54, 55, 57]
         let events = patterns[patternIndex].enumerated().map { index, degree in
             MelodyEvent(onsetBeat: Double(index * 2), durationBeats: 2,

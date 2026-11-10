@@ -218,10 +218,7 @@ private struct LessonState {
     init(lesson: PracticeLesson, store: SessionStore, rhythmStores: RhythmStores) {
         switch lesson.activity {
         case .recording(let exercise):
-            guard let section = exercise.section else {
-                preconditionFailure("A recording lesson must have a pitch-target section")
-            }
-            let target = section.effectiveTarget(for: exercise)
+            let target = VoicePracticeMode.note(exercise).targetFrequency
             progress = store.progress(for: exercise, targetFrequency: target)
             let scores = LessonScoreSummary(exercise: exercise, targetFrequency: target,
                                             sessions: store.sessions, completed: progress.completed)
