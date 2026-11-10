@@ -11,8 +11,8 @@ final class LevelTests: XCTestCase {
     func testEveryMelodyLevelHasTheSameStepsInTheSameOrder() {
         for (level, piece) in zip(Level.path.dropFirst(), MelodyPiece.allCases) {
             XCTAssertEqual(level.title, piece.title)
-            XCTAssertEqual(level.steps, [.listen(piece), .tap(piece), .hum(piece), .wholeMelody(piece)])
-            XCTAssertEqual(level.steps.map(\.title), ["Listen", "Tap it", "Hum it", "Whole melody"])
+            XCTAssertEqual(level.steps, [.listen(piece), .tap(piece), .meetNotes(piece), .hum(piece), .wholeMelody(piece)])
+            XCTAssertEqual(level.steps.map(\.title), ["Listen", "Tap it", "Meet the notes", "Hum it", "Whole melody"])
         }
     }
 
@@ -95,6 +95,7 @@ final class LevelTests: XCTestCase {
 
         let untouched = StepProgress([none, none, none, none])
         XCTAssertEqual(untouched.status, "0 of 4 phrases passed")
+        XCTAssertEqual(StepProgress([none, passed, none], partNoun: "notes").status, "1 of 3 notes passed")
         XCTAssertFalse(untouched.passed || untouched.started)
 
         let partial = StepProgress([gold, passed, tried, none])

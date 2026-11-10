@@ -13,17 +13,23 @@ The first delivery separates Humming, Rhythm and Cello inside a Music library. I
 ```text
 Music (the path)
   Level 1 · First sounds      Steady hum → Listen & match → Pulse → Two taps per beat
-  Level 2 · Hot Cross Buns    Listen → Tap it → Hum it → Whole melody
-  Level 3 · Ode to Joy        Listen → Tap it → Hum it → Whole melody
+  Level 2 · Hot Cross Buns    Listen → Tap it → Meet the notes → Hum it → Whole melody
+  Level 3 · Ode to Joy        Listen → Tap it → Meet the notes → Hum it → Whole melody
   Where this is heading       a note naming Bach's Suite No. 1 as the long-term goal
   Cello · open strings        Meet your cello; Open C/G/D/A strings
   More practice               Mixed rhythm; Listen & Echo
 Recordings → existing local audio/video history
 ```
 
-The path replaced separate Foundations and Pieces libraries ([issue #49](https://github.com/RonildoBraga/cello/issues/49), design note [#53](https://github.com/RonildoBraga/cello/issues/53)). A `Level` is a title and an ordered list of `PathStep`s, and each step opens a screen that already existed: a lesson page, Listen (the reference player), Tap it (melody rhythm), and Hum it or Whole melody (melody humming opened at phrase 1 or at the whole melody). Adding a melody adds one level with the same steps.
+The path replaced separate Foundations and Pieces libraries ([issue #49](https://github.com/RonildoBraga/cello/issues/49), design note [#53](https://github.com/RonildoBraga/cello/issues/53)). A `Level` is a title and an ordered list of `PathStep`s, and each step opens a screen that already existed: a lesson page, Listen (the reference player), Tap it (melody rhythm), Meet the notes, and Hum it or Whole melody (melody humming opened at phrase 1 or at the whole melody). Adding a melody adds one level with the same steps.
 
-The level holding the first unfinished step opens when the path appears, and that step is marked Continue. It is a suggestion only: every level can be opened and every step tapped. Cello and More practice are not counted and never become the next step. A Meet the notes step is planned in [issue #51](https://github.com/RonildoBraga/cello/issues/51).
+The level holding the first unfinished step opens when the path appears, and that step is marked Continue. It is a suggestion only: every level can be opened and every step tapped. Cello and More practice are not counted and never become the next step.
+
+### Meet the notes
+
+Each melody level introduces its notes before asking for whole phrases ([issue #51](https://github.com/RonildoBraga/cello/issues/51)): three for Hot Cross Buns (G2, A2, B2), five for Ode to Joy (G2 to D3). For each note the learner hears the recorded hum and hums it back for three seconds with the live tuning bar. Two pairs follow, the lowest then the highest note and the reverse, to hear and feel "higher" and "lower".
+
+A `NoteDrill` is a one- or two-event `MelodyPracticeContext` with its own piece ID (`hotCrossBuns.notes`), so the recorder, the melody rater, the result card, the chart and the melody ledger are the ones phrases use. Takes appear in Recordings as "Hot Cross Buns · Meet the notes · G2". The step is passed when every note has a passing take; the pairs are extra practice. Notes are shown as names and tiles; staff notation is out of scope.
 
 ### Passed and gold
 

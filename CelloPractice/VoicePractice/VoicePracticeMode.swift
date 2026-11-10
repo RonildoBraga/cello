@@ -99,6 +99,9 @@ enum VoicePracticeMode: Equatable {
             let note = TunerReading(frequency: targetFrequency, targetFrequency: nil).noteName
             let text = String(format: "%@ · %.1f Hz", note, targetFrequency)
             return ("Target", text, "Target \(text)")
+        case .phrase(let context) where context.noteDrillPiece != nil:
+            let notes = context.noteNames.joined(separator: " then ")
+            return ("Recorded hum", notes, "Reference \(notes)")
         case .phrase(let context):
             let range = MelodyPiece(rawValue: context.pieceID)?.rangeLabel(for: context.register) ?? context.rangeLabel
             return ("Recorded hum", "\(context.referenceKey) · \(range)", "Reference \(context.referenceKey), \(range)")
@@ -109,6 +112,8 @@ enum VoicePracticeMode: Equatable {
     var hearLabel: String {
         switch self {
         case .note: return section == .humming ? "Hear hum" : "Hear string"
+        case .phrase(let context) where context.noteDrillPiece != nil:
+            return context.expectedEvents.count == 1 ? "Hear note" : "Hear notes"
         case .phrase(let context): return context.section == .whole ? "Hear melody" : "Hear phrase"
         case .echo: return "Hear pattern"
         }
@@ -132,6 +137,8 @@ enum VoicePracticeMode: Equatable {
     var listenMessage: String {
         switch self {
         case .note: return section == .humming ? "Listen to the hum" : "Listen to the string note"
+        case .phrase(let context) where context.noteDrillPiece != nil:
+            return context.expectedEvents.count == 1 ? "Listen to the note" : "Listen to the two notes"
         case .phrase(let context): return context.section == .whole ? "Listen to the melody" : "Listen to the phrase"
         case .echo: return "Remember the notes and their rhythm."
         }
@@ -155,8 +162,9 @@ enum VoicePracticeMode: Equatable {
         switch self {
         case .note:
             return reading.frequency == nil ? (isTimed ? "Hum one gentle note" : "Play one steady note") : nil
-        case .phrase:
-            return note.map { "Hum \($0) · follow the phrase" } ?? "Rest"
+        case .phrase(let context):
+            let hint = context.noteDrillPiece == nil ? " · follow the phrase" : ""
+            return note.map { "Hum \($0)\(hint)" } ?? "Rest"
         case .echo:
             guard let note else { return "Pattern finished" }
             guard let cents = reading.cents else { return "Hum \(note) · aim for the centre" }
