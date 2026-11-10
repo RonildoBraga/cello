@@ -274,22 +274,6 @@ final class LearningUITests: XCTestCase {
         reveal(progress, in: app)
         XCTAssertTrue(progress.label.contains("Goal reached"))
         XCTAssertTrue(app.buttons["nextMelodyPhraseButton"].isEnabled)
-        app.scrollViews.firstMatch.swipeDown()
-        let registers = app.segmentedControls["melodyHummingRegisterPicker"]
-        for _ in 0..<4 {
-            if registers.isHittable { break }
-            app.scrollViews.firstMatch.swipeDown()
-        }
-        registers.buttons["Higher voice"].tap()
-        reveal(progress, in: app)
-        XCTAssertFalse(progress.label.contains("Goal reached"), "Another register starts its own practice goal")
-        XCTAssertTrue(progress.label.contains("0 of 3"))
-        app.scrollViews.firstMatch.swipeDown()
-        for _ in 0..<4 {
-            if registers.isHittable { break }
-            app.scrollViews.firstMatch.swipeDown()
-        }
-        registers.buttons["Low voice"].tap()
         selectMelodyHummingSection("Phrase 3", in: app)
         reveal(progress, in: app)
         XCTAssertFalse(progress.label.contains("Goal reached"), "A different phrase earns its own completion")
@@ -536,8 +520,7 @@ final class LearningUITests: XCTestCase {
         assertNoWrittenInput(in: app)
 
         let registers = app.segmentedControls["melodyRegisterPicker"]
-        registers.buttons["Higher voice"].tap()
-        XCTAssertTrue(key.label.contains("G major") && key.label.contains("G3–B3"))
+        XCTAssertFalse(registers.buttons["Higher voice"].exists, "The app offers one voice")
         registers.buttons["Cello"].tap()
         XCTAssertTrue(key.label.contains("D major") && key.label.contains("D3–F♯3"))
         registers.buttons["Low voice"].tap()
@@ -615,10 +598,10 @@ final class LearningUITests: XCTestCase {
 
         play.tap()
         waitForMelodyButton("Stop", in: app)
-        app.segmentedControls["melodyRegisterPicker"].buttons["Higher voice"].tap()
+        app.segmentedControls["melodyRegisterPicker"].buttons["Cello"].tap()
         waitForMelodyButton("Hear phrase", in: app)
         XCTAssertFalse(status.exists, "A register change must cancel the previous reference")
-        XCTAssertTrue(app.staticTexts["melodyReferenceKey"].label.contains("G3–B3"))
+        XCTAssertTrue(app.staticTexts["melodyReferenceKey"].label.contains("D3–F♯3"))
 
         play.tap()
         waitForMelodyButton("Stop", in: app)
@@ -643,9 +626,6 @@ final class LearningUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Ode to Joy"].exists)
         XCTAssertFalse(status.exists, "Opening Listen & follow must not play a reference")
         XCTAssertTrue(key.label.contains("G major") && key.label.contains("G2–D3"))
-        registers.buttons["Higher voice"].tap()
-        XCTAssertTrue(key.label.contains("G major") && key.label.contains("G3–D4"))
-        XCTAssertFalse(status.exists)
         registers.buttons["Cello"].tap()
         XCTAssertTrue(key.label.contains("D major") && key.label.contains("D3–A3"))
         XCTAssertTrue(key.label.contains("Recorded cello"))
@@ -672,10 +652,10 @@ final class LearningUITests: XCTestCase {
 
         play.tap()
         waitForMelodyButton("Stop", in: app)
-        registers.buttons["Higher voice"].tap()
+        registers.buttons["Low voice"].tap()
         waitForMelodyButton("Hear phrase", in: app)
         XCTAssertFalse(status.exists, "A register change cancels playback without starting a replacement")
-        XCTAssertTrue(key.label.contains("G3–D4"))
+        XCTAssertTrue(key.label.contains("G2–D3"))
         play.tap()
         waitForMelodyButton("Stop", in: app)
         app.navigationBars["Listen & follow"].buttons.firstMatch.tap()
@@ -708,11 +688,10 @@ final class LearningUITests: XCTestCase {
         app.buttons["melodyHummingLink"].tap()
         XCTAssertTrue(app.navigationBars["Ode to Joy"].waitForExistence(timeout: 5))
         waitForRecord(in: app)
-        let registers = app.segmentedControls["melodyHummingRegisterPicker"]
         let sections = app.buttons["melodyHummingSectionPicker"]
         let duration = app.staticTexts["melodyTakeDuration"]
         let target = app.staticTexts["currentTargetLabel"]
-        XCTAssertTrue(registers.buttons["Low voice"].isSelected)
+        XCTAssertFalse(app.segmentedControls["melodyHummingRegisterPicker"].exists, "Humming uses one voice")
         XCTAssertTrue(duration.label.contains("4 seconds") && duration.label.contains("60 BPM"))
         XCTAssertTrue(target.label.contains("G2–D3"), "The five-note piece must not inherit Hot Cross Buns’ smaller range")
         XCTAssertFalse(app.staticTexts["LISTEN"].exists)
@@ -724,8 +703,7 @@ final class LearningUITests: XCTestCase {
         XCTAssertTrue(app.buttons["previewTargetButton"].label.contains("Hear melody"))
         XCTAssertFalse(app.staticTexts["LISTEN"].exists)
         selectMelodyHummingSection("Phrase 4", in: app)
-        registers.buttons["Higher voice"].tap()
-        XCTAssertTrue(target.label.contains("G3–D4"))
+        XCTAssertTrue(target.label.contains("G2–D3"))
         XCTAssertTrue(duration.label.contains("4 seconds"))
         let hear = app.buttons["previewTargetButton"]
         reveal(hear, in: app)
@@ -734,7 +712,6 @@ final class LearningUITests: XCTestCase {
             predicate: NSPredicate(format: "label == %@", "Cancel"), object: app.buttons["practiceRecordButton"])
         XCTAssertEqual(XCTWaiter.wait(for: [listening], timeout: 3), .completed)
         XCTAssertTrue(app.staticTexts["LISTEN"].exists)
-        XCTAssertFalse(registers.buttons["Low voice"].isEnabled)
         XCTAssertFalse(sections.isEnabled)
         screenshot("Ode to Joy · selected human reference locks the phrase")
 
@@ -742,7 +719,7 @@ final class LearningUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Recordings"].waitForExistence(timeout: 5))
         app.tabBars.buttons["Music"].tap()
         waitForRecord(in: app)
-        XCTAssertTrue(target.label.contains("G3–D4"))
+        XCTAssertTrue(target.label.contains("G2–D3"))
         XCTAssertFalse(app.staticTexts["LISTEN"].exists, "A hidden reference must not resume when returning")
         startLesson("Steady hum", in: app)
         waitForRecord(in: app)
@@ -1031,13 +1008,11 @@ final class LearningUITests: XCTestCase {
         let foundationProgress = app.staticTexts["practiceProgressText"].label
         returnToMusicHome(in: app)
         openMelodyHumming(in: app)
-        let registers = app.segmentedControls["melodyHummingRegisterPicker"]
         let sections = app.buttons["melodyHummingSectionPicker"]
         let duration = app.staticTexts["melodyTakeDuration"]
         let target = app.staticTexts["currentTargetLabel"]
-        XCTAssertTrue(registers.buttons["Low voice"].isSelected)
-        XCTAssertTrue(registers.buttons["Higher voice"].exists)
-        XCTAssertFalse(registers.buttons["Cello"].exists, "Piece humming has voice registers only")
+        XCTAssertFalse(app.segmentedControls["melodyHummingRegisterPicker"].exists, "Humming uses one voice")
+        XCTAssertFalse(app.buttons["Higher voice"].exists)
         XCTAssertTrue(sections.label.contains("Phrase 1"))
         XCTAssertTrue(duration.label.contains("4 seconds") && duration.label.contains("60 BPM"))
         XCTAssertTrue(target.label.contains("G2–B2"))
@@ -1053,8 +1028,7 @@ final class LearningUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["LISTEN"].exists, "Changing phrase must not autoplay")
         selectMelodyHummingSection("Phrase 3", in: app)
         XCTAssertTrue(duration.label.contains("4 seconds"))
-        registers.buttons["Higher voice"].tap()
-        XCTAssertTrue(target.label.contains("G3–B3"))
+        XCTAssertTrue(target.label.contains("G2–B2"))
         waitForRecord(in: app)
         let hear = app.buttons["previewTargetButton"]
         reveal(hear, in: app)
@@ -1063,14 +1037,14 @@ final class LearningUITests: XCTestCase {
             predicate: NSPredicate(format: "label == %@", "Cancel"), object: app.buttons["practiceRecordButton"])
         XCTAssertEqual(XCTWaiter.wait(for: [previewing], timeout: 3), .completed)
         XCTAssertTrue(app.staticTexts["LISTEN"].exists)
-        XCTAssertFalse(registers.buttons["Low voice"].isEnabled, "The reference cannot change during playback or a take")
+        XCTAssertFalse(sections.isEnabled, "The reference cannot change during playback or a take")
         screenshot("Hot Cross Buns · hearing the selected humming phrase")
 
         app.tabBars.buttons["Recordings"].tap()
         XCTAssertTrue(app.navigationBars["Recordings"].waitForExistence(timeout: 5))
         app.tabBars.buttons["Music"].tap()
         waitForRecord(in: app)
-        XCTAssertTrue(target.label.contains("G3–B3"))
+        XCTAssertTrue(target.label.contains("G2–B2"))
         XCTAssertFalse(app.staticTexts["LISTEN"].exists, "Returning to Humming must not resume playback")
         startLesson("Steady hum", in: app)
         waitForRecord(in: app)
@@ -1701,7 +1675,7 @@ final class LearningUITests: XCTestCase {
         reveal(humming, in: app)
         humming.tap()
         XCTAssertTrue(app.navigationBars[melodyTitle(for: pieceID)].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.segmentedControls["melodyHummingRegisterPicker"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["melodyHummingSectionPicker"].waitForExistence(timeout: 5))
         waitForRecord(in: app)
     }
 

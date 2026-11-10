@@ -32,14 +32,4 @@ Low voice:
 - The renderer retunes the original hum-example.wav excerpt from its measured 110.64730204182847 Hz source pitch to each expected note.
 - Each note has short fades and a quiet articulation gap; longer sustained notes may crossfade repeated source audio.
 
-Higher voice (hum-higher.wav):
-- Derived offline from hum-example.wav using Rubber Band R3 with formant preservation: rubberband -3 -F -p12.
-- Pitch raised by 12 semitones while keeping the three-second duration; converted to mono 48,000 Hz signed 16-bit PCM.
-- Constant gain 2.6652206918989263 gives a maximum absolute sample of 0.75.
-- Measured source median 221.67631128342663 Hz using independent PitchDetector estimates; playback retunes it to the selected expected notes.
-- This remains an edited version of the same original human voice, not a recording by a different or higher-voiced performer.
-- The app does not depend on Rubber Band; the offline-prepared WAV is bundled.
-
-Higher excerpt SHA-256: ae96d9f601be880210434812922e37a5668902a8e23fef31cbddfa27ba0c58fc
-
 Both the original excerpt and these adaptations are distributed under CC BY 3.0 with the original credit, source and licence links above. Original foundation playback and its fixed pitch target remain unchanged. No learner recording is used as a bundled reference.

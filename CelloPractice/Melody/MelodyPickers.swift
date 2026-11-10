@@ -26,15 +26,3 @@ struct SectionMenu: View {
         }.accessibilityLabel("Section: \(selection.title)")
     }
 }
-
-/// Low or higher voice for humming references.
-struct VoiceRegisterPicker: View {
-    @Binding var selection: MelodyRegister
-
-    var body: some View {
-        Picker("Voice register", selection: $selection) {
-            Text(MelodyRegister.lowVoice.title).tag(MelodyRegister.lowVoice)
-            Text(MelodyRegister.higherVoice.title).tag(MelodyRegister.higherVoice)
-        }.pickerStyle(.segmented)
-    }
-}

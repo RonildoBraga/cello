@@ -14,8 +14,6 @@ enum RecordedReference {
 
     private static let hum = Source(name: "hum-example", frequency: HummingExample.frequency,
                                     trimsHumEdges: true)
-    private static let higherHum = Source(name: "hum-higher", frequency: 221.67631128342663,
-                                          trimsHumEdges: true)
     private static let cellos = [
         Source(name: "cello-c2", frequency: 65.39183095652106, trimsHumEdges: false),
         Source(name: "cello-g2", frequency: 97.96663394844622, trimsHumEdges: false),
@@ -35,7 +33,8 @@ enum RecordedReference {
             let source: Source
             switch context.register {
             case .lowVoice: source = hum
-            case .higherVoice: source = higherHum
+            // Its recording is no longer bundled; saved takes do not replay their reference.
+            case .higherVoice: throw ReferenceError.missingRecording
             case .cello: source = celloSource(for: frequency)
             }
             if recordings[source] == nil { recordings[source] = try Recording(source: source, bundle: bundle) }

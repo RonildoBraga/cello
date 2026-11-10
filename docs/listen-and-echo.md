@@ -1,8 +1,8 @@
 # Listen & Echo
 
-Open **Music → Foundations → Humming → Listen & Echo**. Hear an unfamiliar short pattern, then hum it back after the usual three-second countdown. Choose a comfortable low or higher voice. The two-note level lasts four seconds; the three-note level lasts six. Every note lasts two beats at 60 BPM, including a short articulation gap in the recorded example.
+Open **Music → Foundations → Humming → Listen & Echo**. Hear an unfamiliar short pattern, then hum it back after the usual three-second countdown. The two-note level lasts four seconds; the three-note level lasts six. Every note lasts two beats at 60 BPM, including a short articulation gap in the recorded example.
 
-The original catalogues contain six two-note and twelve three-note patterns. Two-note patterns repeat, rise or fall within G–A–B; three-note patterns add turns and expand to G–A–B–C–D. Low voice uses G2–B2/G2–D3, higher voice G3–B3/G3–D4. New pattern chooses uniformly among all other patterns at the selected level, so an immediate repeat is excluded. Register and level changes select a fresh pattern and reset the attempt.
+The original catalogues contain six two-note and twelve three-note patterns. Two-note patterns repeat, rise or fall within G–A–B; three-note patterns add turns and expand to G–A–B–C–D. Patterns use the low voice: G2–B2 for two notes, G2–D3 for three. New pattern chooses uniformly among all other patterns at the selected level, so an immediate repeat is excluded. A level change selects a fresh pattern and resets the attempt.
 
 ## Hear, then record
 
@@ -24,7 +24,7 @@ Storage follows the existing recovery rules: an unreadable ledger is preserved, 
 
 This exercise offers practice listening to and reproducing unfamiliar patterns, with live pitch help requested by the learner in [issue #23](https://github.com/RonildoBraga/cello/issues/23). [MacEwan's ear-training introduction](https://openbooks.macewan.ca/introtoeartraining/chapter/how-to-practice-ear-training/) describes moving from single-note matching to note sequences and hearing sounds internally. [ABRSM's aural guidance](https://teacherhub.abrsm.org/mod/page/view.php?id=2020) discusses singing short phrases, musical memory and listening. These inform the activity; no source exercise, notation or recording is bundled, and this is not an exam-equivalence claim.
 
-The patterns are original short sequences, rendered from the existing licensed retropttam human hum and its prepared higher-register derivative. Pitch, duration, fades and articulation gaps are edited locally. These are adaptations of recorded human sound, not newly recorded continuous performances of each pattern. The bundled [human recording credit and CC BY 3.0 licence](../CelloPractice/Resources/HUMMING-LICENSE.txt) also credit these adaptations. Missing recorded resources produce an error; there is no oscillator fallback in the app.
+The patterns are original short sequences, rendered from the existing licensed retropttam human hum. Pitch, duration, fades and articulation gaps are edited locally. These are adaptations of recorded human sound, not newly recorded continuous performances of each pattern. The bundled [human recording credit and CC BY 3.0 licence](../CelloPractice/Resources/HUMMING-LICENSE.txt) also credit these adaptations. Missing recorded resources produce an error; there is no oscillator fallback in the app.
 
 ## Verification boundary
 

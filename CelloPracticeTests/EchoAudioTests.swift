@@ -4,10 +4,10 @@ import XCTest
 @testable import Cello
 
 final class EchoAudioTests: XCTestCase {
-    func testRecordedHumanPatternsEarnThreeStarsInBothVoiceRegisters() throws {
+    func testRecordedHumanPatternsEarnThreeStarsInTheLowVoice() throws {
         let selections: [(EchoLevel, [Int])] = [(.twoNotes, [0, 1, 2]),
                                                (.threeNotes, [0, 1, 4, 10])]
-        for register in [MelodyRegister.lowVoice, .higherVoice] {
+        for register in [MelodyRegister.lowVoice] {
             for (level, patterns) in selections {
                 for index in patterns {
                     let context = try level.context(patternIndex: index, register: register)

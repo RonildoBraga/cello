@@ -1,6 +1,6 @@
 # Hot Cross Buns humming
 
-Open Music → Hot Cross Buns → Humming. Choose low or higher voice and any phrase, or join the whole tune. Hear is manual. Record prepares the microphone, shows 3–2–1, and records the selected four-second phrase or sixteen-second melody at 60 BPM. The recording cue starts with the file-output delegate; the file output enforces the selected duration. Navigation and interruptions stop capture safely, while an already finishing take saves under its original reference.
+Open Music → Hot Cross Buns → Humming. Choose any phrase, or join the whole tune. Hear is manual. Record prepares the microphone, shows 3–2–1, and records the selected four-second phrase or sixteen-second melody at 60 BPM. The recording cue starts with the file-output delegate; the file output enforces the selected duration. Navigation and interruptions stop capture safely, while an already finishing take saves under its original reference.
 
 The screen reuses the foundation recorder, shared audio-session controller, proportional note tiles and result-card presentation. Melody-specific assessment, charting and completion are separate from fixed-note and rhythm exercises. All audio/video and raw measurements remain local and export through the existing recoverable save path.
 

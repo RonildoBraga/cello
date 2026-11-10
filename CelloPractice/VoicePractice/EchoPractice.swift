@@ -106,7 +106,7 @@ enum EchoLevel: String, CaseIterable, Identifiable, Codable, Sendable {
 
         var errorDescription: String? {
             switch self {
-            case .voiceRegisterRequired: return "Choose a low or higher voice for Listen & Echo."
+            case .voiceRegisterRequired: return "Listen & Echo uses the low voice."
             case .invalidPattern: return "This echo pattern is unavailable. Choose a new pattern."
             }
         }
