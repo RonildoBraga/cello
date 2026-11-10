@@ -900,7 +900,7 @@ final class LearningUITests: XCTestCase {
         let deadline = ProcessInfo.processInfo.systemUptime + 6
         var touches = 0
         let pad = fixedPoint(at: tap, in: app)
-        while tap.exists && tap.isEnabled && ProcessInfo.processInfo.systemUptime < deadline {
+        while isLive("melodyRhythmTapButton", in: app) && ProcessInfo.processInfo.systemUptime < deadline {
             pad.tap()
             touches += 1
             Thread.sleep(forTimeInterval: 0.12)
@@ -987,7 +987,7 @@ final class LearningUITests: XCTestCase {
         var continuingNoteTouches = 0
         let pad = fixedPoint(at: tap, in: app)
         let beatText = app.staticTexts["melodyRhythmBeat"]
-        while tap.exists && tap.isEnabled && ProcessInfo.processInfo.systemUptime < deadline {
+        while isLive("melodyRhythmTapButton", in: app) && ProcessInfo.processInfo.systemUptime < deadline {
             let beat = beatText.exists ? beatText.label : ""
             pad.tap()
             touches += 1
@@ -1292,11 +1292,12 @@ final class LearningUITests: XCTestCase {
         // Use the real practice clock and touch path, without fabricated scores.
         // Capture the first existing tap's released state without adding a hold
         // or an extra tap that would change the learner's timing observations.
+        let pad = fixedPoint(at: tap, in: app)
         let deadline = ProcessInfo.processInfo.systemUptime + 22
         var tookReleasedScreenshot = false
         while !app.buttons["Try again"].exists && ProcessInfo.processInfo.systemUptime < deadline {
-            if tap.exists && tap.isEnabled {
-                tap.tap()
+            if isLive("pulseTapButton", in: app) {
+                pad.tap()
                 if !tookReleasedScreenshot {
                     screenshot("Pulse · live button just after a real tap")
                     tookReleasedScreenshot = true
@@ -1478,11 +1479,12 @@ final class LearningUITests: XCTestCase {
 
         // Exercise actual half-second slots with native touches and the real
         // monotonic clock. The test never supplies offsets, stars or completion.
+        let pad = fixedPoint(at: tap, in: app)
         let deadline = ProcessInfo.processInfo.systemUptime + 14
         var actualTouches = 0
         while !app.buttons["Try again"].exists && ProcessInfo.processInfo.systemUptime < deadline {
-            if tap.exists && tap.isEnabled {
-                tap.tap()
+            if isLive("pulseTapButton", in: app) {
+                pad.tap()
                 actualTouches += 1
             }
             Thread.sleep(forTimeInterval: 0.12)
@@ -1609,11 +1611,12 @@ final class LearningUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 7), .completed)
         // Native touches follow the real clock. The measured taps and any
         // off-pattern touches determine the score; this test supplies no grade.
+        let pad = fixedPoint(at: tap, in: app)
         let deadline = ProcessInfo.processInfo.systemUptime + 14
         var actualTouches = 0
         while !app.buttons["Try again"].exists && ProcessInfo.processInfo.systemUptime < deadline {
-            if tap.exists && tap.isEnabled {
-                tap.tap()
+            if isLive("pulseTapButton", in: app) {
+                pad.tap()
                 actualTouches += 1
             }
             Thread.sleep(forTimeInterval: 0.12)
@@ -1930,6 +1933,13 @@ final class LearningUITests: XCTestCase {
     private func assertNoPermissionAlerts(in app: XCUIApplication) {
         XCTAssertEqual(app.alerts.count, 0)
         XCTAssertEqual(XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.count, 0)
+    }
+
+    /// True while a tap pad is on screen and accepting taps, read in one query.
+    /// A round replaces its pad with the result the moment it ends, so reading
+    /// `exists` and then `isEnabled` can straddle that and fail the test.
+    private func isLive(_ identifier: String, in app: XCUIApplication) -> Bool {
+        app.buttons.matching(NSPredicate(format: "identifier == %@ AND enabled == true", identifier)).count > 0
     }
 
     /// The screen position of an element, for taps that must not depend on the
