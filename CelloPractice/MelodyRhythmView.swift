@@ -12,10 +12,11 @@ struct MelodyRhythmView: View {
     var body: some View {
         MelodyRhythmRoundView(store: store, capture: capture, context: context,
                               patternHint: piece.rhythmHint(for: section),
-                              onNext: section.next.map { next in { section = next } }) { locked in
+                              next: section.next.map { next in (next.title, { section = next }) }) { locked in
             VStack(alignment: .leading, spacing: 12) {
                 ScreenHeader(eyebrow: piece.title, title: "Rhythm",
-                             subtitle: "Tap once when each note starts. Keep counting while a long note continues.")
+                             subtitle: "Tap once when each note starts. Keep counting while a long note continues.",
+                             collapsesSubtitle: store.progress(for: context).successfulAttempts > 0)
                 HStack {
                     SectionMenu(selection: $section) { store.progress(for: piece.rhythm(section: $0)).completed }
                         .disabled(locked).accessibilityIdentifier("melodyRhythmSectionPicker")
@@ -43,7 +44,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
     @ObservedObject var capture: CaptureController
     let context: MelodyRhythmContext
     let patternHint: String
-    let onNext: (() -> Void)?
+    let next: (title: String, action: () -> Void)?
     @ViewBuilder let header: (Bool) -> Header
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -71,9 +72,9 @@ private struct MelodyRhythmRoundView<Header: View>: View {
                             MelodyRhythmTimingChart(attempt: attempt)
                         }.id("melodyRhythmResult")
                     } else {
-                        if !running { progress }
                         pattern
                         tapCard
+                        if !running { progress }
                     }
                     HStack {
                         Label("Recorded hum", systemImage: "waveform").font(.caption)
@@ -130,15 +131,11 @@ private struct MelodyRhythmRoundView<Header: View>: View {
     }
 
     private var progress: some View {
-        HStack {
-            let saved = store.progress(for: context)
-            PracticeProgressView(progress: saved, disabled: locked, attemptNoun: "rounds")
-            if let onNext {
-                Button(saved.completed ? "Next phrase" : "Try next phrase", action: onNext)
-                    .font(.caption.weight(.semibold)).foregroundStyle(Palette.forest)
-                    .disabled(locked).accessibilityIdentifier("nextRhythmPhraseButton")
-            }
+        let saved = store.progress(for: context)
+        let step = next.map {
+            NextStep.item($0.title, completed: saved.completed, identifier: "nextRhythmPhraseButton", action: $0.action)
         }
+        return PracticeProgressView(progress: saved, next: step, disabled: locked, attemptNoun: "rounds")
     }
 
     private var pattern: some View {

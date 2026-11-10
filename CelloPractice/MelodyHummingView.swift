@@ -12,9 +12,10 @@ struct MelodyHummingView: View {
 
     var body: some View {
         VoicePracticeView(store: store, capture: capture, mode: .phrase(context),
-                          onNextPhrase: section.next.map { next in { section = next } }) { locked in
+                          nextPhrase: section.next.map { next in (next.title, { section = next }) }) { locked in
             VStack(alignment: .leading, spacing: 17) {
-                ScreenHeader(eyebrow: piece.title, title: "Humming", subtitle: piece.hummingIntro)
+                ScreenHeader(eyebrow: piece.title, title: "Humming", subtitle: piece.hummingIntro,
+                             collapsesSubtitle: store.melodyProgress(for: context).successfulAttempts > 0)
                 VoiceRegisterPicker(selection: $register).disabled(locked)
                     .accessibilityIdentifier("melodyHummingRegisterPicker")
                 HStack {

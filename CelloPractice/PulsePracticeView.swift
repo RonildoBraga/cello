@@ -26,16 +26,12 @@ struct PulsePracticeView<Header: View>: View {
                     if let finishedAttempt {
                         VStack(spacing: 16) {
                             result(for: finishedAttempt)
-                            PracticeProgressView(progress: store.progress, nextLesson: nextLesson,
-                                                 onNext: onNext, attemptNoun: "rounds")
+                            progress
                             PulseTimingChartView(attempt: finishedAttempt)
                         }.id("pulseResult")
                     } else {
-                        if round.timing == nil {
-                            PracticeProgressView(progress: store.progress, nextLesson: nextLesson,
-                                                 onNext: onNext, attemptNoun: "rounds")
-                        }
                         tapCard
+                        if round.timing == nil { progress }
                     }
                 }.screenContent()
             }
@@ -52,6 +48,14 @@ struct PulsePracticeView<Header: View>: View {
             .background(Palette.paper)
             .onDisappear { round.stop() }
             .onChange(of: scenePhase) { _, phase in if phase != .active { round.stop() } }
+    }
+
+    private var progress: some View {
+        let saved = store.progress
+        let next = nextLesson.flatMap { lesson in
+            onNext.map { open in NextStep.lesson(lesson, completed: saved.completed) { open(lesson) } }
+        }
+        return PracticeProgressView(progress: saved, next: next, attemptNoun: "rounds")
     }
 
     private var tapCard: some View {

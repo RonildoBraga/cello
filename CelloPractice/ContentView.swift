@@ -14,7 +14,7 @@ struct ContentView: View {
                              melodyRhythmStore: melodyRhythmStore)
                 .tabItem { Label("Music", systemImage: "music.note.list") }
                 .tag(Tab.music)
-            RecordingsView(store: store)
+            RecordingsView(store: store, onOpenMusic: { selectedTab = .music })
                 .tabItem { Label("Recordings", systemImage: "play.rectangle.on.rectangle") }
                 .tag(Tab.recordings)
         }

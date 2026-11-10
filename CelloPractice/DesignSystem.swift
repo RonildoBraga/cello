@@ -83,6 +83,8 @@ struct ScreenHeader: View {
     var titleIdentifier = "screenTitle"
     var eyebrowIdentifier = "screenEyebrow"
     var subtitleIdentifier = "screenSubtitle"
+    /// Tucks the subtitle behind "How it works" once the learner no longer needs it up front.
+    var collapsesSubtitle = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -91,7 +93,14 @@ struct ScreenHeader: View {
             }
             Text(title).font(.screenTitle).foregroundStyle(Palette.ink)
                 .accessibilityAddTraits(.isHeader).accessibilityIdentifier(titleIdentifier)
-            if let subtitle {
+            if let subtitle, collapsesSubtitle {
+                DisclosureGroup("How it works") {
+                    Text(subtitle).font(.subheadline).foregroundStyle(Palette.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 6)
+                        .accessibilityIdentifier(subtitleIdentifier)
+                }.font(.subheadline.weight(.medium)).foregroundStyle(Palette.forest)
+            } else if let subtitle {
                 Text(subtitle).font(.subheadline).foregroundStyle(Palette.muted)
                     .fixedSize(horizontal: false, vertical: true).accessibilityIdentifier(subtitleIdentifier)
             }

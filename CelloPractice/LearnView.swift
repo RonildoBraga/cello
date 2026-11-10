@@ -324,6 +324,7 @@ private struct LessonDetailView: View {
                              title: lesson.title, subtitle: lesson.purpose, titleIdentifier: "lessonDetailTitle")
 
                 progressCard
+                recentRounds
 
                 VStack(alignment: .leading, spacing: 15) {
                     SectionTitle("How to practise")
@@ -379,6 +380,27 @@ private struct LessonDetailView: View {
                 .font(.footnote).foregroundStyle(Palette.muted)
                 .fixedSize(horizontal: false, vertical: true)
         }.card()
+    }
+
+    /// Tapping rounds have no recording, so their history lives here.
+    @ViewBuilder private var recentRounds: some View {
+        if case .rhythm(let exercise) = lesson.activity {
+            let rounds = rhythmStores.store(for: exercise).attempts.prefix(5)
+            if !rounds.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    SectionTitle("Recent rounds")
+                    ForEach(rounds) { round in
+                        HStack {
+                            Text(round.createdAt.formatted(date: .abbreviated, time: .shortened))
+                                .font(.subheadline).foregroundStyle(Palette.muted)
+                            Spacer()
+                            if let stars = round.starCount { Stars(count: stars, font: .caption) }
+                            else { Text("Not rated").font(.caption).foregroundStyle(Palette.muted) }
+                        }
+                    }
+                }.card().accessibilityIdentifier("lessonRecentRounds")
+            }
+        }
     }
 
     private func score(_ title: String, stars: Int?) -> some View {

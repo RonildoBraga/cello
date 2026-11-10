@@ -35,7 +35,7 @@ The **Cello** area has separate C/G/D/A open-string targets. Foundation lesson p
 - Rhythm lessons use four count-in beats at 60 BPM, automatic whole-beat haptics, saved tap timing and a performance chart. Lesson 4 has sixteen tap positions over eight beats; Lesson 5 has twelve over eight beats.
 - Voice stars measure Match, Steady and Hold. Rhythm stars measure coverage, Timing and Evenness; Mixed rhythm's Pattern goal requires at least nine of its twelve expected taps and no more than one extra tap outside the pattern.
 - Three three-star attempts among the last five scored attempts earn completion, which remains earned after later attempts.
-- **Recordings** provides local playback and manual ZIP export for review.
+- **Recordings** provides local playback and one-tap ZIP export for review. Tapping rounds have no recording; each rhythm lesson page lists its recent rounds.
 
 Ratings are beginner practice feedback, not a complete assessment of musical ability. The app does not provide a live AI coach. A teacher remains useful for cello setup, posture and bow technique; pitch estimates can miss notes or choose the wrong octave.
 

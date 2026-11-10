@@ -33,19 +33,19 @@ struct VoicePracticeView<Header: View>: View {
     private let mode: VoicePracticeMode
     private let nextLesson: PracticeLesson?
     private let onStartLesson: ((PracticeLesson) -> Void)?
-    private let onNextPhrase: (() -> Void)?
+    private let nextPhrase: (title: String, action: () -> Void)?
     private let header: (Bool) -> Header
 
     init(store: SessionStore, capture: CaptureController, mode: VoicePracticeMode,
          nextLesson: PracticeLesson? = nil, onStartLesson: ((PracticeLesson) -> Void)? = nil,
-         onNextPhrase: (() -> Void)? = nil,
+         nextPhrase: (title: String, action: () -> Void)? = nil,
          @ViewBuilder header: @escaping (Bool) -> Header) {
         self.store = store
         self.capture = capture
         self.mode = mode
         self.nextLesson = nextLesson
         self.onStartLesson = onStartLesson
-        self.onNextPhrase = onNextPhrase
+        self.nextPhrase = nextPhrase
         self.header = header
     }
 
@@ -161,7 +161,7 @@ struct VoicePracticeView<Header: View>: View {
                             camera.padding(.top, 10)
                         }.font(.subheadline.weight(.medium)).foregroundStyle(Palette.forest)
                     }
-                    if let error = store.errorMessage {
+                    if let error = store.lastSaveError {
                         Text(error).font(.footnote).foregroundStyle(.red)
                     }
                 }.screenContent()
@@ -180,19 +180,20 @@ struct VoicePracticeView<Header: View>: View {
 
     private var lessonProgress: some View {
         let progress = mode.progress(in: store)
-        let onNextLesson: ((PracticeLesson) -> Void)? = onStartLesson == nil ? nil : { startLesson($0) }
-        return HStack {
-            PracticeProgressView(progress: progress, nextLesson: nextLesson, onNext: onNextLesson,
-                                 disabled: restSeconds > 0)
-            if let onNextPhrase, !mode.nextStepNeedsResult || hasResult {
-                Button(mode.nextStepLabel(completed: progress.completed)) {
-                    guard canStartAction else { return }
-                    cancelFlow(stopCapture: true)
-                    onNextPhrase()
-                }.font(.caption.weight(.semibold)).foregroundStyle(Palette.forest)
-                    .disabled(controlsLocked || restSeconds > 0)
-                    .accessibilityIdentifier(mode.nextStepIdentifier)
-            }
+        return PracticeProgressView(progress: progress, next: nextStep(completed: progress.completed),
+                                    disabled: controlsLocked || restSeconds > 0)
+    }
+
+    private func nextStep(completed: Bool) -> NextStep? {
+        if let nextLesson, onStartLesson != nil {
+            return .lesson(nextLesson, completed: completed) { startLesson(nextLesson) }
+        }
+        guard let nextPhrase, !mode.nextStepNeedsResult || hasResult else { return nil }
+        // A fresh echo pattern is always something to try, never a continuation.
+        return .item(nextPhrase.title, completed: completed && !mode.isEcho, identifier: mode.nextStepIdentifier) {
+            guard canStartAction else { return }
+            cancelFlow(stopCapture: true)
+            nextPhrase.action()
         }
     }
 
