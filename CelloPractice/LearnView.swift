@@ -222,6 +222,17 @@ private struct FoundationLessonsView: View {
                             .accessibilityHint("Opens instructions and saved scores")
                     }
                 }
+                if area == .humming {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Ear training").font(.headline).foregroundStyle(Palette.ink)
+                        NavigationLink {
+                            EchoPracticeView(store: store, capture: capture)
+                        } label: {
+                            MusicLibraryRow(title: "Listen & Echo", subtitle: "Remember a short pattern and hum it back",
+                                            systemImage: "ear", footer: "Two notes, then three")
+                        }.buttonStyle(.plain).accessibilityIdentifier("echoPracticeLink")
+                    }
+                }
             }.padding(20).padding(.bottom, 24)
         }.background(Palette.paper)
             .navigationTitle(area.title).navigationBarTitleDisplayMode(.inline)

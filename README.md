@@ -16,6 +16,8 @@ The foundations include:
 | Rhythm | 4 | Two taps per beat | Count `1 & 2 &`, adding a tap halfway between beats. |
 | Rhythm | 5 | Mixed rhythm | Alternate one and two taps per beat: `1, 2-and, 3, 4-and`. |
 
+**Music → Foundations → Humming → Listen & Echo** adds ear training with fresh two-note and three-note patterns. Tap Hear pattern, listen to the complete recorded-human reference, then Record after 3–2–1. The screen keeps pitch targets and live tuning hints hidden until the saved feedback/chart. Two notes last four seconds; three last six. Each voice register and level earns separate progress across patterns, with three three-star takes among the last five rated takes completing that level. Both levels remain available. This activity has its own ledger and keeps the original numbered foundation lessons unchanged. See [the Echo practice design and assessment](docs/listen-and-echo.md).
+
 Open **Music → Foundations → Cello → Meet your cello** for an original labelled diagram, the four recorded string-pitch examples from low to high, and the route into playing. Hear is manual and needs no microphone/camera capture. Reading and listening leave performance scores and completion unchanged. The introduction returns to the existing playing lessons; setup, first-position instruction and cello melody assessment remain in [issue #6](https://github.com/RonildoBraga/cello/issues/6). See [the introductory sources and draft practical lesson plan](docs/first-cello-lessons.md).
 
 The **Cello** area has separate C/G/D/A open-string targets. Each practice area remembers its lesson selection. Foundation lesson pages show instructions, best/latest scores and earned completion; every exercise stays available. Original IDs, lesson numbers and earned progress are retained.
@@ -97,6 +99,7 @@ Practice data stays on the device. The app has no account, analytics, automatic 
 - Voice completion milestones: `Documents/PracticeProgress.json`.
 - Separate rhythm history files: `PulsePractice.json`, `TwoTapsPractice.json` and `MixedRhythmPractice.json`.
 - Piece rhythm rounds and completion milestones: `Documents/MelodyRhythmPractice.json`, separate from foundation histories.
+- Listen & Echo completion milestones: `Documents/EchoProgress.json`; frozen patterns and ratings stay with the recordings.
 - Separate melody completion milestones: `Documents/MelodyProgress.json`; attempt ratings and frozen phrase references stay with each recording.
 - A session ZIP contains the movie, metadata, pitch CSV, a review summary and up to four timestamped JPEG frames.
 

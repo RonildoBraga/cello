@@ -13,7 +13,7 @@ The first delivery separates Humming, Rhythm and Cello inside a Music library. I
 ```text
 Music
   Foundations
-    Humming → Steady hum; Listen & match
+    Humming → Steady hum; Listen & match; Listen & Echo (ear training)
     Rhythm → Pulse; Two taps per beat; Mixed rhythm
     Cello → Meet your cello (parts and listening); Open C/G/D/A strings
   Pieces
@@ -74,3 +74,9 @@ Melody rhythm uses that same immutable reference timeline with a separate rhythm
 [Issue #17](https://github.com/RonildoBraga/cello/issues/17) delivers the first bounded part of #6: Meet your cello, reached from the Cello foundation list. An original SwiftUI illustration labels eight main parts; manual recorded examples identify C2, G2, D3 and A3 from low to high. Native Back/tab/background cancellation uses the existing shared audio controller. The page never starts capture or saves an attempt. It adds no foundation lesson ID, number, score or completion milestone; all four existing playing lessons retain their history and counts.
 
 The page shows the proposed route into teacher-supported setup, open strings, first notes, short phrases and the complete first melody. [The practical sequence and acoustic validation plan](first-cello-lessons.md) remain drafts for review. This introduction does not complete #6’s setup, technique, cello-performance assessment or real acoustic validation requirements.
+
+## Listen & Echo
+
+[Issue #19](https://github.com/RonildoBraga/cello/issues/19) adds a separate Humming ear-training activity with original two-note and three-note catalogues. Manual, complete Hear playback unlocks Record for that exact frozen pattern. The usual countdown starts capture; note names, the target bar and live pitch feedback stay hidden until the saved result. Both levels and voice registers remain selectable between attempts.
+
+The shared melody rater/feedback/chart and audio/video save path are reused. Progress spans eligible patterns within a level and voice register, with a separate EchoProgress.json ledger; Echo achievements do not enter song or foundation ledgers. Existing lesson IDs/numbers and song contexts are unchanged. Stars describe the recorded notes, timing and clarity, not a direct measurement of musical memory. See [the design, sources and validation boundaries](listen-and-echo.md).
