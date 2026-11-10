@@ -7,7 +7,8 @@ struct EchoPracticeView: View {
     @ObservedObject var capture: CaptureController
 
     @State private var level = EchoLevel.twoNotes
-    @State private var register = MelodyRegister.lowVoice
+    /// Echo patterns are sung in the one voice the app offers.
+    private let register = MelodyRegister.lowVoice
     @State private var pattern = EchoLevel.twoNotes.newPattern(register: .lowVoice, excluding: nil)
 
     private var context: MelodyPracticeContext { pattern.context }
@@ -20,14 +21,6 @@ struct EchoPracticeView: View {
         })
     }
 
-    private var registerSelection: Binding<MelodyRegister> {
-        Binding(get: { register }, set: { next in
-            guard next != register else { return }
-            register = next
-            newPattern()
-        })
-    }
-
     var body: some View {
         VoicePracticeView(store: store, capture: capture, mode: .echo(context, level: level),
                           nextPhrase: ("New pattern", newPattern)) { locked in
@@ -35,8 +28,6 @@ struct EchoPracticeView: View {
                 ScreenHeader(eyebrow: "Ear training", title: "Listen & Echo",
                              subtitle: "Hear the pattern, then hum it back. Follow the tuning bar as you record.",
                              collapsesSubtitle: store.echoProgress(for: level, register: register).successfulAttempts > 0)
-                VoiceRegisterPicker(selection: registerSelection).disabled(locked)
-                    .accessibilityIdentifier("echoRegisterPicker")
                 Picker("Pattern length", selection: levelSelection) {
                     ForEach(EchoLevel.allCases) { level in
                         Text(level.title).tag(level)

@@ -13,7 +13,6 @@ The melody and rhythm were visually checked against the upper melody in the firs
 | Reference | Key | Five notes, low to high | Transposition from cello |
 | --- | --- | --- | --- |
 | Low voice | G major | G2, A2, B2, C3, D3 | -7 semitones |
-| Higher voice | G major | G3, A3, B3, C4, D4 | +5 semitones |
 | Cello | D major | D3, E3, F-sharp3, G3, A3 | 0 |
 
 All target frequencies use equal temperament with A4 = 440 Hz. Voice registers are starting options, not a measured vocal range; choose the comfortable one. The cello reference supplies pitch and timbre, not a demonstration of fingering or bow technique. At 60 BPM the complete opening lasts 16 seconds and each bar-sized practice selection lasts four seconds. The frozen context also supports the existing 40-120 BPM model range.
@@ -22,7 +21,7 @@ All target frequencies use equal temperament with A4 = 440 Hz. Voice registers a
 
 The [Staatsbibliothek zu Berlin's history of the Ninth Symphony](https://staatsbibliothek-berlin.de/die-staatsbibliothek/abteilungen/musik/sammlungen/bestaende/l-van-beethoven-9-sinfonie/ueber-die-9-sinfonie) records the work's first printed publication by Schott in 1826, as Op. 125. The library also provides [the digitised autograph and its background](https://staatsbibliothek-berlin.de/die-staatsbibliothek/abteilungen/musik/sammlungen/bestaende/l-van-beethoven-9-sinfonie/willkommen). Beethoven's historical composition is in the public domain; the modern publisher's edition and third-party performances are separate materials and are not included. Our independently encoded unaccompanied excerpt adds no copied modern accompaniment or editorial material.
 
-Playback adapts the same recorded sources already bundled for Hot Cross Buns. Human references retune the retropttam hum and its prepared higher-register derivative to the score, adjusting note lengths, fades and articulation gaps. They are edited human recordings, not a new continuous performance of this excerpt by the original recorder. Cello references use the existing VSCO 2 recorded cello-section sustains. These sources remain under their existing licences and credits: [human source, CC BY 3.0 and adaptations](../CelloPractice/Resources/HUMMING-LICENSE.txt), and [cello sources and CC0 dedication](../CelloPractice/Resources/CELLO-LICENSE.txt). No new outside recording is distributed. Missing assets produce an error; there is no generated-tone fallback.
+Playback adapts the same recorded sources already bundled for Hot Cross Buns. Human references retune the retropttam hum to the score, adjusting note lengths, fades and articulation gaps. They are edited human recordings, not a new continuous performance of this excerpt by the original recorder. Cello references use the existing VSCO 2 recorded cello-section sustains. These sources remain under their existing licences and credits: [human source, CC BY 3.0 and adaptations](../CelloPractice/Resources/HUMMING-LICENSE.txt), and [cello sources and CC0 dedication](../CelloPractice/Resources/CELLO-LICENSE.txt). No new outside recording is distributed. Missing assets produce an error; there is no generated-tone fallback.
 
 Sources checked on 10 November 2026. The checked publisher PDF is used only as an external pitch/rhythm reference and is not committed.
 

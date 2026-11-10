@@ -125,7 +125,12 @@ private func melodyNoteRange(_ notes: [Int]) -> String {
 }
 
 enum MelodyRegister: String, CaseIterable, Identifiable, Codable, Sendable {
+    /// `higherVoice` is no longer offered. It stays so takes saved in that
+    /// register by earlier builds still open with their scores and completion.
     case lowVoice, higherVoice, cello
+
+    /// The registers a learner can choose for reference playback.
+    static let offered: [MelodyRegister] = [.lowVoice, .cello]
 
     var id: String { rawValue }
 

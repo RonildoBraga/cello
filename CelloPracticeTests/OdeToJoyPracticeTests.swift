@@ -6,7 +6,7 @@ import XCTest
 
 final class OdeToJoyPracticeTests: XCTestCase {
     func testRecordedHumanPhrasesAndWholeOpeningEarnThreeIndependentStars() throws {
-        for register in [MelodyRegister.lowVoice, .higherVoice] {
+        for register in [MelodyRegister.lowVoice] {
             for section in MelodySection.allCases {
                 let context = try MelodyPracticeContext.odeToJoy(
                     register: register, section: section, gradingVersion: MelodyRating.currentVersion)
@@ -28,7 +28,7 @@ final class OdeToJoyPracticeTests: XCTestCase {
     }
 
     func testAllFiveRecordedPitchTargetsMatchEachVoiceAndCelloRegister() throws {
-        for register in MelodyRegister.allCases {
+        for register in MelodyRegister.offered {
             var heardNotes: Set<Int> = []
             for section in [MelodySection.phrase1, .phrase3] {
                 let context = try MelodyPracticeContext.odeToJoy(register: register, section: section)
@@ -142,7 +142,7 @@ final class OdeToJoyPracticeTests: XCTestCase {
     }
 
     func testRecordedRatedSessionRoundTripsItsOdeTitleAndFrozenContext() throws {
-        let context = try MelodyPracticeContext.odeToJoy(register: .higherVoice, section: .phrase4,
+        let context = try MelodyPracticeContext.odeToJoy(register: .lowVoice, section: .phrase4,
                                                          gradingVersion: MelodyRating.currentVersion)
         let rating = rate(pcm(try RecordedReference.wavData(context: context)), for: context)
         XCTAssertEqual(rating.starCount, 3)

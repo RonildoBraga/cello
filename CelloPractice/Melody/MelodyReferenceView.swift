@@ -19,7 +19,7 @@ struct MelodyReferenceView: View {
                 ScreenHeader(eyebrow: piece.title, title: "Listen & follow", subtitle: piece.listenIntro)
                 VStack(alignment: .leading, spacing: 12) {
                     Picker("Reference register", selection: $register) {
-                        ForEach(MelodyRegister.allCases) { item in
+                        ForEach(MelodyRegister.offered) { item in
                             Text(item.title).tag(item)
                         }
                     }.pickerStyle(.segmented).accessibilityIdentifier("melodyRegisterPicker")

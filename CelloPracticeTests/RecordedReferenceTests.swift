@@ -6,7 +6,7 @@ import XCTest
 
 final class RecordedReferenceTests: XCTestCase {
     func testEveryRegisterProducesRecordedMonoPCMWithExactScoreDuration() throws {
-        for register in MelodyRegister.allCases {
+        for register in MelodyRegister.offered {
             let context = try MelodyPracticeContext.hotCrossBuns(register: register)
             let data = try RecordedReference.wavData(context: context)
             let player = try AVAudioPlayer(data: data)
@@ -21,7 +21,7 @@ final class RecordedReferenceTests: XCTestCase {
     func testPhraseAndWholeReferencesKeepSelectedTempoIncludingFinalQuietBoundary() throws {
         for tempo in [40, 60, 120] {
             for section in [MelodySection.phrase1, .phrase3, .whole] {
-                let context = try MelodyPracticeContext.hotCrossBuns(register: .higherVoice,
+                let context = try MelodyPracticeContext.hotCrossBuns(register: .lowVoice,
                                                                     section: section, tempoBPM: tempo)
                 let data = try RecordedReference.wavData(context: context)
                 let player = try AVAudioPlayer(data: data)
@@ -32,7 +32,7 @@ final class RecordedReferenceTests: XCTestCase {
     }
 
     func testMeasuredMelodyNotesMatchTheFrozenPitchWithoutChangingNaturalVariation() throws {
-        for register in MelodyRegister.allCases {
+        for register in MelodyRegister.offered {
             let context = try MelodyPracticeContext.hotCrossBuns(register: register, section: .phrase1)
             let sound = pcm(try RecordedReference.wavData(context: context))
             for event in context.expectedEvents {
@@ -61,8 +61,19 @@ final class RecordedReferenceTests: XCTestCase {
         }
     }
 
+    func testHigherVoiceIsNoLongerOfferedOrBundledButStillDecodes() throws {
+        XCTAssertEqual(MelodyRegister.offered, [.lowVoice, .cello])
+        let saved = try MelodyPracticeContext.hotCrossBuns(register: .higherVoice, section: .phrase1,
+                                                           gradingVersion: MelodyRating.currentVersion)
+        let decoded = try JSONDecoder().decode(MelodyPracticeContext.self, from: JSONEncoder().encode(saved))
+        XCTAssertEqual(decoded, saved, "Takes saved in the removed register must still open")
+        XCTAssertTrue(decoded.isValid)
+        XCTAssertThrowsError(try RecordedReference.wavData(context: saved),
+                             "Its reference recording is no longer bundled")
+    }
+
     func testRecordedHumanExamplesMatchTheUnchangedMelodyAssessment() throws {
-        for register in [MelodyRegister.lowVoice, .higherVoice] {
+        for register in [MelodyRegister.lowVoice] {
             for section in MelodySection.allCases {
                 let context = try MelodyPracticeContext.hotCrossBuns(
                     register: register, section: section, gradingVersion: MelodyRating.currentVersion)
@@ -77,7 +88,7 @@ final class RecordedReferenceTests: XCTestCase {
     }
 
     func testEveryNoteFadesAndLeavesAnExactlyQuietArticulationGap() throws {
-        for register in MelodyRegister.allCases {
+        for register in MelodyRegister.offered {
             let context = try MelodyPracticeContext.hotCrossBuns(register: register, section: .phrase3)
             let sound = pcm(try RecordedReference.wavData(context: context))
             for event in context.expectedEvents {
@@ -123,7 +134,7 @@ final class RecordedReferenceTests: XCTestCase {
     func testMissingRecordingsThrowInsteadOfSubstitutingSyntheticAudio() throws {
         let emptyBundle = Bundle(for: Self.self)
         XCTAssertNotEqual(emptyBundle.bundleURL, Bundle.main.bundleURL)
-        for register in MelodyRegister.allCases {
+        for register in MelodyRegister.offered {
             let context = try MelodyPracticeContext.hotCrossBuns(register: register, section: .phrase1)
             XCTAssertThrowsError(try RecordedReference.wavData(context: context, bundle: emptyBundle))
         }

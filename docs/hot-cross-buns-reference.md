@@ -13,14 +13,13 @@ The US Bureau of Education's *Music in the Public Schools* (1922), printed page 
 | Reference | Key | Notes, low to high | Transposition from cello |
 | --- | --- | --- | --- |
 | Low voice | G major | G2, A2, B2 | −7 semitones |
-| Higher voice | G major | G3, A3, B3 | +5 semitones |
 | Cello | D major | D3, E3, F♯3 | 0 |
 
-All frequencies use equal temperament with A4 = 440 Hz. Registers preserve the melody's relative intervals; the voice choices are starting options, not a measured vocal range. Use the register that feels comfortable. The cello reference does not assert readiness to finger or bow the notes.
+All frequencies use equal temperament with A4 = 440 Hz. Registers preserve the melody's relative intervals; the low voice is a starting option, not a measured vocal range. An earlier release also offered a higher voice (G3–B3); it was removed in [issue #48](https://github.com/RonildoBraga/cello/issues/48), and takes saved with it still open. The cello reference does not assert readiness to finger or bow the notes.
 
 ## Recorded audio and frozen context
 
-References are rendered locally as 48 kHz, mono, 16-bit PCM from recorded samples, with short fades and quiet articulation gaps. Low and higher voice use the licensed retropttam human hum, retuned and arranged per note; the higher source has an offline formant-preserving octave edit. This is an edited human recording, not a fresh continuous performance of the song. Cello playback uses four recorded VSCO 2 cello-section sustains, choosing the closest source and applying a small playback-rate tuning adjustment. Longer holds crossfade the recorded sustain instead of replaying a bow attack or adding synthesized partials.
+References are rendered locally as 48 kHz, mono, 16-bit PCM from recorded samples, with short fades and quiet articulation gaps. The low voice uses the licensed retropttam human hum, retuned and arranged per note. This is an edited human recording, not a fresh continuous performance of the song. Cello playback uses four recorded VSCO 2 cello-section sustains, choosing the closest source and applying a small playback-rate tuning adjustment. Longer holds crossfade the recorded sustain instead of replaying a bow attack or adding synthesized partials.
 
 The app labels these references Recorded hum / Recorded cello. [Human source and adaptation credit](../CelloPractice/Resources/HUMMING-LICENSE.txt) and [cello source and CC0 credit](../CelloPractice/Resources/CELLO-LICENSE.txt) are bundled; the Music resources disclosure links to the original sources and licences. Missing assets are reported as playback errors. There is no synthetic fallback. The original foundation human example is unchanged.
 

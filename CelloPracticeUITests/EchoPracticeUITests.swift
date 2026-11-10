@@ -66,8 +66,6 @@ final class EchoPracticeUITests: XCTestCase {
         openEcho(in: app)
         let progress = app.staticTexts["practiceProgressText"]
         XCTAssertTrue(progress.label.contains("0 of 3"), "Higher-voice evidence must not credit the low voice")
-        app.segmentedControls["echoRegisterPicker"].buttons["Higher voice"].tap()
-        XCTAssertTrue(progress.label.contains("1 of 3"), "The actual rated recording contributes one success in its voice register")
         XCTAssertFalse(app.buttons["echoNextLevelButton"].exists, "One success is not a completed level")
         assertRecordNeedsHear(in: app)
         assertNoTargetHints(in: app)
@@ -84,9 +82,8 @@ final class EchoPracticeUITests: XCTestCase {
         openEcho(in: app)
         let duration = app.staticTexts["echoDuration"]
         let levels = app.segmentedControls["echoLevelPicker"]
-        let registers = app.segmentedControls["echoRegisterPicker"]
         XCTAssertTrue(levels.buttons["Two notes"].isSelected)
-        XCTAssertTrue(registers.buttons["Low voice"].isSelected)
+        XCTAssertFalse(app.segmentedControls["echoRegisterPicker"].exists, "Echo uses one voice")
         XCTAssertTrue(app.staticTexts["Hear the pattern, then hum it back. Follow the tuning bar as you record."].exists)
         XCTAssertTrue(duration.label.contains("4 seconds") && duration.label.contains("60 BPM"))
         assertRecordNeedsHear(in: app)
@@ -95,9 +92,6 @@ final class EchoPracticeUITests: XCTestCase {
 
         levels.buttons["Three notes"].tap()
         XCTAssertTrue(duration.label.contains("6 seconds"))
-        assertRecordNeedsHear(in: app)
-        registers.buttons["Higher voice"].tap()
-        XCTAssertTrue(registers.buttons["Higher voice"].isSelected)
         assertRecordNeedsHear(in: app)
         assertNoTargetHints(in: app)
         levels.buttons["Two notes"].tap()
@@ -118,13 +112,11 @@ final class EchoPracticeUITests: XCTestCase {
         let record = app.buttons["practiceRecordButton"]
         let hear = app.buttons["previewTargetButton"]
         let newPattern = app.buttons["echoNewPatternButton"]
-        let registers = app.segmentedControls["echoRegisterPicker"]
         let levels = app.segmentedControls["echoLevelPicker"]
         assertRecordNeedsHear(in: app)
         hear.tap()
         waitForRecord(label: "Cancel", enabled: true, in: app)
         XCTAssertFalse(newPattern.isEnabled)
-        XCTAssertFalse(registers.buttons["Higher voice"].isEnabled)
         XCTAssertFalse(levels.buttons["Three notes"].isEnabled)
         record.tap()
         assertRecordNeedsHear(in: app)
@@ -134,9 +126,6 @@ final class EchoPracticeUITests: XCTestCase {
         newPattern.tap()
         assertRecordNeedsHear(in: app)
         XCTAssertFalse(app.staticTexts["melodyRatingStars"].exists)
-        hearFullPattern(in: app, duration: 4)
-        registers.buttons["Higher voice"].tap()
-        assertRecordNeedsHear(in: app)
         hearFullPattern(in: app, duration: 4)
         levels.buttons["Three notes"].tap()
         XCTAssertTrue(app.staticTexts["echoDuration"].label.contains("6 seconds"))
