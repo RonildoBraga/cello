@@ -61,7 +61,7 @@ struct MusicLibraryView: View {
     }
 
     private func foundationLessons(_ area: LearningArea) -> some View {
-        FoundationLessonsView(area: area, store: store, pulseStore: pulseStore,
+        FoundationLessonsView(area: area, store: store, capture: capture, pulseStore: pulseStore,
                               twoTapsStore: twoTapsStore, mixedRhythmStore: mixedRhythmStore,
                               onStartLesson: onStartLesson)
     }
@@ -175,6 +175,7 @@ struct MusicLibraryView: View {
 private struct FoundationLessonsView: View {
     let area: LearningArea
     @ObservedObject var store: SessionStore
+    @ObservedObject var capture: CaptureController
     @ObservedObject var pulseStore: PulsePracticeStore
     @ObservedObject var twoTapsStore: PulsePracticeStore
     @ObservedObject var mixedRhythmStore: PulsePracticeStore
@@ -197,6 +198,14 @@ private struct FoundationLessonsView: View {
                     Text("\(completed) of \(lessons.count) lessons completed · Choose any lesson")
                         .font(.footnote).foregroundStyle(Palette.muted)
                         .accessibilityIdentifier("foundationCompletionSummary")
+                }
+                if area == .cello {
+                    NavigationLink {
+                        CelloIntroductionView(capture: capture)
+                    } label: {
+                        MusicLibraryRow(title: "Meet your cello", subtitle: "Explore the parts and hear the four strings",
+                                        systemImage: "music.note", footer: "Start here · Listen and explore")
+                    }.buttonStyle(.plain).accessibilityIdentifier("celloIntroductionLink")
                 }
                 VStack(spacing: 12) {
                     ForEach(lessons) { lesson in
