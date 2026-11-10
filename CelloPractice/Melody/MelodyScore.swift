@@ -177,6 +177,9 @@ enum MelodySection: String, CaseIterable, Identifiable, Codable, Sendable {
     }
 
     /// Practice order: the four phrases, then the whole melody.
+    /// The four phrases, without the whole melody.
+    static let phrases: [MelodySection] = [.phrase1, .phrase2, .phrase3, .phrase4]
+
     var next: MelodySection? {
         switch self {
         case .phrase1: return .phrase2

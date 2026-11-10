@@ -96,13 +96,51 @@ struct Level: Identifiable {
               steps: [.lesson(.mixedRhythm), .echo])
     ]
 
-    /// The first step on the path that is not done yet. It is a suggestion:
-    /// every step stays open.
-    static func nextStep(isDone: (PathStep) -> Bool) -> (level: Level, step: PathStep)? {
+    /// The first step on the path that has not been passed yet. It is a
+    /// suggestion: every step stays open.
+    static func nextStep(isPassed: (PathStep) -> Bool) -> (level: Level, step: PathStep)? {
         for level in path {
-            if let step = level.steps.first(where: { !isDone($0) }) { return (level, step) }
+            if let step = level.steps.first(where: { !isPassed($0) }) { return (level, step) }
         }
         return nil
+    }
+
+    func passedSteps(isPassed: (PathStep) -> Bool) -> Int { steps.filter(isPassed).count }
+
+    /// A level is complete when every one of its steps has been passed.
+    func isComplete(isPassed: (PathStep) -> Bool) -> Bool { steps.allSatisfy(isPassed) }
+
+    /// The furthest complete level whose completion has not been shown yet.
+    static func newlyCompleted(celebrated: String, isPassed: (PathStep) -> Bool) -> Level? {
+        path.last { $0.isComplete(isPassed: isPassed) && !StoredIDs.contains($0.id, in: celebrated) }
+    }
+}
+
+/// How far a step has got, rolled up from its parts: one part for a lesson or
+/// the whole melody, four for a step practised phrase by phrase.
+struct StepProgress: Equatable {
+    let passedParts: Int
+    let goldParts: Int
+    let totalParts: Int
+    /// Something has been tried, even if nothing has passed yet.
+    let started: Bool
+
+    init(_ parts: [PracticeProgress], started: Bool = false) {
+        passedParts = parts.filter(\.passed).count
+        goldParts = parts.filter(\.completed).count
+        totalParts = parts.count
+        self.started = started || parts.contains { $0.passed || $0.successfulAttempts > 0 }
+    }
+
+    /// Passed moves the path on; gold is every part's earned milestone.
+    var passed: Bool { totalParts > 0 && passedParts == totalParts }
+    var gold: Bool { totalParts > 0 && goldParts == totalParts }
+
+    var status: String {
+        if gold { return "Gold" }
+        if passed { return "Passed" }
+        if totalParts > 1 { return "\(passedParts) of \(totalParts) phrases passed" }
+        return started ? "In progress" : "Not started"
     }
 }
 
@@ -115,16 +153,18 @@ private extension MelodyPiece {
     }
 }
 
-/// Which melodies have been played on their Listen step, kept as one small
-/// preference: listening has no take or round to look up.
-enum ListenedMelodies {
-    static let key = "listenedMelodies"
+/// A small set of identifiers kept as one preference string. The path uses it
+/// for the two things no take or round records: which melodies have been heard
+/// to the end, and which finished levels have already been celebrated.
+enum StoredIDs {
+    static let listenedMelodies = "listenedMelodies"
+    static let celebratedLevels = "celebratedLevels"
 
-    static func contains(_ piece: MelodyPiece, in stored: String) -> Bool {
-        stored.split(separator: ",").contains(Substring(piece.rawValue))
+    static func contains(_ id: String, in stored: String) -> Bool {
+        stored.split(separator: ",").contains(Substring(id))
     }
 
-    static func adding(_ piece: MelodyPiece, to stored: String) -> String {
-        contains(piece, in: stored) ? stored : (stored.isEmpty ? piece.rawValue : "\(stored),\(piece.rawValue)")
+    static func adding(_ id: String, to stored: String) -> String {
+        contains(id, in: stored) ? stored : (stored.isEmpty ? id : "\(stored),\(id)")
     }
 }

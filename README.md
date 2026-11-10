@@ -4,7 +4,7 @@ A native iPhone practice companion for beginners learning music while preparing 
 
 ## Practice
 
-**Music** is one path of levels, from first sounds to melodies. Each level lists its steps in order and counts the ones you have finished; the first unfinished step is marked **Continue**. Nothing is locked: any level and any step can be opened. Choosing a step opens its screen inside Music, with Back returning to the path. **Recordings** keeps the local history.
+**Music** is one path of levels, from first sounds to melodies. Each level lists its steps in order and counts the ones you have passed; the first step not yet passed is marked **Continue**. One two-star score passes a step; three 3-star scores among the last five earn its gold mark. Nothing is locked: any level and any step can be opened. Choosing a step opens its screen inside Music, with Back returning to the path. **Recordings** keeps the local history.
 
 | Level | Steps |
 | --- | --- |

@@ -10,7 +10,7 @@ struct MelodyReferenceView: View {
     @State private var section = MelodySection.whole
     @State private var hasRequestedPlayback = false
     @State private var isVisible = false
-    @AppStorage(ListenedMelodies.key) private var listened = ""
+    @AppStorage(StoredIDs.listenedMelodies) private var listened = ""
 
     private var context: MelodyPracticeContext { piece.reference(register: register, section: section) }
 
@@ -62,9 +62,9 @@ struct MelodyReferenceView: View {
             }
             .onChange(of: capture.isPlayingReference) { _, playing in
                 // Playback that reaches the end leaves the clock at the full length;
-                // stopping early or failing to start does not. Only the whole melody counts.
+                // stopping it early resets the clock. Only the whole melody counts.
                 if !playing, hasRequestedPlayback, section == .whole, capture.referenceElapsed >= context.duration - 0.1 {
-                    listened = ListenedMelodies.adding(piece, to: listened)
+                    listened = StoredIDs.adding(piece.rawValue, to: listened)
                 }
             }
             .onAppear { isVisible = true }

@@ -129,7 +129,7 @@ struct EchoProgressLedger: SessionProgressLedger {
         progress(forKey: Self.key(for: level, register: register), sessions: sessions)
     }
 
-    static func succeeded(_ session: PracticeSession) -> Bool { session.melodyRating?.goalReached == true }
+    static func starCount(for session: PracticeSession) -> Int? { session.melodyRating?.starCount }
 
     static func eligibleKey(for session: PracticeSession) -> String? {
         guard session.exercise == .listen, session.rating == nil,

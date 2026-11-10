@@ -1,17 +1,42 @@
 import Foundation
 
-/// Earned completion survives later takes. Navigation belongs to the lesson catalogue.
-struct PracticeProgress {
+/// Two tiers. `passed` moves the path on: one decent attempt. `completed` is
+/// gold: the earned milestone, which survives later takes.
+struct PracticeProgress: Equatable {
     let successfulAttempts: Int
     let requiredAttempts = CompletionRule.requiredSuccesses
     let completed: Bool
+    let passed: Bool
+
+    /// Gold always counts as passed, even if its takes were later deleted.
+    init(successfulAttempts: Int, completed: Bool, passed: Bool = false) {
+        self.successfulAttempts = successfulAttempts
+        self.completed = completed
+        self.passed = passed || completed
+    }
+
+    /// Applies both tiers to one activity's scored attempts, newest first.
+    init(stars newestFirst: [Int], alreadyCompleted: Bool = false) {
+        let successes = CompletionRule.recentSuccesses(newestFirst.map { $0 == CompletionRule.goldStars })
+        let completed = alreadyCompleted || successes >= CompletionRule.requiredSuccesses
+        self.init(successfulAttempts: completed ? CompletionRule.requiredSuccesses : successes,
+                  completed: completed, passed: CompletionRule.passed(newestFirst))
+    }
 }
 
-/// The one definition of "earned": three successes among five consecutive scored
-/// attempts. Every activity counts its own attempts and applies this rule.
+/// The one definition of both tiers. Passed: any scored attempt with two stars
+/// or more. Gold ("earned"): three 3-star attempts among five consecutive
+/// scored attempts. Every activity counts its own attempts and applies these.
 enum CompletionRule {
     static let requiredSuccesses = 3
     static let window = 5
+    static let goldStars = 3
+    static let passingStars = 2
+
+    /// True when any scored attempt reached the passing score.
+    static func passed(_ stars: some Sequence<Int>) -> Bool {
+        stars.contains { $0 >= passingStars }
+    }
 
     /// Successes among the most recent scored attempts, given newest first.
     static func recentSuccesses(_ newestFirst: some Sequence<Bool>) -> Int {
@@ -41,17 +66,18 @@ protocol SessionProgressLedger: Codable {
     var completedKeys: Set<String> { get set }
     /// The achievement a rated session counts towards, or nil when it counts for none.
     static func eligibleKey(for session: PracticeSession) -> String?
-    static func succeeded(_ session: PracticeSession) -> Bool
+    /// The stars an eligible session earned.
+    static func starCount(for session: PracticeSession) -> Int?
 }
 
 extension SessionProgressLedger {
+    static func succeeded(_ session: PracticeSession) -> Bool { starCount(for: session) == CompletionRule.goldStars }
+
     func progress(forKey key: String?, sessions: [PracticeSession]) -> PracticeProgress {
         guard let key else { return PracticeProgress(successfulAttempts: 0, completed: false) }
         let recent = sessions.filter { Self.eligibleKey(for: $0) == key }.sorted(by: Self.newestFirst)
-        let successes = CompletionRule.recentSuccesses(recent.map(Self.succeeded))
-        let completed = completedKeys.contains(key) || successes >= CompletionRule.requiredSuccesses
-        return PracticeProgress(successfulAttempts: completed ? CompletionRule.requiredSuccesses : successes,
-                                completed: completed)
+        return PracticeProgress(stars: recent.map { Self.starCount(for: $0) ?? 0 },
+                                alreadyCompleted: completedKeys.contains(key))
     }
 
     /// Returns true when a milestone was added and the ledger needs saving.
@@ -101,5 +127,5 @@ struct PracticeProgressLedger: SessionProgressLedger {
         return key(exercise: session.exercise, targetFrequency: target)
     }
 
-    static func succeeded(_ session: PracticeSession) -> Bool { session.rating?.goalReached == true }
+    static func starCount(for session: PracticeSession) -> Int? { session.rating?.starCount }
 }

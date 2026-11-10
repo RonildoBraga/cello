@@ -155,10 +155,8 @@ final class MelodyRhythmStore: ObservableObject {
         guard let key = Self.key(for: context) else {
             return PracticeProgress(successfulAttempts: 0, completed: false)
         }
-        let successes = CompletionRule.recentSuccesses(recentAttempts(for: context).map { $0.starCount == 3 })
-        let completed = completedKeys.contains(key) || successes >= CompletionRule.requiredSuccesses
-        return PracticeProgress(successfulAttempts: completed ? CompletionRule.requiredSuccesses : successes,
-                                completed: completed)
+        return PracticeProgress(stars: recentAttempts(for: context).map { $0.starCount ?? 0 },
+                                alreadyCompleted: completedKeys.contains(key))
     }
 
     func bestStars(for context: MelodyRhythmContext) -> Int? {

@@ -141,9 +141,7 @@ final class PulsePracticeStore: ObservableObject {
     var bestStars: Int? { attempts.compactMap(\.starCount).max() }
     var latestStars: Int? { attempts.first?.starCount }
     var progress: PracticeProgress {
-        let successes = CompletionRule.recentSuccesses(attempts.lazy.filter(\.isScored).map { $0.starCount == 3 })
-        return PracticeProgress(successfulAttempts: completed ? CompletionRule.requiredSuccesses : successes,
-                                completed: completed)
+        PracticeProgress(stars: attempts.filter(\.isScored).map { $0.starCount ?? 0 }, alreadyCompleted: completed)
     }
 
     /// Called at the real end of a round. Stopping early cannot create an attempt.
