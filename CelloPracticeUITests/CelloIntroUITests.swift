@@ -57,8 +57,9 @@ final class CelloIntroUITests: XCTestCase {
             reveal(hear, in: app)
             waitForHear(hear)
             hear.tap()
-            waitForStop(hear)
-            XCTAssertTrue(status.waitForExistence(timeout: 2))
+            // The note lasts two seconds. Go straight to the status line: waiting for
+            // the button to read Stop first can use up the time the status is visible.
+            XCTAssertTrue(status.waitForExistence(timeout: 3))
             XCTAssertTrue(status.label.contains(reference.1), "Playback should identify the selected string pitch")
             if index == 0 {
                 XCTAssertFalse(app.buttons["celloIntroHear-openG"].isEnabled,
