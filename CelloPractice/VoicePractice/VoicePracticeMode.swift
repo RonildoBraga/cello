@@ -65,7 +65,11 @@ enum VoicePracticeMode: Equatable {
     /// Echo shows no pitch until the take starts, so the pattern is not given away.
     var hidesTunerUntilRecording: Bool { isEcho }
     var offersTunerAfterResult: Bool { !isEcho }
-    var offersCameraPreview: Bool { !isEcho }
+    /// Video helps review posture and bowing; a hummed note needs only the microphone.
+    var recordsVideo: Bool {
+        if case .note(let exercise) = self { return exercise.section == .cello }
+        return false
+    }
     /// Echo offers a new pattern only once the current one has a result.
     var nextStepNeedsResult: Bool { isEcho }
 
@@ -134,7 +138,9 @@ enum VoicePracticeMode: Equatable {
     }
 
     private var echoCountdownMessage: String { "Start humming when the countdown ends." }
-    var preparingMessage: String { isEcho ? echoCountdownMessage : "Preparing camera & microphone…" }
+    var preparingMessage: String {
+        isEcho ? echoCountdownMessage : recordsVideo ? "Preparing camera & microphone…" : "Preparing microphone…"
+    }
     var countInMessage: String {
         isEcho ? echoCountdownMessage : isTimed ? "Get ready to hum" : "Get ready to play"
     }

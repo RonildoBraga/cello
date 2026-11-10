@@ -81,3 +81,7 @@ The page shows the proposed route into teacher-supported setup, open strings, fi
 [Issue #19](https://github.com/RonildoBraga/cello/issues/19) adds a separate Humming ear-training activity with original two-note and three-note catalogues. Manual, complete Hear playback unlocks Record for that exact frozen pattern. The usual countdown starts capture; [issue #23](https://github.com/RonildoBraga/cello/issues/23) adds the shared live tuning bar during recording, following each note in that frozen pattern. Both levels and voice registers remain selectable between attempts.
 
 The shared melody rater/feedback/chart and audio/video save path are reused. Progress spans eligible patterns within a level and voice register, with a separate EchoProgress.json ledger; Echo achievements do not enter song or foundation ledgers. Existing lesson IDs/numbers and song contexts are unchanged. Stars describe the recorded notes, timing and clarity, not a direct measurement of musical memory. See [the design, sources and validation boundaries](listen-and-echo.md).
+
+## Capture
+
+[Issue #35](https://github.com/RonildoBraga/cello/issues/35) decided what each activity records. Humming lessons, piece humming and Listen & Echo record the microphone only: they ask for no camera permission, save a sound-only take and export no video frames. Open-string cello lessons record microphone and camera together, because video is what lets a learner or teacher review posture and bowing. Recordings made by earlier builds keep their video. Tapping rounds record nothing.

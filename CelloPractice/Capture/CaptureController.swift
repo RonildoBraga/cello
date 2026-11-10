@@ -13,8 +13,9 @@ struct PitchSample: Codable, Sendable {
     let rms: Double
 }
 
-/// Camera and microphone share one capture session, so the saved movie and live
-/// tuner use the same input. Session mutations stay off the main thread.
+/// One capture session feeds both the saved take and the live tuner. Every take
+/// records the microphone; the camera joins only when a lesson asks for it, so
+/// humming needs no camera permission. Session mutations stay off the main thread.
 final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     let session = AVCaptureSession()
 
@@ -78,8 +79,9 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         referenceCooldown?.cancel()
     }
 
-    /// Permissions are requested only after a learner starts an action.
-    func start() {
+    /// Permissions are requested only after a learner starts an action, and the
+    /// camera only for lessons that record video.
+    func start(includingCamera: Bool) {
         sessionQueue.async { [weak self] in
             guard let self else { return }
             guard self.referenceToken == nil else {
@@ -87,19 +89,21 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
                 return
             }
             self.wantsToRun = true
-            self.requestCaptureStart()
+            self.requestCaptureStart(includingCamera: includingCamera)
         }
     }
 
-    private func requestCaptureStart() {
+    private func requestCaptureStart(includingCamera: Bool) {
         Task { [weak self] in
             guard let self else { return }
-            let cameraAllowed = await Self.requestPermission(for: .video)
+            let cameraAllowed = includingCamera ? await Self.requestPermission(for: .video) : true
             let microphoneAllowed = await Self.requestPermission(for: .audio)
             guard cameraAllowed && microphoneAllowed else {
                 self.publish {
                     self.isReady = false
-                    self.message = "Allow Camera and Microphone in Settings → Cello, then tap Record again."
+                    self.message = includingCamera
+                        ? "Allow Camera and Microphone in Settings → Cello, then tap Record again."
+                        : "Allow Microphone in Settings → Cello, then tap Record again."
                 }
                 return
             }
@@ -108,11 +112,14 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
                 do {
                     if !self.configured { try self.configureSession() }
                     else { try self.activateAudioSession() }
+                    try self.setCamera(enabled: includingCamera)
                     if !self.session.isRunning { self.session.startRunning() }
                     let running = self.session.isRunning
                     self.publish {
                         self.isReady = running
-                        self.message = running ? nil : "The camera could not start. Close any other camera app and try again."
+                        self.message = running ? nil : includingCamera
+                            ? "The camera could not start. Close any other camera app and try again."
+                            : "The microphone could not start. Close any other recording app and try again."
                     }
                 } catch {
                     self.publish {
@@ -186,7 +193,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
                 return
             }
             guard self.session.isRunning, self.wantsToRun else {
-                self.publish { self.message = "Camera and microphone aren’t ready. Tap Record to try again." }
+                self.publish { self.message = "Recording isn’t ready. Tap Record to try again." }
                 return
             }
             guard self.referenceToken == nil else {
@@ -425,13 +432,11 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         }
     }
 
+    /// The base session records the microphone only. `setCamera` adds video.
     private func configureSession() throws {
-        guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
-                ?? AVCaptureDevice.default(for: .video),
-              let microphone = AVCaptureDevice.default(for: .audio) else {
-            throw CaptureError.unavailableHardware
+        guard let microphone = AVCaptureDevice.default(for: .audio) else {
+            throw CaptureError.unavailableMicrophone
         }
-        let cameraInput = try AVCaptureDeviceInput(device: camera)
         let microphoneInput = try AVCaptureDeviceInput(device: microphone)
 
         session.beginConfiguration()
@@ -447,26 +452,40 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
                 try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
             }
         }
-        if session.canSetSessionPreset(.hd1280x720) { session.sessionPreset = .hd1280x720 }
         // Use measurement mode instead of voice processing, which can alter a
         // sustained musical note. No speaker monitoring or Bluetooth mic route.
         session.automaticallyConfiguresApplicationAudioSession = false
         try activateAudioSession()
 
-        guard session.canAddInput(cameraInput), session.canAddInput(microphoneInput) else {
-            throw CaptureError.unsupportedConfiguration
-        }
-        session.addInput(cameraInput)
+        guard session.canAddInput(microphoneInput) else { throw CaptureError.unsupportedConfiguration }
         session.addInput(microphoneInput)
         guard session.canAddOutput(movieOutput) else { throw CaptureError.unsupportedConfiguration }
         session.addOutput(movieOutput)
         guard session.canAddOutput(audioOutput) else { throw CaptureError.unsupportedConfiguration }
         audioOutput.setSampleBufferDelegate(self, queue: audioQueue)
         session.addOutput(audioOutput)
-        videoInput = cameraInput
-        configureMovieConnection()
         configured = true
         configurationSucceeded = true
+    }
+
+    /// Adds or removes the camera between takes. Called only on sessionQueue.
+    private func setCamera(enabled: Bool) throws {
+        guard enabled != (videoInput != nil), !recordingRequested else { return }
+        session.beginConfiguration()
+        defer { session.commitConfiguration() }
+        if let input = videoInput {
+            session.removeInput(input)
+            videoInput = nil
+            return
+        }
+        guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
+                ?? AVCaptureDevice.default(for: .video) else { throw CaptureError.unavailableCamera }
+        let input = try AVCaptureDeviceInput(device: camera)
+        guard session.canAddInput(input) else { throw CaptureError.unsupportedConfiguration }
+        session.addInput(input)
+        videoInput = input
+        if session.canSetSessionPreset(.hd1280x720) { session.sessionPreset = .hd1280x720 }
+        configureMovieConnection()
     }
 
     private func activateAudioSession() throws {
@@ -585,12 +604,14 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     }
 
     private enum CaptureError: LocalizedError {
-        case unavailableHardware
+        case unavailableMicrophone
+        case unavailableCamera
         case unsupportedConfiguration
         var errorDescription: String? {
             switch self {
-            case .unavailableHardware: return "Camera or microphone is unavailable. Use your iPhone to try live practice."
-            case .unsupportedConfiguration: return "This device could not configure camera and microphone together. Please restart the app and try again."
+            case .unavailableMicrophone: return "The microphone is unavailable. Use your iPhone to try live practice."
+            case .unavailableCamera: return "The camera is unavailable. Use your iPhone to record a cello lesson."
+            case .unsupportedConfiguration: return "This device could not set up recording. Please restart the app and try again."
             }
         }
     }
@@ -736,7 +757,7 @@ extension CaptureController: AVCaptureFileOutputRecordingDelegate {
                 if successfullyFinished && fileSize > 0 {
                     completion?(outputFileURL, observations)
                 } else {
-                    self.message = "Recording could not finish: \(error?.localizedDescription ?? "no video was captured"). Any partial file has been kept on this device."
+                    self.message = "Recording could not finish: \(error?.localizedDescription ?? "nothing was captured"). Any partial file has been kept on this device."
                 }
             }
             if !self.wantsToRun { self.stopSession() }

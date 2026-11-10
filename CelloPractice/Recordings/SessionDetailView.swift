@@ -9,6 +9,8 @@ struct SessionDetailView: View {
     @State private var exporting = false
     @State private var exportURL: URL?
     @State private var sharing = false
+    /// Humming takes are sound only; they need a player bar, not a video frame.
+    @State private var hasVideo = true
     @State private var error: String?
     init(session: PracticeSession, store: SessionStore) {
         self.session = session
@@ -35,7 +37,7 @@ struct SessionDetailView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Label("Playback", systemImage: "play.rectangle")
                         .font(.subheadline.weight(.semibold)).foregroundStyle(Palette.forest)
-                    VideoPlayer(player: player).frame(height: 220)
+                    VideoPlayer(player: player).frame(height: hasVideo ? 220 : 96)
                         .accessibilityIdentifier("sessionPlaybackPlayer")
                         .clipShape(RoundedRectangle(cornerRadius: Layout.cardRadius))
                 }
@@ -62,6 +64,10 @@ struct SessionDetailView: View {
             }.screenContent()
         }.background(Palette.paper).screenTitle("Your session")
             .onDisappear { player.pause() }
+            .task {
+                let tracks = try? await AVURLAsset(url: store.videoURL(for: session)).loadTracks(withMediaType: .video)
+                if let tracks { hasVideo = !tracks.isEmpty }
+            }
             .sheet(isPresented: $sharing) {
                 if let exportURL { ActivitySheet(items: [exportURL]) }
             }
