@@ -2,9 +2,9 @@ import CryptoKit
 import Foundation
 
 /// Melody achievements never inherit a foundation score or another reference.
-struct MelodyProgressLedger: Codable {
+struct MelodyProgressLedger: SessionProgressLedger {
     let schemaVersion: Int
-    private(set) var completedKeys: Set<String>
+    var completedKeys: Set<String>
 
     init(schemaVersion: Int = 1, completedKeys: Set<String> = []) {
         self.schemaVersion = schemaVersion
@@ -12,30 +12,7 @@ struct MelodyProgressLedger: Codable {
     }
 
     func progress(for context: MelodyPracticeContext, sessions: [PracticeSession]) -> PracticeProgress {
-        guard let key = Self.key(for: context) else {
-            return PracticeProgress(successfulAttempts: 0, completed: false)
-        }
-        let recent = sessions.filter { Self.eligibleKey(for: $0) == key }
-            .sorted(by: Self.newestFirst).prefix(5)
-        let successes = recent.filter { $0.melodyRating?.goalReached == true }.count
-        let completed = completedKeys.contains(key) || successes >= 3
-        return PracticeProgress(successfulAttempts: completed ? 3 : successes, completed: completed)
-    }
-
-    /// Replay all historical windows so an interrupted ledger write is recoverable.
-    @discardableResult
-    mutating func update(from sessions: [PracticeSession]) -> Bool {
-        var windows: [String: [Bool]] = [:]
-        var changed = false
-        for session in sessions.sorted(by: { Self.newestFirst($1, $0) }) {
-            guard let key = Self.eligibleKey(for: session) else { continue }
-            var window = windows[key, default: []]
-            window.append(session.melodyRating?.goalReached == true)
-            if window.count > 5 { window.removeFirst() }
-            windows[key] = window
-            if window.filter({ $0 }).count >= 3, completedKeys.insert(key).inserted { changed = true }
-        }
-        return changed
+        progress(forKey: Self.key(for: context), sessions: sessions)
     }
 
     private static func key(for context: MelodyPracticeContext) -> String? {
@@ -49,15 +26,12 @@ struct MelodyProgressLedger: Codable {
         return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
 
-    private static func eligibleKey(for session: PracticeSession) -> String? {
+    static func eligibleKey(for session: PracticeSession) -> String? {
         guard let context = session.melodyContext, let rating = session.melodyRating,
               rating.status == .rated, rating.version == context.gradingVersion,
               session.rating == nil else { return nil }
         return key(for: context)
     }
 
-    private static func newestFirst(_ lhs: PracticeSession, _ rhs: PracticeSession) -> Bool {
-        if lhs.createdAt != rhs.createdAt { return lhs.createdAt > rhs.createdAt }
-        return lhs.id.uuidString > rhs.id.uuidString
-    }
+    static func succeeded(_ session: PracticeSession) -> Bool { session.melodyRating?.goalReached == true }
 }

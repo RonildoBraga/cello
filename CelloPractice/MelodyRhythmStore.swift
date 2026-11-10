@@ -162,9 +162,10 @@ final class MelodyRhythmStore: ObservableObject {
         guard let key = Self.key(for: context) else {
             return PracticeProgress(successfulAttempts: 0, completed: false)
         }
-        let successes = recentAttempts(for: context).prefix(5).filter { $0.starCount == 3 }.count
-        let completed = completedKeys.contains(key) || successes >= 3
-        return PracticeProgress(successfulAttempts: completed ? 3 : successes, completed: completed)
+        let successes = CompletionRule.recentSuccesses(recentAttempts(for: context).map { $0.starCount == 3 })
+        let completed = completedKeys.contains(key) || successes >= CompletionRule.requiredSuccesses
+        return PracticeProgress(successfulAttempts: completed ? CompletionRule.requiredSuccesses : successes,
+                                completed: completed)
     }
 
     func bestStars(for context: MelodyRhythmContext) -> Int? {
@@ -208,19 +209,12 @@ final class MelodyRhythmStore: ObservableObject {
         return attempts.filter { $0.isScored && Self.key(for: $0.context) == key }
     }
 
-    /// Replay chronological windows so later misses cannot erase a real achievement.
+    /// Attempts are stored newest first; the rule replays them in recorded order.
     private static func earnedKeys(in attempts: [MelodyRhythmAttempt]) -> Set<String> {
-        var windows: [String: [Bool]] = [:]
-        var earned: Set<String> = []
-        for attempt in attempts.reversed() where attempt.isScored {
-            guard let key = key(for: attempt.context) else { continue }
-            var window = windows[key, default: []]
-            window.append(attempt.starCount == 3)
-            if window.count > 5 { window.removeFirst() }
-            windows[key] = window
-            if window.filter({ $0 }).count >= 3 { earned.insert(key) }
-        }
-        return earned
+        CompletionRule.earnedKeys(attempts.reversed().compactMap { attempt in
+            guard attempt.isScored, let key = key(for: attempt.context) else { return nil }
+            return (key: key, success: attempt.starCount == 3)
+        })
     }
 
     private static func key(for context: MelodyRhythmContext) -> String? {

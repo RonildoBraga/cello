@@ -10,22 +10,20 @@ final class SessionStore: ObservableObject {
     @Published var errorMessage: String?
 
     private let directory: URL
-    private var progressLedger = PracticeProgressLedger()
-    private var progressPersistenceError: String?
-    private var progressFileIsUnreadable = false
-    private var progressNeedsSave = false
-    private var melodyLedger = MelodyProgressLedger()
-    private var melodyPersistenceError: String?
-    private var melodyFileIsUnreadable = false
-    private var melodyNeedsSave = false
-    private var echoLedger = EchoProgressLedger()
-    private var echoPersistenceError: String?
-    private var echoFileIsUnreadable = false
-    private var echoNeedsSave = false
+    private var foundationProgress: LedgerFile<PracticeProgressLedger>
+    private var melodyProgressFile: LedgerFile<MelodyProgressLedger>
+    private var echoProgressFile: LedgerFile<EchoProgressLedger>
 
     init(directory overrideDirectory: URL? = nil) {
         directory = overrideDirectory ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("PracticeSessions", isDirectory: true)
+        let documents = directory.deletingLastPathComponent()
+        foundationProgress = LedgerFile(ledger: PracticeProgressLedger(), label: "progress",
+                                        url: documents.appendingPathComponent("PracticeProgress.json"))
+        melodyProgressFile = LedgerFile(ledger: MelodyProgressLedger(), label: "melody progress",
+                                        url: documents.appendingPathComponent("MelodyProgress.json"))
+        echoProgressFile = LedgerFile(ledger: EchoProgressLedger(), label: "echo progress",
+                                      url: documents.appendingPathComponent("EchoProgress.json"))
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let folders = try FileManager.default.contentsOfDirectory(
@@ -55,16 +53,16 @@ final class SessionStore: ObservableObject {
         } catch {
             errorMessage = "Could not open your practice history: \(error.localizedDescription)"
         }
-        loadProgress()
-        loadMelodyProgress()
-        loadEchoProgress()
+        foundationProgress.load(sessions: sessions, errorMessage: &errorMessage)
+        melodyProgressFile.load(sessions: sessions, errorMessage: &errorMessage)
+        echoProgressFile.load(sessions: sessions, errorMessage: &errorMessage)
         refreshPendingRecordings()
     }
 
     func saveRecording(from source: URL, samples: [PitchSample], exercise: Exercise,
                        notes: String = "", duration: Double, targetFrequency: Double? = nil,
                        melodyContext: MelodyPracticeContext? = nil) async -> PracticeSession? {
-        errorMessage = progressPersistenceError ?? melodyPersistenceError ?? echoPersistenceError
+        errorMessage = progressPersistenceError
         defer { refreshPendingRecordings() }
         guard melodyContext?.isValid != false else {
             errorMessage = "Could not save this session because its melody reference is invalid. The original recording is preserved at \(source.lastPathComponent)."
@@ -132,142 +130,35 @@ final class SessionStore: ObservableObject {
     }
 
     func progress(for exercise: Exercise, targetFrequency: Double) -> PracticeProgress {
-        progressLedger.progress(for: exercise, targetFrequency: targetFrequency, sessions: sessions)
+        foundationProgress.ledger.progress(for: exercise, targetFrequency: targetFrequency, sessions: sessions)
     }
 
     func melodyProgress(for context: MelodyPracticeContext) -> PracticeProgress {
-        melodyLedger.progress(for: context, sessions: sessions)
+        melodyProgressFile.ledger.progress(for: context, sessions: sessions)
     }
 
     func echoProgress(for level: EchoLevel, register: MelodyRegister) -> PracticeProgress {
-        echoLedger.progress(for: level, register: register, sessions: sessions)
+        echoProgressFile.ledger.progress(for: level, register: register, sessions: sessions)
     }
 
-    private var progressURL: URL {
-        directory.deletingLastPathComponent().appendingPathComponent("PracticeProgress.json")
-    }
-
-    private func loadProgress() {
-        if FileManager.default.fileExists(atPath: progressURL.path) {
-            do {
-                let ledger = try JSONDecoder().decode(PracticeProgressLedger.self,
-                                                      from: Data(contentsOf: progressURL))
-                guard ledger.schemaVersion == 1 else { throw StorageError.invalidMetadata }
-                progressLedger = ledger
-            } catch {
-                // Do not overwrite an unreadable progress file. Recordings can
-                // still load, save and reconstruct achievements from their ratings.
-                progressPersistenceError = "Saved progress could not be read. Its file and all recordings have been preserved."
-                progressFileIsUnreadable = true
-                if errorMessage == nil { errorMessage = progressPersistenceError }
-            }
-        }
-        persistFoundationMilestones()
+    private var progressPersistenceError: String? {
+        foundationProgress.persistenceError ?? melodyProgressFile.persistenceError
+            ?? echoProgressFile.persistenceError
     }
 
     private func persistNewMilestones() {
-        persistFoundationMilestones()
-        persistMelodyMilestones()
-        persistEchoMilestones()
-    }
-
-    private func persistFoundationMilestones() {
-        if progressLedger.update(from: sessions) { progressNeedsSave = true }
-        guard progressNeedsSave, !progressFileIsUnreadable else { return }
-        do {
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-            try encoder.encode(progressLedger).write(to: progressURL, options: .atomic)
-            progressNeedsSave = false
-            if errorMessage == progressPersistenceError { errorMessage = nil }
-            progressPersistenceError = nil
-        } catch {
-            progressPersistenceError = "Your recording is saved, but progress could not be saved. \(error.localizedDescription)"
-            errorMessage = progressPersistenceError
-        }
-    }
-
-    private var melodyProgressURL: URL {
-        directory.deletingLastPathComponent().appendingPathComponent("MelodyProgress.json")
-    }
-
-    private func loadMelodyProgress() {
-        if FileManager.default.fileExists(atPath: melodyProgressURL.path) {
-            do {
-                let ledger = try JSONDecoder().decode(MelodyProgressLedger.self,
-                    from: Data(contentsOf: melodyProgressURL))
-                guard ledger.schemaVersion == 1 else { throw StorageError.invalidMetadata }
-                melodyLedger = ledger
-            } catch {
-                melodyPersistenceError = "Saved melody progress could not be read. Its file and all recordings have been preserved."
-                melodyFileIsUnreadable = true
-                if errorMessage == nil { errorMessage = melodyPersistenceError }
-            }
-        }
-        persistMelodyMilestones()
-    }
-
-    private func persistMelodyMilestones() {
-        if melodyLedger.update(from: sessions) { melodyNeedsSave = true }
-        guard melodyNeedsSave, !melodyFileIsUnreadable else { return }
-        do {
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-            try encoder.encode(melodyLedger).write(to: melodyProgressURL, options: .atomic)
-            melodyNeedsSave = false
-            if errorMessage == melodyPersistenceError { errorMessage = nil }
-            melodyPersistenceError = nil
-        } catch {
-            melodyPersistenceError = "Your recording is saved, but melody progress could not be saved. \(error.localizedDescription)"
-            errorMessage = melodyPersistenceError
-        }
-    }
-
-    private var echoProgressURL: URL {
-        directory.deletingLastPathComponent().appendingPathComponent("EchoProgress.json")
-    }
-
-    private func loadEchoProgress() {
-        if FileManager.default.fileExists(atPath: echoProgressURL.path) {
-            do {
-                let ledger = try JSONDecoder().decode(EchoProgressLedger.self,
-                    from: Data(contentsOf: echoProgressURL))
-                guard ledger.schemaVersion == 1 else { throw StorageError.invalidMetadata }
-                echoLedger = ledger
-            } catch {
-                echoPersistenceError = "Saved echo progress could not be read. Its file and all recordings have been preserved."
-                echoFileIsUnreadable = true
-                if errorMessage == nil { errorMessage = echoPersistenceError }
-            }
-        }
-        persistEchoMilestones()
-    }
-
-    private func persistEchoMilestones() {
-        if echoLedger.update(from: sessions) { echoNeedsSave = true }
-        guard echoNeedsSave, !echoFileIsUnreadable else { return }
-        do {
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-            try encoder.encode(echoLedger).write(to: echoProgressURL, options: .atomic)
-            echoNeedsSave = false
-            if errorMessage == echoPersistenceError { errorMessage = nil }
-            echoPersistenceError = nil
-        } catch {
-            echoPersistenceError = "Your recording is saved, but echo progress could not be saved. \(error.localizedDescription)"
-            errorMessage = echoPersistenceError
-        }
+        foundationProgress.persist(sessions: sessions, errorMessage: &errorMessage)
+        melodyProgressFile.persist(sessions: sessions, errorMessage: &errorMessage)
+        echoProgressFile.persist(sessions: sessions, errorMessage: &errorMessage)
     }
 
     func delete(_ session: PracticeSession) {
         // Rated recordings may be the only durable proof of an earned milestone.
         // Preserve that proof until the separate progress file is safely written.
         persistNewMilestones()
-        guard !progressNeedsSave, !melodyNeedsSave, !echoNeedsSave else {
-            errorMessage = progressPersistenceError ?? melodyPersistenceError ?? echoPersistenceError
-            return
-        }
-        errorMessage = progressPersistenceError ?? melodyPersistenceError ?? echoPersistenceError
+        errorMessage = progressPersistenceError
+        guard !foundationProgress.needsSave, !melodyProgressFile.needsSave,
+              !echoProgressFile.needsSave else { return }
         do {
             try FileManager.default.removeItem(at: folderURL(for: session))
             sessions.removeAll { $0.id == session.id }
@@ -498,6 +389,55 @@ final class SessionStore: ObservableObject {
     private enum StorageError: LocalizedError {
         case invalidMetadata
         var errorDescription: String? { "The saved session metadata is invalid." }
+    }
+}
+
+/// One activity's earned milestones and the file that keeps them. An unreadable
+/// file is preserved and never overwritten; recordings can still load and save.
+private struct LedgerFile<Ledger: SessionProgressLedger> {
+    private(set) var ledger: Ledger
+    let label: String
+    let url: URL
+    private(set) var persistenceError: String?
+    private(set) var needsSave = false
+    private var fileIsUnreadable = false
+
+    init(ledger: Ledger, label: String, url: URL) {
+        self.ledger = ledger
+        self.label = label
+        self.url = url
+    }
+
+    mutating func load(sessions: [PracticeSession], errorMessage: inout String?) {
+        if FileManager.default.fileExists(atPath: url.path) {
+            do {
+                let saved = try JSONDecoder().decode(Ledger.self, from: Data(contentsOf: url))
+                guard saved.schemaVersion == 1 else { throw CocoaError(.fileReadCorruptFile) }
+                ledger = saved
+            } catch {
+                persistenceError = "Saved \(label) could not be read. Its file and all recordings have been preserved."
+                fileIsUnreadable = true
+                if errorMessage == nil { errorMessage = persistenceError }
+            }
+        }
+        persist(sessions: sessions, errorMessage: &errorMessage)
+    }
+
+    /// Adds milestones earned by `sessions`, then writes if anything is unsaved.
+    mutating func persist(sessions: [PracticeSession], errorMessage: inout String?) {
+        if ledger.update(from: sessions) { needsSave = true }
+        guard needsSave, !fileIsUnreadable else { return }
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            try encoder.encode(ledger).write(to: url, options: .atomic)
+            needsSave = false
+            if errorMessage == persistenceError { errorMessage = nil }
+            persistenceError = nil
+        } catch {
+            persistenceError = "Your recording is saved, but \(label) could not be saved. \(error.localizedDescription)"
+            errorMessage = persistenceError
+        }
     }
 }
 
