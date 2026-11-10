@@ -60,35 +60,16 @@ For updates without a cable, upload a Release archive to App Store Connect for i
 
 ## Tests
 
-The pitch detector can be tested without the iPhone app:
+One script runs the same tests locally and in CI:
 
 ```sh
-swift test --package-path Packages/CelloPitch -c release
+bash scripts/test.sh          # pitch package + app unit tests
+bash scripts/test.sh package  # pitch detector only; no Simulator needed
+bash scripts/test.sh ui       # real-clock UI tests
+bash scripts/test.sh all
 ```
 
-For app and UI tests, first find a Simulator installed on your Mac:
-
-```sh
-xcrun simctl list devices available
-```
-
-Use its UUID in the following commands:
-
-```sh
-CELLO_SIMULATOR_ID=YOUR_SIMULATOR_UUID
-
-xcodebuild -project CelloPractice.xcodeproj -scheme Cello \
-  -destination "platform=iOS Simulator,id=$CELLO_SIMULATOR_ID" \
-  -derivedDataPath build CODE_SIGNING_ALLOWED=NO \
-  -parallel-testing-enabled NO -collect-test-diagnostics never \
-  -only-testing:CelloTests test
-
-xcodebuild -project CelloPractice.xcodeproj -scheme Cello \
-  -destination "platform=iOS Simulator,id=$CELLO_SIMULATOR_ID" \
-  -derivedDataPath build CODE_SIGNING_ALLOWED=NO \
-  -parallel-testing-enabled NO -collect-test-diagnostics never \
-  -only-testing:CelloUITests test
-```
+App and UI tests use the first available iPhone Simulator. To choose one, list them with `xcrun simctl list devices available` and set `CELLO_SIMULATOR_ID=YOUR_SIMULATOR_UUID` before the command. Pull requests run the package and unit tests automatically through [GitHub Actions](.github/workflows/tests.yml); the UI tests stay a local step before a release. Project conventions are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Tests cover pitch detection, versioned scoring, recording save/reload/export, progress persistence and recovery, lesson routing, rhythm timing and charts. UI rhythm rounds use the real clock. Optional archived-recording UI checks skip explicitly when their external fixtures are absent; personal recordings are not bundled with the repository. Simulator checks do not establish physical microphone, speaker or haptic behavior.
 
