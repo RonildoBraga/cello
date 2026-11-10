@@ -528,8 +528,6 @@ final class LearningUITests: XCTestCase {
         play.tap()
         waitForMelodyButton("Stop", in: app)
         app.navigationBars["Listen"].buttons.firstMatch.tap()
-        XCTAssertTrue(app.pathRow("step-hotCrossBuns-listen").label.contains("Listened"),
-                      "Playing the melody marks the Listen step")
         openMelodyReference(in: app)
         waitForMelodyButton("Hear melody", in: app)
         XCTAssertFalse(status.exists, "Returning after Back must not resume the old reference")
@@ -555,6 +553,18 @@ final class LearningUITests: XCTestCase {
         waitForRecord(in: app)
         XCTAssertFalse(app.staticTexts["captureMessage"].exists)
         assertNoPermissionAlerts(in: app)
+    }
+
+    func testHearingTheWholeMelodyToTheEndFinishesTheListenStep() {
+        let app = XCUIApplication()
+        app.launch()
+        openMelodyReference(in: app, pieceID: "odeToJoy")
+        app.buttons["melodyPlayButton"].tap()
+        waitForMelodyButton("Stop", in: app)
+        waitForMelodyButton("Hear melody", in: app, timeout: 25)
+        app.navigationBars["Listen"].buttons.firstMatch.tap()
+        XCTAssertTrue(app.pathRow("step-odeToJoy-listen").label.contains("Listened"),
+                      "Playing the whole melody to its end finishes Listen")
     }
 
     func testMelodyPhrasePlaybackFinishesAndCancelsWhenSelectionChanges() {

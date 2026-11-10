@@ -60,6 +60,13 @@ struct MelodyReferenceView: View {
             .onChange(of: scenePhase) { _, phase in
                 if isVisible, phase != .active { hasRequestedPlayback = false; capture.stop() }
             }
+            .onChange(of: capture.isPlayingReference) { _, playing in
+                // Playback that reaches the end leaves the clock at the full length;
+                // stopping early or failing to start does not. Only the whole melody counts.
+                if !playing, hasRequestedPlayback, section == .whole, capture.referenceElapsed >= context.duration - 0.1 {
+                    listened = ListenedMelodies.adding(piece, to: listened)
+                }
+            }
             .onAppear { isVisible = true }
             .onDisappear { isVisible = false; hasRequestedPlayback = false; capture.stop() }
     }
@@ -80,7 +87,6 @@ struct MelodyReferenceView: View {
                 if capture.isPlayingReference { capture.stop() }
                 else {
                     hasRequestedPlayback = true
-                    listened = ListenedMelodies.adding(piece, to: listened)
                     capture.playMelodyReference(context)
                 }
             } label: {
