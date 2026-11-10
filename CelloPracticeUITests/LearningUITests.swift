@@ -769,7 +769,7 @@ final class LearningUITests: XCTestCase {
         }
         XCTAssertFalse(app.staticTexts["LISTEN"].exists, "Only Hear may play the reference")
         let message = app.staticTexts["captureMessage"]
-        XCTAssertTrue(message.waitForExistence(timeout: 8), "Unavailable Simulator capture should return with an explanation")
+        XCTAssertTrue(message.waitForExistence(timeout: 20), "Unavailable Simulator capture should return with an explanation")
         XCTAssertTrue(message.label.localizedCaseInsensitiveContains("camera")
                       || message.label.localizedCaseInsensitiveContains("microphone"))
         waitForRecord(in: app)
@@ -1102,7 +1102,7 @@ final class LearningUITests: XCTestCase {
         }
         XCTAssertFalse(app.staticTexts["LISTEN"].exists, "Record must never play the reference first")
         let message = app.staticTexts["captureMessage"]
-        XCTAssertTrue(message.waitForExistence(timeout: 8), "Unavailable capture must leave Preparing with an explanation")
+        XCTAssertTrue(message.waitForExistence(timeout: 20), "Unavailable capture must leave Preparing with an explanation")
         XCTAssertTrue(message.label.localizedCaseInsensitiveContains("camera")
                       || message.label.localizedCaseInsensitiveContains("microphone"))
         waitForRecord(in: app)

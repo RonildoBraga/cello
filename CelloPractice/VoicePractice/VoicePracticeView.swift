@@ -63,7 +63,7 @@ struct VoicePracticeView<Header: View>: View {
                         Button { cancelFlow(stopCapture: true) } label: {
                             Image(systemName: "power").frame(width: 44, height: 44)
                         }.disabled(capture.isRecording || saving)
-                            .accessibilityLabel("Turn off camera and microphone")
+                            .accessibilityLabel(mode.recordsVideo ? "Turn off camera and microphone" : "Turn off microphone")
                     }
                 }
             }
@@ -156,7 +156,7 @@ struct VoicePracticeView<Header: View>: View {
                         statusCard
                         if showsIdleContent { lessonProgress }
                     }
-                    if capture.isReady && mode.offersCameraPreview {
+                    if capture.isReady && mode.recordsVideo {
                         DisclosureGroup("Camera preview", isExpanded: $cameraExpanded) {
                             camera.padding(.top, 10)
                         }.font(.subheadline.weight(.medium)).foregroundStyle(Palette.forest)
@@ -319,7 +319,8 @@ struct VoicePracticeView<Header: View>: View {
         return saved ? "Record again" : "Record"
     }
     private var permissionsDenied: Bool {
-        [AVMediaType.video, .audio].contains { mediaType in
+        let needed: [AVMediaType] = mode.recordsVideo ? [.video, .audio] : [.audio]
+        return needed.contains { mediaType in
             let status = AVCaptureDevice.authorizationStatus(for: mediaType)
             return status == .denied || status == .restricted
         }
@@ -375,7 +376,7 @@ struct VoicePracticeView<Header: View>: View {
         pendingRecord = true
         phase = .preparing
         if capture.isReady { dispatchPendingAction() }
-        else { capture.start() }
+        else { capture.start(includingCamera: mode.recordsVideo) }
     }
 
     private func dispatchPendingAction() {

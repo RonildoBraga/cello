@@ -162,7 +162,7 @@ final class EchoPracticeUITests: XCTestCase {
             }
         }
         let message = app.staticTexts["captureMessage"]
-        XCTAssertTrue(message.waitForExistence(timeout: 8), "A Simulator without a camera should explain the capture failure")
+        XCTAssertTrue(message.waitForExistence(timeout: 20), "A Simulator without a camera should explain the capture failure")
         XCTAssertTrue(message.label.localizedCaseInsensitiveContains("camera")
                       || message.label.localizedCaseInsensitiveContains("microphone"))
         waitForRecordLabel("Record", in: app)

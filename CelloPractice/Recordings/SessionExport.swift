@@ -147,13 +147,13 @@ enum SessionExport {
 
         ## Files for review
 
-        - recording.mov: the original synchronized camera and microphone recording.
+        - recording.mov: the original recording. Humming takes hold sound only; cello takes also hold video.
         - session.json: exercise, fixed target or melody reference if selected, duration, pitch measurements and a frozen practice rating when available, plus any notes retained from older recordings.
         - pitch.csv: timestamped pitch measurements for plotting or analysis.
 
         """
         result += frames.isEmpty
-            ? "\nNo preview frames could be generated. Use the original video for visual review.\n"
+            ? "\nNo preview frames are included: this take has no video, or frames could not be generated.\n"
             : "\nSelected video frames:\n\(frames.joined(separator: "\n"))\n"
         result += """
 

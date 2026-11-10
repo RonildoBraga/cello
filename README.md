@@ -31,7 +31,7 @@ The **Cello** area has separate C/G/D/A open-string targets. Foundation lesson p
 **Listen & follow** also offers manual playback in the cello register (D3–F♯3). All audible references use recorded sound: edited human humming for the voice registers and recorded bowed cello samples for cello notes. The foundation human example keeps its original pitch; melody examples adjust the recordings to the selected notes and timing. Cello playing exercises are future work. See the [melody rhythm assessment](docs/melody-rhythm.md), [humming assessment](docs/melody-humming.md), [learning-path design](docs/music-learning-path.md) and [delivery issues](https://github.com/RonildoBraga/cello/issues/1).
 
 - **Hear hum** plays the recorded human example. **Record** starts a three-second countdown, then records a three-second humming take. Cello takes finish when you tap Stop, with a 90-second limit.
-- Voice/instrument recordings include synchronized microphone audio, video and pitch observations. A tuning bar and end-of-take pitch chart show distance from the fixed target.
+- Humming recordings hold microphone audio and pitch observations only; no camera is used or asked for. Cello recordings add synchronized video, so posture and bowing can be reviewed. A tuning bar and end-of-take pitch chart show distance from the fixed target.
 - Rhythm lessons use four count-in beats at 60 BPM, automatic whole-beat haptics, saved tap timing and a performance chart. Lesson 4 has sixteen tap positions over eight beats; Lesson 5 has twelve over eight beats.
 - Voice stars measure Match, Steady and Hold. Rhythm stars measure coverage, Timing and Evenness; Mixed rhythm's Pattern goal requires at least nine of its twelve expected taps and no more than one extra tap outside the pattern.
 - Three three-star attempts among the last five scored attempts earn completion, which remains earned after later attempts.
@@ -45,7 +45,7 @@ Requirements: macOS with Xcode and an iOS 18-or-later SDK; the app targets iOS 1
 
 1. Open `CelloPractice.xcodeproj` and select the **Cello** scheme.
 2. Select an available iPhone Simulator and run, or choose your connected iPhone.
-3. For a physical device, select your own Apple development team in **Signing & Capabilities**, use a bundle identifier you can provision, and enable Developer Mode on the phone. Camera and microphone access are requested when starting a recording. Reference playback works without capture permissions.
+3. For a physical device, select your own Apple development team in **Signing & Capabilities**, use a bundle identifier you can provision, and enable Developer Mode on the phone. Microphone access is requested when starting a recording; camera access only when starting a cello recording. Reference playback works without capture permissions.
 
 The optional install script builds, installs and launches a signed Release app on a connected phone:
 
@@ -79,14 +79,14 @@ Practice data stays on the device. The app has no account, analytics, automatic 
 
 The bundled [privacy manifest](CelloPractice/Resources/PrivacyInfo.xcprivacy) declares no tracking or collected data. Countdown and rhythm timers use system uptime to measure elapsed intervals under Apple's approved reason `35F9.1`; raw boot times are not exported. The build also declares that it uses no non-exempt encryption; progress keys use Apple's SHA256 hashing.
 
-- Audio/video takes and metadata: `Documents/PracticeSessions`.
+- Takes (sound only for humming, sound and video for cello) and metadata: `Documents/PracticeSessions`.
 - Unfinished or failed-save takes retained for recovery: `Documents/PendingTakes`.
 - Voice completion milestones: `Documents/PracticeProgress.json`.
 - Separate rhythm history files: `PulsePractice.json`, `TwoTapsPractice.json` and `MixedRhythmPractice.json`.
 - Piece rhythm rounds and completion milestones: `Documents/MelodyRhythmPractice.json`, separate from foundation histories.
 - Listen & Echo completion milestones: `Documents/EchoProgress.json`; frozen patterns and ratings stay with the recordings.
 - Separate melody completion milestones: `Documents/MelodyProgress.json`; attempt ratings and frozen phrase references stay with each recording.
-- A session ZIP contains the movie, metadata, pitch CSV, a review summary and up to four timestamped JPEG frames.
+- A session ZIP contains the recording, metadata, pitch CSV, a review summary and, for takes with video, up to four timestamped JPEG frames.
 
 Deleting the app removes its local data, so export important recordings first. Repository ignore rules exclude local builds, signing material, personal practice media and review artifacts. The bundled reference hum below is a licensed public recording, not a learner's practice take.
 
