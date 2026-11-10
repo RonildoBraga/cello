@@ -472,6 +472,51 @@ final class SessionStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testOdeToJoyRecordedAudioSavesReloadsAndExportsItsOwnFrozenScore() async throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let directory = root.appendingPathComponent("PracticeSessions", isDirectory: true)
+        let context = try MelodyPracticeContext.odeToJoy(register: .lowVoice, section: .phrase4,
+                                                        gradingVersion: MelodyRating.currentVersion)
+        let source = try await makeAudioMovie(in: root.appendingPathComponent("PendingTakes", isDirectory: true),
+            audioData: RecordedReference.wavData(context: context), duration: context.duration)
+        let original = try Data(contentsOf: source)
+        let store = SessionStore(directory: directory)
+        let saved = await store.saveRecording(from: source, samples: [], exercise: .steadyHum,
+            duration: context.duration, targetFrequency: HummingExample.frequency, melodyContext: context)
+        let session = try XCTUnwrap(saved)
+        XCTAssertEqual(session.title, "Ode to Joy · Phrase 4")
+        XCTAssertEqual(session.starCount, 3, "The saved movie's decoded audio must match the dotted ending")
+        XCTAssertEqual(session.melodyContext, context)
+        XCTAssertNil(session.rating)
+        XCTAssertNil(session.effectiveTargetFrequency)
+        XCTAssertEqual(store.melodyProgress(for: context).successfulAttempts, 1)
+        let hot = try MelodyPracticeContext.hotCrossBuns(register: .lowVoice, section: .phrase4,
+                                                        gradingVersion: MelodyRating.currentVersion)
+        XCTAssertEqual(store.melodyProgress(for: hot).successfulAttempts, 0)
+        XCTAssertEqual(store.progress(for: .steadyHum, targetFrequency: HummingExample.frequency).successfulAttempts, 0)
+
+        let reloaded = SessionStore(directory: directory)
+        let restored = try XCTUnwrap(reloaded.sessions.first)
+        XCTAssertEqual(restored.melodyContext, context)
+        XCTAssertEqual(restored.melodyRating, session.melodyRating)
+        XCTAssertEqual(reloaded.melodyProgress(for: context).successfulAttempts, 1)
+        let archive = try await reloaded.export(restored)
+        defer { try? FileManager.default.removeItem(at: archive.deletingLastPathComponent()) }
+        let files = try readStoredZIP(at: archive)
+        XCTAssertEqual(files["recording.mov"], original)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let exported = try decoder.decode(PracticeSession.self, from: XCTUnwrap(files["session.json"]))
+        XCTAssertEqual(exported.melodyContext, context)
+        XCTAssertEqual(exported.melodyRating, session.melodyRating)
+        XCTAssertEqual(exported.title, "Ode to Joy · Phrase 4")
+        let review = try XCTUnwrap(files["review.md"]).utf8String
+        XCTAssertTrue(review.contains("odeToJoy"))
+        XCTAssertTrue(review.contains("## Melody feedback"))
+    }
+
+    @MainActor
     func testUnsupportedMelodyGradingVersionSavesOriginalWithoutInventingFeedback() async throws {
         let root = try makeRoot()
         defer { try? FileManager.default.removeItem(at: root) }

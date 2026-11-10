@@ -26,7 +26,7 @@ Source and license verified on 9 November 2026.
 
 Melody adaptations (recorded-human references)
 
-The melody examples use the same human recording, edited into the traditional Hot Cross Buns teaching arrangement. Pitch, note duration, articulation and quiet gaps are adjusted to the selected score. They are adaptations of a recorded voice, not a continuous performance of this melody by the original creator. No endorsement by the original creator is implied.
+The melody examples use the same human recording, edited into our teaching arrangements of the traditional Hot Cross Buns melody and the opening of Beethoven’s Ode to Joy theme. Pitch, note duration, articulation and quiet gaps are adjusted to the selected score. They are adaptations of a recorded voice, not continuous performances of these melodies by the original creator. No endorsement by the original creator is implied.
 
 Low voice:
 - The renderer retunes the original hum-example.wav excerpt from its measured 110.64730204182847 Hz source pitch to each expected note.

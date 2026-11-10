@@ -215,17 +215,21 @@ struct VoicePracticeView<Header: View>: View {
         }
     }
 
+    private func referenceRange(for context: MelodyPracticeContext) -> String {
+        MelodyPiece(rawValue: context.pieceID)?.rangeLabel(for: context.register) ?? context.rangeLabel
+    }
+
     private var targetControls: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(melodyContext == nil ? "TARGET" : "RECORDED HUM")
                     .font(.system(size: 10, weight: .semibold)).tracking(1.4)
                     .foregroundStyle(Palette.muted)
-                Text(melodyContext.map { "\($0.referenceKey) · \($0.register.rangeLabel)" }
+                Text(melodyContext.map { "\($0.referenceKey) · \(referenceRange(for: $0))" }
                      ?? String(format: "%@ · %.1f Hz", targetNote, targetFrequency))
                     .font(.subheadline.weight(.medium)).foregroundStyle(Palette.ink)
                     .accessibilityIdentifier("currentTargetLabel")
-                    .accessibilityLabel(melodyContext.map { "Reference \($0.referenceKey), \($0.register.rangeLabel)" }
+                    .accessibilityLabel(melodyContext.map { "Reference \($0.referenceKey), \(referenceRange(for: $0))" }
                                         ?? String(format: "Target %@ · %.1f Hz", targetNote, targetFrequency))
             }
             Spacer(minLength: 0)

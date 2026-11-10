@@ -76,23 +76,23 @@ struct MusicLibraryView: View {
                         .foregroundStyle(Palette.ink).accessibilityIdentifier("pieceDetailTitle")
                     Text(piece.summary).font(.subheadline).foregroundStyle(Palette.muted)
                 }
-                if piece == .hotCrossBuns {
+                if let melody = piece.melodyPiece {
                     NavigationLink {
-                        MelodyHummingView(store: store, capture: capture)
+                        MelodyHummingView(store: store, capture: capture, piece: melody)
                     } label: {
                         MusicLibraryRow(title: "Humming", subtitle: "Record phrases and earn Notes, Timing and Clarity stars",
                                         systemImage: "waveform", footer: "Four phrases, then the whole melody")
                     }.buttonStyle(.plain)
                         .accessibilityIdentifier("melodyHummingLink")
                     NavigationLink {
-                        MelodyRhythmView(store: melodyRhythmStore, capture: capture)
+                        MelodyRhythmView(store: melodyRhythmStore, capture: capture, piece: melody)
                     } label: {
                         MusicLibraryRow(title: "Rhythm", subtitle: "Tap the melody’s note starts and follow its longer notes",
                                         systemImage: "metronome", footer: "Four phrases, then the whole melody")
                     }.buttonStyle(.plain)
                         .accessibilityIdentifier("melodyRhythmLink")
                     NavigationLink {
-                        MelodyReferenceView(capture: capture)
+                        MelodyReferenceView(capture: capture, piece: melody)
                     } label: {
                         MusicLibraryRow(title: "Listen & follow", subtitle: "Hear the melody or one short phrase",
                                         systemImage: "play.circle.fill", footer: "Recorded hum & cello · 60 BPM")
@@ -117,7 +117,7 @@ struct MusicLibraryView: View {
                     .accessibilityIdentifier("pieceMilestones")
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Practise foundations").font(.headline).foregroundStyle(Palette.ink)
-                    Text(piece == .hotCrossBuns ? "Build the skills behind the melody." : "These shared skills are available now. Piece-specific exercises are planned.")
+                    Text(piece.melodyPiece != nil ? "Build the skills behind the melody." : "These shared skills are available now. Piece-specific exercises are planned.")
                         .font(.footnote).foregroundStyle(Palette.muted)
                     ForEach(LearningArea.allCases) { area in
                         NavigationLink {

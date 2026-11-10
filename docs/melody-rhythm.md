@@ -31,3 +31,7 @@ Stop, leaving the screen, switching tabs, or backgrounding cancels an unfinished
 ## Verification
 
 Unit tests cover score-derived tap positions, half-beat notes, rests/gaps, phrase ends, debouncing, missing/extra taps, grading, versioned persistence, failed saves and isolated progress. UI tests exercise the actual clock, manual playback, navigation, completed rounds and cancellation. Simulator checks do not verify physical haptic or speaker quality.
+
+## Ode to Joy opening
+
+The second piece reuses these rounds and fixed version-one rules. Its first three selections have four one-beat notes. The last has lengths `1.5, 0.5, 2` beats, so its starts are at `0, 1.5, 2` seconds at 60 BPM: tap on 1, the “and” after 2, and 3, then count through 4. The full opening has fifteen note starts in sixteen beats. Progress uses its own piece ID; Hot Cross Buns achievements stay separate. See [the opening arrangement](ode-to-joy-reference.md).

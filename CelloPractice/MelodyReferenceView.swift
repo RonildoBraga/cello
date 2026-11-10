@@ -4,6 +4,7 @@ import SwiftUI
 @MainActor
 struct MelodyReferenceView: View {
     @ObservedObject var capture: CaptureController
+    var piece: MelodyPiece = .hotCrossBuns
     @Environment(\.scenePhase) private var scenePhase
     @State private var register = MelodyRegister.lowVoice
     @State private var section = MelodySection.whole
@@ -12,17 +13,19 @@ struct MelodyReferenceView: View {
 
     // Enum selections and the fixed supported tempo make this built-in context valid.
     private var context: MelodyPracticeContext {
-        try! .hotCrossBuns(register: register, section: section, tempoBPM: 60)
+        try! .melody(piece: piece, register: register, section: section, tempoBPM: 60)
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Hot Cross Buns")
+                    Text(piece.title)
                         .font(.system(size: 27, weight: .semibold, design: .serif))
                         .foregroundStyle(Palette.ink)
-                    Text("Listen first, then gently hum along. Choose a register that feels easy.")
+                    Text(piece == .odeToJoy
+                         ? "Hear the five-note opening, then gently hum along. Choose a register that feels easy."
+                         : "Listen first, then gently hum along. Choose a register that feels easy.")
                         .font(.subheadline).foregroundStyle(Palette.muted)
                 }
                 VStack(alignment: .leading, spacing: 12) {
@@ -31,7 +34,7 @@ struct MelodyReferenceView: View {
                             Text(item.title).tag(item)
                         }
                     }.pickerStyle(.segmented).accessibilityIdentifier("melodyRegisterPicker")
-                    Text("\(register == .cello ? "Recorded cello" : "Recorded hum") · \(register.keyName) · \(register.rangeLabel) · 60 BPM")
+                    Text("\(register == .cello ? "Recorded cello" : "Recorded hum") · \(register.keyName) · \(piece.rangeLabel(for: register)) · 60 BPM")
                         .font(.caption).foregroundStyle(Palette.muted)
                         .accessibilityIdentifier("melodyReferenceKey")
                 }
@@ -57,7 +60,9 @@ struct MelodyReferenceView: View {
                     }
                     MelodyNotesView(context: context,
                                     elapsed: capture.isPlayingReference ? capture.referenceElapsed : nil)
-                    Text("Longer tiles hold longer. The quick notes in phrase 3 last half a beat each.")
+                    Text(piece == .odeToJoy
+                         ? "Longer tiles hold longer. Phrase 4 has a long note, a quick note, then a held ending."
+                         : "Longer tiles hold longer. The quick notes in phrase 3 last half a beat each.")
                         .font(.caption).foregroundStyle(Palette.muted)
                 }.padding(18).background(.white, in: RoundedRectangle(cornerRadius: 20))
                 VStack(alignment: .leading, spacing: 7) {
@@ -73,9 +78,10 @@ struct MelodyReferenceView: View {
                         .accessibilityIdentifier("melodyPlaybackMessage")
                 }
             }.foregroundStyle(Palette.ink).padding(20).padding(.bottom, 12)
-        }.background(Palette.paper)
+        }.id(piece).background(Palette.paper)
             .navigationTitle("Listen & follow").navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom, spacing: 0) { playbackControl }
+            .onChange(of: piece) { _, _ in hasRequestedPlayback = false; capture.stop() }
             .onChange(of: register) { _, _ in hasRequestedPlayback = false; capture.stop() }
             .onChange(of: section) { _, _ in hasRequestedPlayback = false; capture.stop() }
             .onChange(of: scenePhase) { _, phase in

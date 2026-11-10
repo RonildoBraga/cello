@@ -16,8 +16,13 @@ struct MelodyRhythmContext: Codable, Equatable, Sendable {
 
     static func hotCrossBuns(section: MelodySection = .phrase1,
                              tempoBPM: Int = 60) throws -> MelodyRhythmContext {
-        MelodyRhythmContext(reference: try .hotCrossBuns(register: .lowVoice,
-                                                        section: section, tempoBPM: tempoBPM))
+        try melody(piece: .hotCrossBuns, section: section, tempoBPM: tempoBPM)
+    }
+
+    static func melody(piece: MelodyPiece, section: MelodySection = .phrase1,
+                       tempoBPM: Int = 60) throws -> MelodyRhythmContext {
+        MelodyRhythmContext(reference: try .melody(piece: piece, register: .lowVoice,
+                                                  section: section, tempoBPM: tempoBPM))
     }
 
     var isValid: Bool {

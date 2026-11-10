@@ -22,6 +22,8 @@ The **Cello** area has separate C/G/D/A open-string targets. Each practice area 
 
 **Music → Hot Cross Buns → Rhythm** applies the same score to tapping: four phrases, then the whole tune. Visible note lengths and recorded-hum playback help you learn the pattern before Start. A four-beat count-in leads into each round with automatic whole-beat haptics. Tap at each note start, then count through longer notes without tapping again. Results show **Pattern**, **Timing** and **Consistency** stars and a timing chart. Each phrase earns separate progress at its own tempo; humming and foundation scores do not complete it. Every phrase remains available.
 
+**Ode to Joy** adds a second piece: our five-note arrangement of the opening four bars of Beethoven’s theme. It uses the same Humming, Rhythm and Listen & follow screens, four short phrases and a sixteen-second opening. Voice references span G2–D3 or G3–D4; the cello reference spans D3–A3. The final phrase introduces a dotted quarter note followed by a half-beat note, with visible tap-count guidance. Stars and completion are separate from Hot Cross Buns. See [the opening score and reference provenance](docs/ode-to-joy-reference.md).
+
 **Listen & follow** also offers manual playback in the cello register (D3–F♯3). All audible references use recorded sound: edited human humming for the voice registers and recorded bowed cello samples for cello notes. The foundation human example keeps its original pitch; melody examples adjust the recordings to the selected notes and timing. Cello playing exercises are future work. See the [melody rhythm assessment](docs/melody-rhythm.md), [humming assessment](docs/melody-humming.md), [learning-path design](docs/music-learning-path.md) and [delivery issues](https://github.com/RonildoBraga/cello/issues/1).
 
 - **Hear hum** plays the recorded human example. **Record** starts a three-second countdown, then records a three-second humming take. Cello takes finish when you tap Stop, with a 90-second limit.
@@ -100,7 +102,9 @@ Deleting the app removes its local data, so export important recordings first. R
 
 ## Media attribution
 
-Hot Cross Buns uses an original three-note teaching arrangement of the traditional melody. The shared score contains 17 note events over 16 beats; recorded-sound playback preserves phrase lengths and leaves short quiet gaps between notes. No publisher score or scan is bundled. See [score and reference provenance](docs/hot-cross-buns-reference.md).
+Hot Cross Buns uses an original three-note teaching arrangement of the traditional melody. Its shared score contains 17 note events over 16 beats; recorded-sound playback preserves phrase lengths and leaves short quiet gaps between notes. No publisher score or scan is bundled. See [score and reference provenance](docs/hot-cross-buns-reference.md).
+
+Ode to Joy uses an independently encoded monophonic opening excerpt: 15 note starts, five distinct pitches and 16 beats. Beethoven’s historical composition is public domain; no modern score edition, accompaniment or third-party melody performance is bundled. The existing licensed voice/cello recordings are edited to its frozen score. See [the arrangement details and verification sources](docs/ode-to-joy-reference.md).
 
 The bundled human-hum example is a three-second excerpt of **[Deep Humming Noise](https://freesound.org/people/retropttam/sounds/177276/)** by **retropttam**, licensed under **[Creative Commons Attribution 3.0 Unported](https://creativecommons.org/licenses/by/3.0/)**. It was shortened, converted to mono PCM, volume adjusted and faded at the ends; its original pitch and timing are preserved. Full provenance and checksums are in [HUMMING-LICENSE.txt](CelloPractice/Resources/HUMMING-LICENSE.txt). Copyright remains with the original author.
 

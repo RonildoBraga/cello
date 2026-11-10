@@ -122,8 +122,7 @@ struct PracticeSession: Identifiable, Codable {
 
     var title: String {
         guard let context = melodyContext else { return exercise.title }
-        let piece = context.pieceID == "hotCrossBuns" ? "Hot Cross Buns" : "Melody"
-        return "\(piece) · \(context.section.title)"
+        return "\(context.displayPieceTitle) · \(context.section.title)"
     }
 
     var starCount: Int? { melodyContext == nil ? rating?.starCount : melodyRating?.starCount }
