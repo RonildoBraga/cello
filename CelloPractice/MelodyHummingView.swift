@@ -4,11 +4,12 @@ import SwiftUI
 struct MelodyHummingView: View {
     @ObservedObject var store: SessionStore
     @ObservedObject var capture: CaptureController
+    var piece: MelodyPiece = .hotCrossBuns
     @State private var register = MelodyRegister.lowVoice
     @State private var section = MelodySection.phrase1
 
     private var context: MelodyPracticeContext {
-        try! .hotCrossBuns(register: register, section: section, gradingVersion: MelodyRating.currentVersion)
+        try! .melody(piece: piece, register: register, section: section, gradingVersion: MelodyRating.currentVersion)
     }
 
     private var nextSection: MelodySection? {
@@ -28,7 +29,9 @@ struct MelodyHummingView: View {
                 VStack(alignment: .leading, spacing: 7) {
                     Text("Humming").font(.system(size: 27, weight: .semibold, design: .serif))
                         .foregroundStyle(Palette.ink)
-                    Text("Hear the phrase, then record the same notes and rhythm. Start humming after 3–2–1.")
+                    Text(piece == .odeToJoy
+                         ? "Follow five notes moving up and down. Hear the phrase, then record after 3–2–1."
+                         : "Hear the phrase, then record the same notes and rhythm. Start humming after 3–2–1.")
                         .font(.footnote).foregroundStyle(Palette.muted)
                 }
                 Picker("Voice register", selection: $register) {
@@ -40,8 +43,8 @@ struct MelodyHummingView: View {
                     Menu {
                         ForEach(MelodySection.allCases) { item in
                             Button { section = item } label: {
-                                let choice = try! MelodyPracticeContext.hotCrossBuns(
-                                    register: register, section: item, gradingVersion: MelodyRating.currentVersion)
+                                let choice = try! MelodyPracticeContext.melody(
+                                    piece: piece, register: register, section: item, gradingVersion: MelodyRating.currentVersion)
                                 if store.melodyProgress(for: choice).completed {
                                     Label("\(item.title) · completed", systemImage: "checkmark.circle.fill")
                                 } else if item == section {
@@ -64,8 +67,8 @@ struct MelodyHummingView: View {
                                 elapsed: capture.isRecording ? capture.elapsed
                                     : capture.isPlayingReference ? capture.referenceElapsed : nil)
             }.id("practiceTop")
-        }.id("\(register.rawValue)|\(section.rawValue)")
+        }.id("\(piece.rawValue)|\(register.rawValue)|\(section.rawValue)")
             .background(Palette.paper)
-            .navigationTitle("Hot Cross Buns").navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(piece.title).navigationBarTitleDisplayMode(.inline)
     }
 }

@@ -1,6 +1,6 @@
 # Music learning path
 
-Status: Music organisation, first-melody reference playback, humming phrase recording/feedback and melody rhythm practice delivered. Cello playing remains planned in [the delivery epic](https://github.com/RonildoBraga/cello/issues/1).
+Status: Music organisation, first-melody reference playback, humming phrase recording/feedback and melody rhythm practice delivered. A five-note Ode to Joy opening now reuses the same phrase and whole-selection practice. Cello playing remains planned in [the delivery epic](https://github.com/RonildoBraga/cello/issues/1).
 
 ## Problem and goal
 
@@ -18,6 +18,7 @@ Music
     Cello → Open C/G/D/A strings
   Pieces
     Hot Cross Buns → Humming; Rhythm (each: four phrases, then whole melody); Listen & follow
+    Ode to Joy → Humming; Rhythm (opening: four phrases, then whole); Listen & follow
     Bach, Suite No. 1 Prelude → long-term learning path
 Practice → the selected foundation exercise
 Recordings → existing local audio/video history
@@ -61,3 +62,9 @@ Bach is a longer-term destination through easier repertoire, note reading, scale
 The first-melody reference uses one versioned score, selectable whole/phrase contexts, three explicitly named registers and manual playback. Humming offers only the two voice registers; the cello register remains in reference playback. The optional immutable `MelodyPracticeContext` freezes piece, score version, key/register, tuning, expected events, tempo, section and grading version. Reference-only selections from the first release have a nil grading version; new humming takes use melody grading version 1 and a separate frozen `MelodyRating`. Existing sessions remain compatible. A melody context suppresses the fixed-note foundation grader and chart. Melody completion uses its own durable ledger keyed to the complete frozen context. Foundation stars cannot complete piece lessons. Hearing an example is always separate from Record's countdown.
 
 Melody rhythm uses that same immutable reference timeline with a separate rhythm grading version and store. The progress key includes piece, score version, section, tempo, note/rest onsets and durations; voice register and pitch do not split rhythm progress. Four count-in beats precede each full-length round, and the pad remains active through the final held note. The current arrangement has no notated rests: a longer note continues sounding while the learner counts without another tap. Tap-only feedback measures note starts and timing, not sustained-note duration. See [the rhythm assessment](melody-rhythm.md).
+
+## Second melody: Ode to Joy opening
+
+[Issue #14](https://github.com/RonildoBraga/cello/issues/14) adds our independently encoded five-note opening excerpt while the learner waits for a cello. It introduces upward and downward steps across five notes and a dotted-quarter/eighth-note ending. Four bar-sized practice selections build to the sixteen-beat opening; these are practice divisions, not a claim to contain the complete symphonic theme. Both melodies use the same Humming, Rhythm and manual reference pages, charts, fixed grading versions and progress rules.
+
+`MelodyPiece` selects the built-in score before recording. The existing frozen context format is unchanged; each piece keeps a distinct ID and achievements. Hot Cross Buns factory output remains identical, preserving its prior progress keys and ratings. References reuse the existing licensed recorded sources. See [score and recording provenance](ode-to-joy-reference.md). Cello technique and acoustic validation remain in #6.

@@ -37,7 +37,8 @@ struct MelodyNotesView: View {
                             TunerReading(frequency: $0, targetFrequency: nil).noteName
                         } ?? "Rest"
                         let label = labelStyle == .pitch || event.midiNote == nil ? note
-                            : event.durationBeats == 0.5 ? "½" : "\(event.durationBeats.formatted())"
+                            : event.durationBeats == 0.5 ? "½"
+                            : event.durationBeats == 1.5 ? "1½" : "\(event.durationBeats.formatted())"
                         Text(label).font(.system(size: 14, weight: .semibold, design: .rounded))
                             .minimumScaleFactor(0.7).lineLimit(1)
                             .frame(width: max(0, (geometry.size.width - CGFloat(max(0, events.count - 1)) * 4)

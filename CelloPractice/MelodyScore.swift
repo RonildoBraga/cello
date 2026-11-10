@@ -36,6 +36,41 @@ struct MelodyScore: Codable, Equatable, Sendable {
         return MelodyScore(pieceID: "hotCrossBuns", version: 1, beatsPerBar: 4,
                            events: events, phraseBoundaries: [0, 4, 8, 12, 16], totalBeats: 16)
     }()
+
+    /// The first four bars of the theme, transposed for our teaching arrangement.
+    static let odeToJoy: MelodyScore = {
+        let pitches = [54, 54, 55, 57, 57, 55, 54, 52, 50, 50, 52, 54, 54, 52, 52]
+        let durations = Array(repeating: 1.0, count: 12) + [1.5, 0.5, 2]
+        var beat = 0.0
+        let events = zip(pitches, durations).map { pitch, duration in
+            defer { beat += duration }
+            return MelodyEvent(onsetBeat: beat, durationBeats: duration, midiNote: pitch)
+        }
+        return MelodyScore(pieceID: "odeToJoy", version: 1, beatsPerBar: 4,
+                           events: events, phraseBoundaries: [0, 4, 8, 12, 16], totalBeats: 16)
+    }()
+}
+
+/// Built-in arrangements share the same phrase and assessment flow.
+enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
+    case hotCrossBuns, odeToJoy
+
+    var id: String { rawValue }
+    var title: String { self == .hotCrossBuns ? "Hot Cross Buns" : "Ode to Joy" }
+    var score: MelodyScore { self == .hotCrossBuns ? .hotCrossBuns : .odeToJoy }
+
+    func rangeLabel(for register: MelodyRegister) -> String {
+        melodyNoteRange(score.events.compactMap(\.midiNote).map { $0 + register.transpositionSemitones })
+    }
+}
+
+/// Note names describe the score's MIDI pitches, independently of reference tuning.
+private func melodyNoteRange(_ notes: [Int]) -> String {
+    guard let low = notes.min(), let high = notes.max(),
+          (0...127).contains(low), (0...127).contains(high) else { return "—" }
+    let names = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"]
+    func name(_ midi: Int) -> String { "\(names[midi % 12])\(midi / 12 - 1)" }
+    return low == high ? name(low) : "\(name(low))–\(name(high))"
 }
 
 enum MelodyRegister: String, CaseIterable, Identifiable, Codable, Sendable {
@@ -114,6 +149,9 @@ struct MelodyPracticeContext: Codable, Equatable, Sendable {
 
     var duration: TimeInterval { durationBeats * 60 / Double(tempoBPM) }
 
+    var displayPieceTitle: String { MelodyPiece(rawValue: pieceID)?.title ?? "Melody" }
+    var rangeLabel: String { melodyNoteRange(expectedEvents.compactMap(\.midiNote)) }
+
     /// Bounded timelines also make decoded snapshots safe to use for audio rendering.
     var isValid: Bool {
         guard !pieceID.isEmpty, scoreVersion > 0, !referenceKey.isEmpty,
@@ -137,9 +175,21 @@ struct MelodyPracticeContext: Codable, Equatable, Sendable {
 
     static func hotCrossBuns(register: MelodyRegister, section: MelodySection = .whole,
                              tempoBPM: Int = 60, gradingVersion: Int? = nil) throws -> MelodyPracticeContext {
+        try melody(piece: .hotCrossBuns, register: register, section: section,
+                   tempoBPM: tempoBPM, gradingVersion: gradingVersion)
+    }
+
+    static func odeToJoy(register: MelodyRegister, section: MelodySection = .whole,
+                          tempoBPM: Int = 60, gradingVersion: Int? = nil) throws -> MelodyPracticeContext {
+        try melody(piece: .odeToJoy, register: register, section: section,
+                   tempoBPM: tempoBPM, gradingVersion: gradingVersion)
+    }
+
+    static func melody(piece: MelodyPiece, register: MelodyRegister, section: MelodySection = .whole,
+                        tempoBPM: Int = 60, gradingVersion: Int? = nil) throws -> MelodyPracticeContext {
         guard supportedTempoRange.contains(tempoBPM) else { throw ContextError.invalidTempo }
         guard gradingVersion.map({ $0 > 0 }) ?? true else { throw ContextError.invalidGradingVersion }
-        let score = MelodyScore.hotCrossBuns
+        let score = piece.score
         let range = section.beatRange
         let events = score.events.filter { range.contains($0.onsetBeat) }.map {
             MelodyEvent(onsetBeat: $0.onsetBeat - range.lowerBound,

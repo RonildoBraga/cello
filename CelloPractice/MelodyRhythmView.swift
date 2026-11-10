@@ -5,9 +5,10 @@ import UIKit
 struct MelodyRhythmView: View {
     @ObservedObject var store: MelodyRhythmStore
     @ObservedObject var capture: CaptureController
+    var piece: MelodyPiece = .hotCrossBuns
     @State private var section = MelodySection.phrase1
 
-    private var context: MelodyRhythmContext { try! .hotCrossBuns(section: section) }
+    private var context: MelodyRhythmContext { try! .melody(piece: piece, section: section) }
     private var nextSection: MelodySection? {
         switch section {
         case .phrase1: return .phrase2
@@ -30,7 +31,7 @@ struct MelodyRhythmView: View {
                     Menu {
                         ForEach(MelodySection.allCases) { item in
                             Button { section = item } label: {
-                                let choice = try! MelodyRhythmContext.hotCrossBuns(section: item)
+                                let choice = try! MelodyRhythmContext.melody(piece: piece, section: item)
                                 if store.progress(for: choice).completed {
                                     Label("\(item.title) · completed", systemImage: "checkmark.circle.fill")
                                 } else if item == section { Label(item.title, systemImage: "checkmark") }
@@ -55,8 +56,8 @@ struct MelodyRhythmView: View {
                         .accessibilityIdentifier("melodyRhythmSavedScores")
                 }
             }
-        }.id(section)
-            .navigationTitle("Hot Cross Buns").navigationBarTitleDisplayMode(.inline)
+        }.id("\(piece.rawValue)|\(section.rawValue)")
+            .navigationTitle(piece.title).navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -171,14 +172,24 @@ private struct MelodyRhythmRoundView<Header: View>: View {
             }
             MelodyNotesView(context: context.reference, elapsed: elapsed, labelStyle: .rhythm,
                             focusOnCurrentPhrase: running || capture.isPlayingReference)
-            Text(context.reference.section == .phrase3
-                 ? "Two short notes per beat: 1 & 2 & 3 & 4 &."
-                 : context.reference.section == .whole
-                    ? "Tap at each new tile. Keep counting through the longer tiles."
-                    : "Tap on 1, 2 and 3. Count 4 while the last note continues.")
+            Text(patternInstructions)
                 .font(.footnote).foregroundStyle(Palette.muted)
         }.padding(17).background(.white, in: RoundedRectangle(cornerRadius: 19))
             .accessibilityIdentifier("melodyRhythmPatternInstructions").id("melodyRhythmPattern")
+    }
+
+    private var patternInstructions: String {
+        if context.reference.section == .whole {
+            return "Tap at each new tile. Keep counting through the longer tiles."
+        }
+        if context.reference.pieceID == MelodyPiece.odeToJoy.rawValue {
+            return context.reference.section == .phrase4
+                ? "Tap on 1, the & after 2, and 3. Count 4 while the last note continues."
+                : "Tap on each beat: 1, 2, 3, 4."
+        }
+        return context.reference.section == .phrase3
+            ? "Two short notes per beat: 1 & 2 & 3 & 4 &."
+            : "Tap on 1, 2 and 3. Count 4 while the last note continues."
     }
 
     private var tapCard: some View {

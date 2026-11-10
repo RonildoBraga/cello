@@ -3,22 +3,27 @@ import Foundation
 /// Learning goals only. Piece performances earn their own results once those
 /// exercises exist; foundation stars never become a fabricated piece score.
 enum MusicPiece: String, CaseIterable, Identifiable {
-    case hotCrossBuns, bachPrelude
+    case hotCrossBuns, odeToJoy, bachPrelude
 
     var id: String { rawValue }
-    var title: String {
-        self == .hotCrossBuns ? "Hot Cross Buns" : "Bach · Cello Suite No. 1"
-    }
+    var melodyPiece: MelodyPiece? { MelodyPiece(rawValue: rawValue) }
+    var title: String { melodyPiece?.title ?? "Bach · Cello Suite No. 1" }
     var subtitle: String {
-        self == .hotCrossBuns ? "A first three-note melody" : "Prelude · BWV 1007"
+        switch self {
+        case .hotCrossBuns: return "A first three-note melody"
+        case .odeToJoy: return "A five-note opening · Beethoven"
+        case .bachPrelude: return "Prelude · BWV 1007"
+        }
     }
     var statusLabel: String {
-        self == .hotCrossBuns ? "Humming & rhythm available" : "Long-term goal"
+        melodyPiece != nil ? "Humming & rhythm available" : "Long-term goal"
     }
     var summary: String {
-        self == .hotCrossBuns
-            ? "Build a short melody from three notes, one small phrase at a time."
-            : "Build toward fluent notes, bowing and phrasing through foundations and easier pieces."
+        switch self {
+        case .hotCrossBuns: return "Build a short melody from three notes, one small phrase at a time."
+        case .odeToJoy: return "Follow five notes up and down through a familiar opening. Learn four short phrases, then join them together."
+        case .bachPrelude: return "Build toward fluent notes, bowing and phrasing through foundations and easier pieces."
+        }
     }
     var milestones: [(title: String, detail: String)] {
         switch self {
@@ -28,6 +33,13 @@ enum MusicPiece: String, CaseIterable, Identifiable {
                 ("Tap the rhythm", "Follow note starts and count through longer notes."),
                 ("Play on cello", "Set up with a teacher, learn the three notes and join the phrases."),
                 ("Play it through", "Bring the notes, rhythm and a steady sound together.")
+            ]
+        case .odeToJoy:
+            return [
+                ("Hear & hum", "Listen for repeated notes, upward steps and downward steps."),
+                ("Tap the rhythm", "Keep the beat through the long and quick notes in the last phrase."),
+                ("Join the opening", "Hum all four phrases together with a steady rhythm."),
+                ("Play on cello later", "Build open-string and first-note skills before playing this opening on cello.")
             ]
         case .bachPrelude:
             return [
