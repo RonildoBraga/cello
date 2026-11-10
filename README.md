@@ -20,7 +20,9 @@ The **Cello** area has separate C/G/D/A open-string targets. Each practice area 
 
 **Pieces** starts with Hot Cross Buns and a longer-term goal of Bach’s Cello Suite No. 1 Prelude. Open **Music → Hot Cross Buns → Humming** to hear, record and review four short phrases, then join the whole melody. Voice references use G2–B2 or G3–B3 at 60 BPM. Record starts a three-second countdown, then captures four seconds for a phrase or sixteen for the whole tune. Results show separate **Notes**, **Timing** and **Clarity** stars, a moving-reference pitch chart and one next suggestion. Three three-star takes among the last five rated attempts earn completion for that exact phrase and reference. Every phrase stays available.
 
-**Listen & follow** also offers manual playback in the cello register (D3–F♯3). All audible references use recorded sound: edited human humming for the voice registers and recorded bowed cello samples for cello notes. The foundation human example keeps its original pitch; melody examples adjust the recordings to the selected notes and timing. Melody rhythm and cello playing exercises are future work. See the [humming assessment](docs/melody-humming.md), [learning-path design](docs/music-learning-path.md) and [delivery issues](https://github.com/RonildoBraga/cello/issues/1).
+**Music → Hot Cross Buns → Rhythm** applies the same score to tapping: four phrases, then the whole tune. Visible note lengths and recorded-hum playback help you learn the pattern before Start. A four-beat count-in leads into each round with automatic whole-beat haptics. Tap at each note start, then count through longer notes without tapping again. Results show **Pattern**, **Timing** and **Consistency** stars and a timing chart. Each phrase earns separate progress at its own tempo; humming and foundation scores do not complete it. Every phrase remains available.
+
+**Listen & follow** also offers manual playback in the cello register (D3–F♯3). All audible references use recorded sound: edited human humming for the voice registers and recorded bowed cello samples for cello notes. The foundation human example keeps its original pitch; melody examples adjust the recordings to the selected notes and timing. Cello playing exercises are future work. See the [melody rhythm assessment](docs/melody-rhythm.md), [humming assessment](docs/melody-humming.md), [learning-path design](docs/music-learning-path.md) and [delivery issues](https://github.com/RonildoBraga/cello/issues/1).
 
 - **Hear hum** plays the recorded human example. **Record** starts a three-second countdown, then records a three-second humming take. Cello takes finish when you tap Stop, with a 90-second limit.
 - Voice/instrument recordings include synchronized microphone audio, video and pitch observations. A tuning bar and end-of-take pitch chart show distance from the fixed target.
@@ -90,6 +92,7 @@ Practice data stays on the device. The app has no account, analytics, automatic 
 - Unfinished or failed-save takes retained for recovery: `Documents/PendingTakes`.
 - Voice completion milestones: `Documents/PracticeProgress.json`.
 - Separate rhythm history files: `PulsePractice.json`, `TwoTapsPractice.json` and `MixedRhythmPractice.json`.
+- Piece rhythm rounds and completion milestones: `Documents/MelodyRhythmPractice.json`, separate from foundation histories.
 - Separate melody completion milestones: `Documents/MelodyProgress.json`; attempt ratings and frozen phrase references stay with each recording.
 - A session ZIP contains the movie, metadata, pitch CSV, a review summary and up to four timestamped JPEG frames.
 

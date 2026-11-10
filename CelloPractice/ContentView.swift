@@ -18,6 +18,7 @@ struct ContentView: View {
     @StateObject private var pulseStore = PulsePracticeStore(exercise: .pulse)
     @StateObject private var twoTapsStore = PulsePracticeStore(exercise: .twoTaps)
     @StateObject private var mixedRhythmStore = PulsePracticeStore(exercise: .mixedRhythm)
+    @StateObject private var melodyRhythmStore = MelodyRhythmStore()
     @State private var selectedTab = Tab.music
     @State private var selection = PracticeSelection()
     @State private var practiceRevision = UUID()
@@ -30,7 +31,8 @@ struct ContentView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             MusicLibraryView(store: store, capture: capture, pulseStore: pulseStore, twoTapsStore: twoTapsStore,
-                             mixedRhythmStore: mixedRhythmStore, onStartLesson: startLesson)
+                             mixedRhythmStore: mixedRhythmStore, melodyRhythmStore: melodyRhythmStore,
+                             onStartLesson: startLesson)
                 .id(libraryRevision)
                 .tabItem { Label("Music", systemImage: "music.note.list") }
                 .tag(Tab.music)
