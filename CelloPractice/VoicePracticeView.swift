@@ -181,7 +181,7 @@ struct VoicePracticeView<Header: View>: View {
                             }
                             lessonProgress
                         }.id("latestRating")
-                    } else if isEcho {
+                    } else if isEcho && !capture.isRecording {
                         echoCard
                     } else {
                         tuner
@@ -353,9 +353,11 @@ struct VoicePracticeView<Header: View>: View {
                     Text(tunerTitle)
                         .font(.system(size: countInSeconds > 0 ? 62 : 46, weight: .light, design: .rounded))
                         .monospaced().contentTransition(.numericText()).frame(minHeight: 58)
+                        .accessibilityIdentifier("livePitchNote")
                 }
                 Text(pitchMessage).font(.subheadline).multilineTextAlignment(.center)
                     .foregroundStyle(.white.opacity(0.85)).frame(minHeight: 22)
+                    .accessibilityIdentifier("livePitchFeedback")
             }.padding(.vertical, 4)
             PitchMeter(cents: reading.cents ?? 0,
                        active: currentTarget != nil && reading.cents != nil && !isBusy && !saving, range: meterRange)
@@ -365,6 +367,7 @@ struct VoicePracticeView<Header: View>: View {
                 Spacer()
                 Text(!isBusy && !saving ? reading.cents.map { String(format: "%+.0f cents", $0) } ?? "—" : "—")
                     .monospacedDigit()
+                    .accessibilityIdentifier("livePitchCents")
                 Spacer()
                 Text("High")
             }.font(.caption).foregroundStyle(.white.opacity(0.6))
@@ -372,6 +375,7 @@ struct VoicePracticeView<Header: View>: View {
             .frame(maxWidth: .infinity)
             .background(Palette.forest, in: RoundedRectangle(cornerRadius: 26))
             .accessibilityElement(children: .contain)
+            .accessibilityIdentifier(isEcho ? "echoLiveTuner" : "liveTuner")
     }
 
     private var camera: some View {
@@ -426,6 +430,13 @@ struct VoicePracticeView<Header: View>: View {
         case .counting: return isGuidedHumming ? "Get ready to hum" : "Get ready to play"
         case .startingRecording: return "Starting recording…"
         case .recording:
+            if isEcho {
+                guard let target = currentTarget else { return "Pattern finished" }
+                let note = TunerReading(frequency: target, targetFrequency: nil).noteName
+                guard let cents = reading.cents else { return "Hum \(note) · aim for the centre" }
+                if abs(cents) <= 10 { return "Close to \(note)" }
+                return cents < 0 ? "Below \(note) · hum higher" : "Above \(note) · hum lower"
+            }
             if melodyContext != nil {
                 return currentTarget.map { "Hum \(TunerReading(frequency: $0, targetFrequency: nil).noteName) · follow the phrase" } ?? "Rest"
             }

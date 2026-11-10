@@ -168,29 +168,52 @@ enum MelodyRecordingRater {
         var boundaries: [Double] = []
         var inactiveCount = 3
         var previousFrequency: Double?
+        var lastAttack: Double?
+        // A semitone is nominally 100 cents. Short analysis windows can measure
+        // a true semitone a few cents low (97.46 in the quarter-second control).
+        let minimumMeasuredStep = 100.0 - 5
         for (index, cell) in cells.enumerated() {
             if !cell.active { inactiveCount += 1; continue }
             let attack = inactiveCount >= 3
             inactiveCount = 0
             if attack, boundaries.last.map({ cell.time - $0 >= 0.12 }) ?? true {
                 boundaries.append(max(0, cell.time - 0.005))
+                lastAttack = boundaries.last
                 previousFrequency = cell.frequency
             }
             guard let frequency = cell.frequency, !cell.ambiguous else { continue }
             // The first pitch windows overlap the attack and may still contain
             // the preceding note. Refresh that transient baseline before looking
             // for another change; never create a second onset from its settling.
-            if let lastBoundary = boundaries.last, cell.time - lastBoundary < attackWindowDuration {
+            if let lastAttack, cell.time - lastAttack < attackWindowDuration {
                 previousFrequency = frequency
                 continue
             }
-            let changed = previousFrequency.map { abs(1_200 * log2(frequency / $0)) >= 100 } ?? false
+            let changed = previousFrequency.map { abs(1_200 * log2(frequency / $0)) >= minimumMeasuredStep } ?? false
             // A change must survive the next 80ms, avoiding transient/glissando spikes.
-            let following = cells[index..<min(cells.count, index + 8)].compactMap(\.frequency)
+            let following = cells[index..<min(cells.count, index + 8)].filter {
+                $0.active && !$0.ambiguous
+            }.compactMap(\.frequency)
             let stable = following.count >= 5 && following.filter {
                 abs(1_200 * log2($0 / frequency)) <= 80
             }.count >= 5
             if changed && stable {
+                // An attack's early pitch can settle gradually by a semitone
+                // without a new note. Confirm a local step rather than comparing
+                // only with that old baseline. These windows depend on sound,
+                // never the expected score, and do not suppress reattacks.
+                // Leave 40ms before the candidate out of the prior median: a
+                // 171ms pitch window straddling a real step blends both notes.
+                let precedingEnd = max(0, index - 4)
+                let preceding = cells[max(0, precedingEnd - 15)..<precedingEnd].filter {
+                    $0.active && !$0.ambiguous
+                }.compactMap(\.frequency)
+                guard preceding.count >= 5, let before = median(preceding),
+                      let after = median(following) else { continue }
+                guard abs(1_200 * log2(after / before)) >= minimumMeasuredStep else {
+                    previousFrequency = after
+                    continue
+                }
                 if boundaries.last.map({ cell.time - $0 >= 0.12 }) ?? true {
                     boundaries.append(max(0, cell.time - 0.005))
                     previousFrequency = frequency

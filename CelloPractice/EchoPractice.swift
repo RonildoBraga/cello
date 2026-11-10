@@ -1,7 +1,7 @@
 import CryptoKit
 import Foundation
 
-/// Versioned original patterns for listening, then humming without a live guide.
+/// Versioned original patterns for listening, then humming with live pitch feedback.
 /// Changing a catalogue or its timing requires a new score version.
 enum EchoLevel: String, CaseIterable, Identifiable, Codable, Sendable {
     case twoNotes, threeNotes
@@ -41,6 +41,12 @@ enum EchoLevel: String, CaseIterable, Identifiable, Codable, Sendable {
     }
 
     func context(patternIndex: Int, register: MelodyRegister) throws -> MelodyPracticeContext {
+        try context(patternIndex: patternIndex, register: register,
+                    gradingVersion: MelodyRating.currentVersion)
+    }
+
+    private func context(patternIndex: Int, register: MelodyRegister,
+                         gradingVersion: Int) throws -> MelodyPracticeContext {
         guard register != .cello else { throw ContextError.voiceRegisterRequired }
         guard patterns.indices.contains(patternIndex) else { throw ContextError.invalidPattern }
         let pitches = [50, 52, 54, 55, 57]
@@ -51,7 +57,7 @@ enum EchoLevel: String, CaseIterable, Identifiable, Codable, Sendable {
         return MelodyPracticeContext(pieceID: pieceID, scoreVersion: Self.scoreVersion,
             register: register, referenceKey: register.keyName, tuningA4Hz: Self.tuningA4Hz,
             tempoBPM: Self.tempoBPM, section: .whole, expectedEvents: events,
-            durationBeats: Double(noteCount * 2), gradingVersion: MelodyRating.currentVersion)
+            durationBeats: Double(noteCount * 2), gradingVersion: gradingVersion)
     }
 
     func nextPatternIndex(excluding previous: Int?) -> Int {
@@ -70,12 +76,15 @@ enum EchoLevel: String, CaseIterable, Identifiable, Codable, Sendable {
     }
 
     /// Identity includes every frozen field. A matching piece ID alone must not
-    /// credit a changed score, tempo, register, grading version or arbitrary notes.
+    /// identify a changed score, tempo, register or arbitrary notes. Known historical
+    /// grading versions remain recognisable without becoming current achievements.
     static func selection(for context: MelodyPracticeContext) -> (level: EchoLevel, patternIndex: Int)? {
         guard context.isValid, context.register != .cello,
+              let gradingVersion = context.gradingVersion, [1, 2].contains(gradingVersion),
               let level = allCases.first(where: { $0.pieceID == context.pieceID }) else { return nil }
         for index in 0..<level.patternCount {
-            if let canonical = try? level.context(patternIndex: index, register: context.register),
+            if let canonical = try? level.context(patternIndex: index, register: context.register,
+                                                  gradingVersion: gradingVersion),
                context == canonical { return (level, index) }
         }
         return nil
@@ -134,6 +143,7 @@ struct EchoProgressLedger: Codable {
     private static func eligibleKey(for session: PracticeSession) -> String? {
         guard session.exercise == .listen, session.rating == nil,
               let context = session.melodyContext, let rating = session.melodyRating,
+              context.gradingVersion == MelodyRating.currentVersion,
               rating.status == .rated, rating.version == context.gradingVersion,
               let selection = EchoLevel.selection(for: context) else { return nil }
         return key(for: selection.level, register: context.register)

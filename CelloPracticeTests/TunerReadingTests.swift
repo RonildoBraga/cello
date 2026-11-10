@@ -3,6 +3,27 @@ import XCTest
 @testable import Cello
 
 final class TunerReadingTests: XCTestCase {
+    func testEchoTunerFollowsFrozenNoteChangesWithoutMovingTheMeasuredPitch() throws {
+        for register in [MelodyRegister.lowVoice, .higherVoice] {
+            let context = try EchoLevel.twoNotes.context(patternIndex: 1, register: register)
+            let first = try XCTUnwrap(context.frequency(for: context.expectedEvents[0]))
+            for (time, expectedCents) in [(0.0, 0.0), (1.999, 0), (2.0, -200), (3.999, -200)] {
+                let index = try XCTUnwrap(context.eventIndex(at: time))
+                let target = try XCTUnwrap(context.frequency(for: context.expectedEvents[index]))
+                let reading = TunerReading(frequency: first, targetFrequency: target)
+                XCTAssertEqual(try XCTUnwrap(reading.cents), expectedCents, accuracy: 1e-8)
+                XCTAssertEqual(reading.frequency, first, "The display never moves the learner's measured pitch onto a new target")
+                XCTAssertNil(TunerReading(frequency: nil, targetFrequency: target).cents,
+                             "Silence has no tuning judgment")
+            }
+            XCTAssertNil(context.eventIndex(at: 4), "The final boundary has no active target")
+            let repeated = try EchoLevel.twoNotes.context(patternIndex: 0, register: register)
+            let repeatedTarget = try XCTUnwrap(repeated.frequency(for: repeated.expectedEvents[1]))
+            XCTAssertEqual(try XCTUnwrap(TunerReading(frequency: first, targetFrequency: repeatedTarget).cents), 0,
+                           accuracy: 1e-8)
+        }
+    }
+
     func testHummingUsesTheHumanExampleForEverySectionInput() {
         XCTAssertEqual(PracticeSection.humming.exercises, [.steadyHum, .matchHum])
         for exercise in Exercise.allCases {

@@ -77,6 +77,6 @@ The page shows the proposed route into teacher-supported setup, open strings, fi
 
 ## Listen & Echo
 
-[Issue #19](https://github.com/RonildoBraga/cello/issues/19) adds a separate Humming ear-training activity with original two-note and three-note catalogues. Manual, complete Hear playback unlocks Record for that exact frozen pattern. The usual countdown starts capture; note names, the target bar and live pitch feedback stay hidden until the saved result. Both levels and voice registers remain selectable between attempts.
+[Issue #19](https://github.com/RonildoBraga/cello/issues/19) adds a separate Humming ear-training activity with original two-note and three-note catalogues. Manual, complete Hear playback unlocks Record for that exact frozen pattern. The usual countdown starts capture; [issue #23](https://github.com/RonildoBraga/cello/issues/23) adds the shared live tuning bar during recording, following each note in that frozen pattern. Both levels and voice registers remain selectable between attempts.
 
 The shared melody rater/feedback/chart and audio/video save path are reused. Progress spans eligible patterns within a level and voice register, with a separate EchoProgress.json ledger; Echo achievements do not enter song or foundation ledgers. Existing lesson IDs/numbers and song contexts are unchanged. Stars describe the recorded notes, timing and clarity, not a direct measurement of musical memory. See [the design, sources and validation boundaries](listen-and-echo.md).
