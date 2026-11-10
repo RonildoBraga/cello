@@ -783,14 +783,21 @@ extension CaptureController: AVCaptureFileOutputRecordingDelegate {
             self.pitchSamples.removeAll(keepingCapacity: true)
             self.recordingStartHostTime = actualStartHostTime
             self.lastAnalysisTime = 0
-        }
-        publish { [self] in
-            self.isRecording = true
-            self.displayTimer?.invalidate()
-            self.displayStartTime = CACurrentMediaTime()
-            self.displayTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-                guard let self, let start = self.displayStartTime else { return }
-                self.elapsed = min(90, CACurrentMediaTime() - start)
+            // Serial ordering keeps a countdown pitch publication from arriving
+            // after the new take's clear and appearing as a recorded reading.
+            self.publish {
+                self.frequency = nil
+                self.confidence = 0
+                self.rms = 0
+                self.isRecording = true
+                self.displayTimer?.invalidate()
+                self.displayStartTime = CACurrentMediaTime()
+                let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
+                    guard let self, let start = self.displayStartTime else { return }
+                    self.elapsed = min(90, CACurrentMediaTime() - start)
+                }
+                self.displayTimer = timer
+                RunLoop.main.add(timer, forMode: .common)
             }
         }
         sessionQueue.async { [weak self] in

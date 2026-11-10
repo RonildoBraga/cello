@@ -52,6 +52,53 @@ final class MelodyRatingTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(legato.noteResults[2].observedOnset), 1, accuracy: 0.15)
     }
 
+    func testWithinNoteSettlingDoesNotInventAnExtraNote() throws {
+        let context = twoNoteSnapshot()
+        let rating = rate(settlingSignal(secondOnset: 2.10), context)
+        XCTAssertEqual(rating.status, .rated)
+        XCTAssertEqual(rating.starCount, 3)
+        XCTAssertEqual(rating.matchedNoteFraction, 1)
+        XCTAssertEqual(rating.timedNoteFraction, 1)
+        XCTAssertEqual(rating.clearNoteFraction, 1)
+        XCTAssertEqual(try XCTUnwrap(rating.noteResults[1].observedOnset), 2.10, accuracy: 0.02)
+        XCTAssertEqual(try XCTUnwrap(rating.noteResults[1].observedFrequency), 112, accuracy: 0.5)
+    }
+
+    func testSettlingCorrectionDoesNotMoveALateOnsetOntoTheScore() throws {
+        let context = twoNoteSnapshot()
+        let rating = rate(settlingSignal(secondOnset: 2.21), context)
+        XCTAssertEqual(rating.status, .rated)
+        XCTAssertTrue(rating.notes)
+        XCTAssertTrue(rating.clarity)
+        XCTAssertFalse(rating.timing)
+        XCTAssertEqual(rating.starCount, 2)
+        XCTAssertEqual(try XCTUnwrap(rating.noteResults[1].observedOnset), 2.21, accuracy: 0.02)
+    }
+
+    func testSemitoneStepsRemainDistinctEvenInQuarterSecondLegatoNotes() throws {
+        for register in [MelodyRegister.lowVoice, .higherVoice] {
+            for duration in [0.5, 2.0] {
+                // A half beat at 120 BPM lasts 250ms. No silent reattacks
+                // identify these notes: the pitch steps must remain detectable.
+                let pitches = [47, 48, 47, 48]
+                let transpose = register == .lowVoice ? 0 : 12
+                let context = MelodyPracticeContext(pieceID: "semitoneControl", scoreVersion: 1,
+                    register: register, referenceKey: "G major", tuningA4Hz: 440, tempoBPM: 120,
+                    section: .whole, expectedEvents: pitches.enumerated().map {
+                        MelodyEvent(onsetBeat: Double($0.offset) * duration, durationBeats: duration,
+                                    midiNote: $0.element + transpose)
+                    }, durationBeats: Double(pitches.count) * duration,
+                    gradingVersion: MelodyRating.currentVersion)
+                let rating = rate(signal(context: context, gate: 1), context)
+                XCTAssertEqual(rating.status, .rated)
+                XCTAssertEqual(rating.starCount, 3, "\(register), \(duration) beat semitones")
+                for (event, result) in zip(context.expectedEvents, rating.noteResults) {
+                    XCTAssertEqual(try XCTUnwrap(result.observedOnset), event.onsetBeat / 2, accuracy: 0.12)
+                }
+            }
+        }
+    }
+
     func testSustainedSingleNoteCannotPassMovingMelodyOrRepeatedRhythm() throws {
         for section in [MelodySection.phrase1, .phrase3] {
             let context = try snapshot(section: section)
@@ -216,6 +263,33 @@ final class MelodyRatingTests: XCTestCase {
 
     private func rate(_ samples: [Float], _ context: MelodyPracticeContext) -> MelodyRating {
         MelodyRecordingRater.rate(samples: samples, sampleRate: sampleRate, context: context)
+    }
+
+    private func twoNoteSnapshot() -> MelodyPracticeContext {
+        MelodyPracticeContext(pieceID: "settlingControl", scoreVersion: 1,
+            register: .lowVoice, referenceKey: "G major", tuningA4Hz: 440, tempoBPM: 60,
+            section: .whole, expectedEvents: [
+                MelodyEvent(onsetBeat: 0, durationBeats: 2, midiNote: 43),
+                MelodyEvent(onsetBeat: 2, durationBeats: 2, midiNote: 45)
+            ], durationBeats: 4, gradingVersion: MelodyRating.currentVersion)
+    }
+
+    /// A quiet continuous second hum settles from 105 to 112Hz after its attack.
+    /// The ramp crosses 100 cents from its early baseline without a third note.
+    private func settlingSignal(secondOnset: Double) -> [Float] {
+        var sound = [Float](repeating: 0, count: Int(4 * sampleRate))
+        for (start, end, first) in [(0.10, 1.70, true), (secondOnset, 3.90, false)] {
+            var phase = 0.0
+            for index in Int(start * sampleRate)..<Int(end * sampleRate) {
+                let elapsed = Double(index) / sampleRate - start
+                let remaining = end - Double(index) / sampleRate
+                let envelope = min(1, min(elapsed, remaining) / 0.01)
+                let frequency = first ? 97.998859 : 105 + 7 * min(1, max(0, (elapsed - 0.25) / 0.25))
+                phase += 2 * .pi * frequency / sampleRate
+                sound[index] = Float(envelope * (0.005 * sin(phase) + 0.002 * sin(2 * phase)))
+            }
+        }
+        return sound
     }
 
     /// Synthetic signal with independent frequency, order, attack and duration controls.

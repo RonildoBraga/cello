@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import XCTest
 @testable import Cello
@@ -88,28 +89,102 @@ final class EchoPracticeTests: XCTestCase {
     }
 
     func testSelectionRejectsChangedFrozenFieldsAndOtherMelodies() throws {
-        let original = try EchoLevel.twoNotes.context(patternIndex: 1, register: .lowVoice)
-        let changed = [
-            replacing(original, pieceID: "echoTwoNotesOther"), replacing(original, scoreVersion: 2),
-            replacing(original, register: .higherVoice), replacing(original, key: "D major"),
-            replacing(original, tuning: 441), replacing(original, tempo: 72),
-            replacing(original, section: .phrase1), replacing(original, duration: 5),
-            replacing(original, gradingVersion: 2),
-            replacing(original, events: original.expectedEvents.map {
-                MelodyEvent(onsetBeat: $0.onsetBeat, durationBeats: $0.durationBeats,
-                            midiNote: $0.midiNote.map { $0 + 1 })
-            }),
-            replacing(original, events: [MelodyEvent(onsetBeat: 0, durationBeats: 1.5, midiNote: 43),
-                                         MelodyEvent(onsetBeat: 2, durationBeats: 2, midiNote: 45)]),
-            try .hotCrossBuns(register: .lowVoice, section: .phrase1, gradingVersion: 1),
-            try .odeToJoy(register: .lowVoice, section: .phrase1, gradingVersion: 1)
-        ]
-        for context in changed { XCTAssertNil(EchoLevel.selection(for: context), "\(context)") }
-        let ungraded = MelodyPracticeContext(pieceID: original.pieceID, scoreVersion: original.scoreVersion,
-            register: original.register, referenceKey: original.referenceKey, tuningA4Hz: original.tuningA4Hz,
-            tempoBPM: original.tempoBPM, section: original.section, expectedEvents: original.expectedEvents,
-            durationBeats: original.durationBeats, gradingVersion: nil)
+        let current = try EchoLevel.twoNotes.context(patternIndex: 1, register: .lowVoice)
+        for version in [1, 2] {
+            let original = replacing(current, gradingVersion: version)
+            let changed = [
+                replacing(original, pieceID: "echoTwoNotesOther"), replacing(original, scoreVersion: 2),
+                replacing(original, register: .higherVoice), replacing(original, key: "D major"),
+                replacing(original, tuning: 441), replacing(original, tempo: 72),
+                replacing(original, section: .phrase1), replacing(original, duration: 5),
+                replacing(original, gradingVersion: 99),
+                replacing(original, events: original.expectedEvents.map {
+                    MelodyEvent(onsetBeat: $0.onsetBeat, durationBeats: $0.durationBeats,
+                                midiNote: $0.midiNote.map { $0 + 1 })
+                }),
+                replacing(original, events: [MelodyEvent(onsetBeat: 0, durationBeats: 1.5, midiNote: 43),
+                                             MelodyEvent(onsetBeat: 2, durationBeats: 2, midiNote: 45)]),
+                try .hotCrossBuns(register: .lowVoice, section: .phrase1, gradingVersion: version),
+                try .odeToJoy(register: .lowVoice, section: .phrase1, gradingVersion: version)
+            ]
+            for context in changed { XCTAssertNil(EchoLevel.selection(for: context), "\(context)") }
+        }
+        let ungraded = MelodyPracticeContext(pieceID: current.pieceID, scoreVersion: current.scoreVersion,
+            register: current.register, referenceKey: current.referenceKey, tuningA4Hz: current.tuningA4Hz,
+            tempoBPM: current.tempoBPM, section: current.section, expectedEvents: current.expectedEvents,
+            durationBeats: current.durationBeats, gradingVersion: nil)
         XCTAssertNil(EchoLevel.selection(for: ungraded))
+    }
+
+    func testHistoricalVersionOnePatternsRetainTheirIdentityTitleAndSavedFeedback() throws {
+        XCTAssertEqual(MelodyRating.currentVersion, 2)
+        for level in EchoLevel.allCases {
+            for register in [MelodyRegister.lowVoice, .higherVoice] {
+                for index in 0..<level.patternCount {
+                    let context = replacing(try level.context(patternIndex: index, register: register),
+                                            gradingVersion: 1)
+                    let archived = try session(at: index, context: context, version: 1)
+                    let restored = try JSONDecoder().decode(PracticeSession.self,
+                        from: JSONEncoder().encode(archived))
+                    XCTAssertEqual(EchoLevel.selection(for: context)?.level, level)
+                    XCTAssertEqual(EchoLevel.selection(for: context)?.patternIndex, index)
+                    XCTAssertEqual(restored.melodyContext, context)
+                    XCTAssertEqual(restored.melodyRating, archived.melodyRating)
+                    XCTAssertEqual(restored.melodyRating?.version, 1)
+                    XCTAssertEqual(restored.title, "Listen & Echo · \(level.title)")
+                    XCTAssertEqual(restored.starCount, 3)
+                    XCTAssertEqual(restored.melodyRating?.echoFeedback,
+                                   "All three goals reached. Try a fresh pattern.")
+                }
+            }
+        }
+    }
+
+    func testHistoricalThreeStarTakesCannotCreditCurrentVersionProgress() throws {
+        let old = try (0..<3).map { index in
+            let context = replacing(try EchoLevel.twoNotes.context(patternIndex: index, register: .lowVoice),
+                                    gradingVersion: 1)
+            return try session(at: index, context: context, version: 1)
+        }
+        var ledger = EchoProgressLedger()
+        XCTAssertTrue(old.allSatisfy { $0.starCount == 3 })
+        XCTAssertFalse(ledger.update(from: old))
+        XCTAssertTrue(ledger.completedKeys.isEmpty)
+        XCTAssertEqual(ledger.progress(for: .twoNotes, register: .lowVoice, sessions: old).successfulAttempts, 0)
+
+        var mixed = old + (try (3..<5).map { try session(at: $0, pattern: $0) })
+        XCTAssertFalse(ledger.update(from: mixed))
+        let unfinished = ledger.progress(for: .twoNotes, register: .lowVoice, sessions: mixed)
+        XCTAssertEqual(unfinished.successfulAttempts, 2)
+        XCTAssertFalse(unfinished.completed)
+        mixed.append(try session(at: 5, pattern: 5))
+        XCTAssertTrue(ledger.update(from: mixed))
+        XCTAssertTrue(ledger.progress(for: .twoNotes, register: .lowVoice, sessions: mixed).completed)
+    }
+
+    func testHistoricalCompletionKeySurvivesReloadAndCurrentCompletionWithoutCreditingIt() throws {
+        // Reconstruct the v1 catalogue identity stored by the previous release.
+        let oldContexts = try (0..<EchoLevel.twoNotes.patternCount).map {
+            replacing(try EchoLevel.twoNotes.context(patternIndex: $0, register: .lowVoice), gradingVersion: 1)
+        }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        let oldKey = SHA256.hash(data: try encoder.encode(oldContexts))
+            .map { String(format: "%02x", $0) }.joined()
+        let saved = try encoder.encode(EchoProgressLedger(completedKeys: [oldKey]))
+        var ledger = try JSONDecoder().decode(EchoProgressLedger.self, from: saved)
+        XCTAssertEqual(ledger.completedKeys, [oldKey])
+        XCTAssertFalse(ledger.progress(for: .twoNotes, register: .lowVoice, sessions: []).completed)
+        XCTAssertFalse(ledger.update(from: []))
+        XCTAssertEqual(ledger.completedKeys, [oldKey])
+
+        let current = try (0..<3).map { try session(at: $0, pattern: $0) }
+        XCTAssertTrue(ledger.update(from: current))
+        XCTAssertTrue(ledger.completedKeys.contains(oldKey))
+        XCTAssertEqual(ledger.completedKeys.count, 2, "The current grade must earn a separate achievement")
+        let restored = try JSONDecoder().decode(EchoProgressLedger.self, from: encoder.encode(ledger))
+        XCTAssertEqual(restored.completedKeys, ledger.completedKeys)
+        XCTAssertTrue(restored.progress(for: .twoNotes, register: .lowVoice, sessions: []).completed)
     }
 
     func testThreeSuccessesAmongFiveDifferentPatternsCompleteOnlyTheSelectedLevelAndVoice() throws {
@@ -138,8 +213,10 @@ final class EchoPracticeTests: XCTestCase {
             session(at: 13, context: replacing(canonical, tempo: 72)),
             session(at: 14, context: canonical, exercise: .steadyHum),
             session(at: 15, context: canonical, foundationRating: true),
-            session(at: 16, context: .hotCrossBuns(register: .lowVoice, section: .phrase1, gradingVersion: 1)),
-            session(at: 17, context: .odeToJoy(register: .lowVoice, section: .phrase1, gradingVersion: 1)),
+            session(at: 16, context: .hotCrossBuns(register: .lowVoice, section: .phrase1,
+                                                gradingVersion: MelodyRating.currentVersion)),
+            session(at: 17, context: .odeToJoy(register: .lowVoice, section: .phrase1,
+                                             gradingVersion: MelodyRating.currentVersion)),
             session(at: 18, level: .threeNotes, pattern: 0),
             session(at: 19, register: .higherVoice, pattern: 0)
         ]
@@ -148,7 +225,7 @@ final class EchoPracticeTests: XCTestCase {
         XCTAssertEqual(ledger.progress(for: .twoNotes, register: .lowVoice, sessions: history).successfulAttempts, 2)
         XCTAssertFalse(ledger.progress(for: .twoNotes, register: .lowVoice, sessions: history).completed)
         XCTAssertFalse(MelodyProgressLedger().progress(for: try .hotCrossBuns(register: .lowVoice,
-            section: .phrase1, gradingVersion: 1), sessions: history).completed)
+            section: .phrase1, gradingVersion: MelodyRating.currentVersion), sessions: history).completed)
         XCTAssertFalse(PracticeProgressLedger().progress(for: .steadyHum,
             targetFrequency: HummingExample.frequency, sessions: history).completed)
         history.append(try session(at: 20, pattern: 2))

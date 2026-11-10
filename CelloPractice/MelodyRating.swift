@@ -24,7 +24,7 @@ struct MelodyNoteResult: Codable, Equatable, Sendable {
 
 /// Three independent beginner goals. Uncertain sound never becomes a failed take.
 struct MelodyRating: Codable, Equatable, Sendable {
-    static let currentVersion = 1
+    static let currentVersion = 2
 
     enum Status: String, Codable, Sendable { case rated, unclear, insufficientSound }
 

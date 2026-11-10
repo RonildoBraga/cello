@@ -5,6 +5,32 @@ final class EchoPracticeUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    func testLegacyEchoArchiveKeepsItsFrozenStarsAndPitchChart() throws {
+        let app = XCUIApplication()
+        app.launch()
+        app.tabBars.buttons["Recordings"].tap()
+        let recording = app.descendants(matching: .any)["recording-EC000000-0000-4000-8000-000000000002"]
+        guard recording.waitForExistence(timeout: 5) else {
+            throw XCTSkip("Requires an externally seeded version-one low-voice G2/A2 Echo take with its original zero-star rating")
+        }
+        reveal(recording, in: app)
+        recording.tap()
+        XCTAssertTrue(app.navigationBars["Your session"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Listen & Echo · Two notes"].exists)
+        let stars = app.staticTexts["melodyRatingStars"]
+        reveal(stars, in: app)
+        XCTAssertEqual(stars.label, "0 of 3 stars", "A grading update must not silently rewrite the stored assessment")
+        let chart = app.descendants(matching: .any).matching(identifier: "melodyPitchChart").firstMatch
+        reveal(chart, in: app)
+        XCTAssertTrue(chart.isHittable)
+        XCTAssertTrue(chart.label.contains("saved audio assessment"))
+        XCTAssertTrue(chart.label.contains("recorded octave"))
+        let chartImage = XCTAttachment(screenshot: chart.screenshot())
+        chartImage.name = "Listen and Echo · original saved version-one pitch chart"
+        chartImage.lifetime = .keepAlways
+        add(chartImage)
+    }
+
     func testArchivedEchoResultAndVoiceSpecificProgressUseSavedPattern() throws {
         let app = XCUIApplication()
         app.launch()
@@ -61,6 +87,7 @@ final class EchoPracticeUITests: XCTestCase {
         let registers = app.segmentedControls["echoRegisterPicker"]
         XCTAssertTrue(levels.buttons["Two notes"].isSelected)
         XCTAssertTrue(registers.buttons["Low voice"].isSelected)
+        XCTAssertTrue(app.staticTexts["Hear the pattern, then hum it back. Follow the tuning bar as you record."].exists)
         XCTAssertTrue(duration.label.contains("4 seconds") && duration.label.contains("60 BPM"))
         assertRecordNeedsHear(in: app)
         assertNoTargetHints(in: app)
@@ -248,13 +275,16 @@ final class EchoPracticeUITests: XCTestCase {
     }
 
     private func assertNoTargetHints(in app: XCUIApplication) {
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "echoLiveTuner").firstMatch.exists,
+                       "The live guide appears when capture starts, not while hearing or preparing")
+        XCTAssertFalse(app.staticTexts["livePitchCents"].exists)
         XCTAssertFalse(app.staticTexts["currentTargetLabel"].exists)
         XCTAssertFalse(app.staticTexts["LIVE TUNER"].exists)
         XCTAssertFalse(app.staticTexts["Live tuner"].exists)
         XCTAssertFalse(app.staticTexts["Camera preview"].exists)
         XCTAssertFalse(app.buttons["Switch camera"].exists)
         let notes = app.staticTexts.matching(NSPredicate(format: "label MATCHES %@", "^[A-G][♯♭#]?[0-9]$"))
-        XCTAssertEqual(notes.count, 0, "Actual reference notes remain hidden before the result")
+        XCTAssertEqual(notes.count, 0, "Reference note hints remain hidden before recording")
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "echoPracticeStatus").firstMatch.exists)
     }
 

@@ -42,7 +42,7 @@ struct EchoPracticeView: View {
                     Text("Listen & Echo")
                         .font(.system(size: 27, weight: .semibold, design: .serif))
                         .foregroundStyle(Palette.ink)
-                    Text("Hear the pattern, then hum it back from memory. Your notes appear after recording.")
+                    Text("Hear the pattern, then hum it back. Follow the tuning bar as you record.")
                         .font(.footnote).foregroundStyle(Palette.muted)
                 }
                 Picker("Voice register", selection: registerSelection) {
