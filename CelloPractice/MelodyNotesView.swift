@@ -7,6 +7,7 @@ struct MelodyNotesView: View {
     let elapsed: TimeInterval?
     var labelStyle: LabelStyle = .pitch
     var focusOnCurrentPhrase = false
+    @ScaledMetric(relativeTo: .footnote) private var tileHeight: CGFloat = 40
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -38,7 +39,7 @@ struct MelodyNotesView: View {
                              isCurrent: current == index)
                     }
                 }
-            }.frame(height: 40)
+            }.frame(height: tileHeight)
         }
     }
 
@@ -58,9 +59,9 @@ struct MelodyNotesView: View {
             : "\(event.midiNote == nil ? "Rest" : "Note"), \(beats) beats"
         let foreground: Color = isCurrent ? .white : Palette.forest
         let background: Color = isCurrent ? Palette.forest : Palette.forest.opacity(0.07)
-        return Text(label).font(.system(size: 14, weight: .semibold, design: .rounded))
+        return Text(label).font(.system(.footnote, design: .rounded).weight(.semibold))
             .minimumScaleFactor(0.7).lineLimit(1)
-            .frame(width: width, height: 40)
+            .frame(width: width, height: tileHeight)
             .foregroundStyle(foreground)
             .background(background, in: RoundedRectangle(cornerRadius: Layout.tileRadius))
             .accessibilityLabel(spoken)

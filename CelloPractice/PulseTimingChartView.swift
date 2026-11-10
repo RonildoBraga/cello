@@ -97,7 +97,7 @@ struct PulseTimingChartView: View {
                         .foregroundStyle(Palette.forest.opacity(0.65))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                         .annotation(position: .top, alignment: .trailing) {
-                            Text("On beat 0").font(.system(size: 9, weight: .medium))
+                            Text("On beat 0").font(.caption2.weight(.medium))
                                 .foregroundStyle(Palette.forest)
                         }
 
@@ -117,11 +117,13 @@ struct PulseTimingChartView: View {
                             if let value = value.as(Double.self), let index = data.positions.firstIndex(of: value) {
                                 let beat = index + 1
                                 VStack(spacing: 3) {
-                                    Text(attempt.exercise.beatLabel(forTap: beat)).font(.system(size: 9).monospacedDigit())
+                                    Text(attempt.exercise.beatLabel(forTap: beat)).font(.caption2.monospacedDigit())
                                     Image(systemName: "xmark")
-                                        .font(.system(size: 6, weight: .semibold))
+                                        .font(.caption2.weight(.semibold)).imageScale(.small)
                                         .opacity(data.missedBeats.contains(beat) ? 1 : 0)
                                 }.foregroundStyle(Palette.muted)
+                                    // Sixteen labels share the axis; they stay compact at any text size.
+                                    .dynamicTypeSize(...DynamicTypeSize.large)
                             }
                         }
                     }

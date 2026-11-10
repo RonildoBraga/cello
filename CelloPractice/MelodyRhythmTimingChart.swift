@@ -91,7 +91,7 @@ struct MelodyRhythmTimingChart: View {
                             .foregroundStyle(Palette.muted.opacity(0.12))
                             .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 4]))
                             .annotation(position: .bottom, spacing: 4) {
-                                Image(systemName: "xmark").font(.system(size: 7, weight: .semibold))
+                                Image(systemName: "xmark").font(.caption2.weight(.semibold)).imageScale(.small)
                                     .foregroundStyle(Palette.muted)
                             }
                     }

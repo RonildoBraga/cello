@@ -291,6 +291,8 @@ struct VoicePracticeView<Header: View>: View {
                 }
             }.buttonStyle(PrimaryActionButtonStyle(color: capture.isRecording ? .red : Palette.forest))
                 .disabled(saving || needsEchoReference || (restSeconds > 0 && !isBusy && !capture.isRecording))
+                .accessibilityHint(needsEchoReference ? "Tap Hear pattern and listen to the end first."
+                                   : restSeconds > 0 ? "Available after a short rest." : "")
                 .accessibilityIdentifier("practiceRecordButton")
         }
     }
@@ -303,9 +305,9 @@ struct VoicePracticeView<Header: View>: View {
             if saving {
                 ProgressView().tint(.white).frame(height: 62)
             } else {
-                Text(countInSeconds > 0 ? "\(countInSeconds)" : phase == .previewing ? "Listen" : capture.isRecording ? "Hum it back" : "Your turn")
-                    .font(countInSeconds > 0 ? .statusCount : .statusValue)
-                    .monospacedDigit().frame(minHeight: 62)
+                StatusValue(text: countInSeconds > 0 ? "\(countInSeconds)" : phase == .previewing ? "Listen"
+                            : capture.isRecording ? "Hum it back" : "Your turn", isCount: countInSeconds > 0)
+                    .frame(minHeight: 62)
                     .accessibilityIdentifier("echoPracticeStatus")
             }
             Text(saving ? "Checking your notes, timing and clarity…"
@@ -330,9 +332,8 @@ struct VoicePracticeView<Header: View>: View {
                 if saving {
                     ProgressView().tint(.white).frame(height: 56)
                 } else {
-                    Text(tunerTitle)
-                        .font(countInSeconds > 0 ? .statusCount : .statusValue)
-                        .monospaced().contentTransition(.numericText()).frame(minHeight: 58)
+                    StatusValue(text: tunerTitle, isCount: countInSeconds > 0)
+                        .contentTransition(.numericText()).frame(minHeight: 58)
                         .accessibilityIdentifier("livePitchNote")
                 }
                 Text(pitchMessage).font(.subheadline).multilineTextAlignment(.center)

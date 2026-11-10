@@ -24,7 +24,9 @@ Simulator checks do not establish microphone, speaker, camera or haptic behaviou
 
 - **No third-party dependencies** without discussing it in an issue first. Apple frameworks and the local `Packages/CelloPitch` package are enough today.
 - **Reuse before you copy.** A new activity should configure the existing practice screen, rhythm round, result card, chart and progress ledger. If one of them does not fit, extend it; do not add a parallel version.
-- **Shared look.** Use the shared colours and components for cards, buttons, headers and rows instead of inline radii, paddings and font sizes.
+- **Shared look.** Use the components in `DesignSystem.swift` for cards, buttons, headers and rows instead of inline radii, paddings and font sizes.
+- **Text scales.** Use text styles (`.headline`, `.caption2`, …) or `@ScaledMetric`; a literal point size belongs only in `DesignSystem.swift`. Small text needs a contrast ratio of at least 4.5:1: on the dark cards use white at 70% opacity or more, and use `Palette.goldText`, not `Palette.gold`, for gold text.
+- **Light appearance only, for now.** The app forces light mode and uses a fixed palette. This is a deliberate choice (issue #30), not an oversight; adding a dark appearance means giving `Palette` dark variants and replacing the literal `.white` in `DesignSystem.swift`.
 - **Content lives in the models.** Per-lesson and per-piece text belongs with `PracticeLesson`, `MelodyPiece` and friends, not in `if piece == …` branches inside views.
 - **Accessibility identifiers are a test contract.** The UI tests find controls by identifier. Keep existing identifiers when you restructure a view, and give new interactive controls one.
 - **Keep it small.** Prefer deleting or simplifying to adding an abstraction. One file per screen or type, named after what it contains.

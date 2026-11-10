@@ -80,7 +80,7 @@ struct PracticeResultCard: View {
     }
 
     private func star(_ earned: Bool) -> some View {
-        Image(systemName: earned ? "star.fill" : "star").font(.system(size: 19, weight: .medium))
+        Image(systemName: earned ? "star.fill" : "star").font(.title3.weight(.medium))
             .foregroundStyle(earned ? Palette.gold : Palette.muted.opacity(0.4))
     }
 }

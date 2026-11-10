@@ -200,7 +200,7 @@ struct MelodyTraceView: View {
         HStack(spacing: 4) {
             Rectangle().fill(color).frame(width: dashed ? 5 : 12, height: 2)
             if dashed { Rectangle().fill(color).frame(width: 5, height: 2) }
-            Text(title).font(.system(size: 10)).foregroundStyle(Palette.muted)
+            Text(title).font(.caption2).foregroundStyle(Palette.muted)
         }.accessibilityElement(children: .ignore).accessibilityLabel(title)
     }
 }
