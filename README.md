@@ -56,6 +56,8 @@ CELLO_DEVELOPMENT_TEAM=YOUR_TEAM_ID bash scripts/run-on-iphone.sh DEVICE_ID
 
 Signing credentials and device-specific settings belong in local configuration and must stay out of commits.
 
+For updates without a cable, upload a Release archive to App Store Connect for internal TestFlight testing using the same bundle identifier and team. Back up existing recordings and progress, then install the beta over the existing app without uninstalling it. Account holders complete Apple sign-in and two-factor prompts themselves; export options, distribution archives and backups stay outside Git. TestFlight distribution does not publish the app on the App Store.
+
 ## Tests
 
 The pitch detector can be tested without the iPhone app:
@@ -93,6 +95,8 @@ Tests cover pitch detection, versioned scoring, recording save/reload/export, pr
 ## Data and privacy
 
 Practice data stays on the device. The app has no account, analytics, automatic uploads or server connection. Sharing happens only through the export action you choose.
+
+The bundled [privacy manifest](CelloPractice/Resources/PrivacyInfo.xcprivacy) declares no tracking or collected data. Countdown and rhythm timers use system uptime to measure elapsed intervals under Apple's approved reason `35F9.1`; raw boot times are not exported. The build also declares that it uses no non-exempt encryption; progress keys use Apple's SHA256 hashing.
 
 - Audio/video takes and metadata: `Documents/PracticeSessions`.
 - Unfinished or failed-save takes retained for recovery: `Documents/PendingTakes`.
