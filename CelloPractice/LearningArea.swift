@@ -13,12 +13,4 @@ enum LearningArea: String, CaseIterable, Identifiable, Hashable {
         case .cello: return "Cello"
         }
     }
-
-    var defaultLesson: PracticeLesson {
-        switch self {
-        case .humming: return .steadyHum
-        case .rhythm: return .pulse
-        case .cello: return .openG
-        }
-    }
 }

@@ -1,5 +1,19 @@
 import SwiftUI
 
+/// Every screen the Music tab can push. Practice is one of them: you choose in
+/// the library, practise, and go back.
+enum MusicRoute: Hashable {
+    case area(LearningArea)
+    case lesson(PracticeLesson)
+    case practice(PracticeLesson)
+    case celloIntroduction
+    case echo
+    case piece(MusicPiece)
+    case pieceHumming(MelodyPiece)
+    case pieceRhythm(MelodyPiece)
+    case pieceReference(MelodyPiece)
+}
+
 /// Shared foundations and piece goals live in one visible music library.
 @MainActor
 struct MusicLibraryView: View {
@@ -7,13 +21,25 @@ struct MusicLibraryView: View {
     @ObservedObject var capture: CaptureController
     @ObservedObject var rhythmStores: RhythmStores
     @ObservedObject var melodyRhythmStore: MelodyRhythmStore
-    let onStartLesson: (PracticeLesson) -> Void
+    @State private var path: [MusicRoute] = []
+    /// The foundation lesson practised most recently, for a quick way back in.
+    @AppStorage("lastFoundationLesson") private var lastLessonID = ""
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 26) {
                     ScreenHeader(title: "Music", subtitle: "Build your way to the music you want to play.")
+                    if let lesson = PracticeLesson(rawValue: lastLessonID) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            SectionTitle("Continue")
+                            Button { practise(lesson) } label: {
+                                LibraryRow(leading: .number(lesson.number), title: lesson.title,
+                                           subtitle: "\(lesson.area.title) · Lesson \(lesson.number)") { EmptyView() }
+                            }.buttonStyle(.plain).accessibilityIdentifier("continueLessonButton")
+                                .accessibilityLabel("Continue \(lesson.title), \(lesson.area.title) lesson \(lesson.number)")
+                        }
+                    }
                     VStack(alignment: .leading, spacing: 12) {
                         SectionTitle("Foundations")
                         ForEach(LearningArea.allCases) { area in
@@ -21,9 +47,7 @@ struct MusicLibraryView: View {
                             let completed = lessons.filter {
                                 LessonState(lesson: $0, store: store, rhythmStores: rhythmStores).progress.completed
                             }.count
-                            NavigationLink {
-                                foundationLessons(area)
-                            } label: {
+                            NavigationLink(value: MusicRoute.area(area)) {
                                 LibraryRow(symbol: areaSymbol(area), title: area.title, subtitle: areaPurpose(area),
                                            footer: "\(completed) of \(lessons.count) lessons completed")
                             }.buttonStyle(.plain)
@@ -34,9 +58,7 @@ struct MusicLibraryView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         SectionTitle("Pieces")
                         ForEach(MusicPiece.allCases) { piece in
-                            NavigationLink {
-                                piecePath(piece)
-                            } label: {
+                            NavigationLink(value: MusicRoute.piece(piece)) {
                                 LibraryRow(symbol: "music.note.list", title: piece.title, subtitle: piece.subtitle,
                                            footer: piece.statusLabel)
                             }.buttonStyle(.plain)
@@ -49,12 +71,41 @@ struct MusicLibraryView: View {
             }.background(Palette.paper)
                 .accessibilityIdentifier("musicLibraryHome")
                 .screenTitle("Music")
+                .navigationDestination(for: MusicRoute.self) { destination($0) }
         }.tint(Palette.forest)
     }
 
-    private func foundationLessons(_ area: LearningArea) -> some View {
-        FoundationLessonsView(area: area, store: store, capture: capture, rhythmStores: rhythmStores,
-                              onStartLesson: onStartLesson)
+    @ViewBuilder
+    private func destination(_ route: MusicRoute) -> some View {
+        switch route {
+        case .area(let area):
+            FoundationLessonsView(area: area, store: store, rhythmStores: rhythmStores)
+        case .lesson(let lesson):
+            LessonDetailView(lesson: lesson, store: store, rhythmStores: rhythmStores, onStartLesson: practise)
+        case .practice(let lesson):
+            FoundationPracticeView(lesson: lesson, store: store, capture: capture, rhythmStores: rhythmStores,
+                                   onStartLesson: practise).id(lesson)
+        case .celloIntroduction: CelloIntroductionView(capture: capture)
+        case .echo: EchoPracticeView(store: store, capture: capture)
+        case .piece(let piece): piecePath(piece)
+        case .pieceHumming(let piece): MelodyHummingView(store: store, capture: capture, piece: piece)
+        case .pieceRhythm(let piece): MelodyRhythmView(store: melodyRhythmStore, capture: capture, piece: piece)
+        case .pieceReference(let piece): MelodyReferenceView(capture: capture, piece: piece)
+        }
+    }
+
+    /// Opens a lesson's practice screen above its own area and lesson page, so Back
+    /// always leads somewhere that matches what is on screen.
+    private func practise(_ lesson: PracticeLesson) {
+        lastLessonID = lesson.id
+        let trail: [MusicRoute] = [.area(lesson.area), .lesson(lesson), .practice(lesson)]
+        if path.suffix(2) == [.area(lesson.area), .lesson(lesson)] {
+            path.append(.practice(lesson))
+        } else {
+            // Keep whatever led to the foundations, such as a piece page.
+            let lead = path.prefix { if case .area = $0 { return false } else { return true } }
+            path = Array(lead) + trail
+        }
     }
 
     private func piecePath(_ piece: MusicPiece) -> some View {
@@ -63,25 +114,19 @@ struct MusicLibraryView: View {
                 ScreenHeader(eyebrow: piece.statusLabel, title: piece.title, subtitle: piece.summary,
                              titleIdentifier: "pieceDetailTitle", eyebrowIdentifier: "pieceStatus")
                 if let melody = piece.melodyPiece {
-                    NavigationLink {
-                        MelodyHummingView(store: store, capture: capture, piece: melody)
-                    } label: {
+                    NavigationLink(value: MusicRoute.pieceHumming(melody)) {
                         LibraryRow(symbol: "waveform", title: "Humming",
                                    subtitle: "Record phrases and earn Notes, Timing and Clarity stars",
                                    footer: "Four phrases, then the whole melody")
                     }.buttonStyle(.plain)
                         .accessibilityIdentifier("melodyHummingLink")
-                    NavigationLink {
-                        MelodyRhythmView(store: melodyRhythmStore, capture: capture, piece: melody)
-                    } label: {
+                    NavigationLink(value: MusicRoute.pieceRhythm(melody)) {
                         LibraryRow(symbol: "metronome", title: "Rhythm",
                                    subtitle: "Tap the melody’s note starts and follow its longer notes",
                                    footer: "Four phrases, then the whole melody")
                     }.buttonStyle(.plain)
                         .accessibilityIdentifier("melodyRhythmLink")
-                    NavigationLink {
-                        MelodyReferenceView(capture: capture, piece: melody)
-                    } label: {
+                    NavigationLink(value: MusicRoute.pieceReference(melody)) {
                         LibraryRow(symbol: "play.circle.fill", title: "Listen & follow",
                                    subtitle: "Hear the melody or one short phrase",
                                    footer: "Recorded hum & cello · 60 BPM")
@@ -99,9 +144,7 @@ struct MusicLibraryView: View {
                     Text(piece.melodyPiece != nil ? "Build the skills behind the melody." : "These shared skills are available now. Piece-specific exercises are planned.")
                         .font(.footnote).foregroundStyle(Palette.muted)
                     ForEach(LearningArea.allCases) { area in
-                        NavigationLink {
-                            foundationLessons(area)
-                        } label: {
+                        NavigationLink(value: MusicRoute.area(area)) {
                             LibraryRow(symbol: areaSymbol(area), title: area.title, subtitle: areaPurpose(area))
                         }.buttonStyle(.plain)
                             .accessibilityIdentifier("pieceFoundation-\(area.id)")
@@ -152,9 +195,7 @@ struct MusicLibraryView: View {
 private struct FoundationLessonsView: View {
     let area: LearningArea
     @ObservedObject var store: SessionStore
-    @ObservedObject var capture: CaptureController
     @ObservedObject var rhythmStores: RhythmStores
-    let onStartLesson: (PracticeLesson) -> Void
 
     private var lessons: [PracticeLesson] { PracticeLesson.lessons(in: area) }
     private var completedCount: Int {
@@ -169,9 +210,7 @@ private struct FoundationLessonsView: View {
                              titleIdentifier: "foundationAreaTitle",
                              subtitleIdentifier: "foundationCompletionSummary")
                 if area == .cello {
-                    NavigationLink {
-                        CelloIntroductionView(capture: capture)
-                    } label: {
+                    NavigationLink(value: MusicRoute.celloIntroduction) {
                         LibraryRow(symbol: "music.note", title: "Meet your cello",
                                    subtitle: "Explore the parts and hear the four strings",
                                    footer: "Start here · Listen and explore")
@@ -180,10 +219,7 @@ private struct FoundationLessonsView: View {
                 VStack(spacing: 12) {
                     ForEach(lessons) { lesson in
                         let state = LessonState(lesson: lesson, store: store, rhythmStores: rhythmStores)
-                        NavigationLink {
-                            LessonDetailView(lesson: lesson, store: store, rhythmStores: rhythmStores,
-                                             onStartLesson: onStartLesson)
-                        } label: {
+                        NavigationLink(value: MusicRoute.lesson(lesson)) {
                             LessonRow(lesson: lesson, state: state)
                         }.buttonStyle(.plain)
                             .accessibilityIdentifier("lesson-\(lesson.id)")
@@ -194,9 +230,7 @@ private struct FoundationLessonsView: View {
                 if area == .humming {
                     VStack(alignment: .leading, spacing: 12) {
                         SectionTitle("Ear training")
-                        NavigationLink {
-                            EchoPracticeView(store: store, capture: capture)
-                        } label: {
+                        NavigationLink(value: MusicRoute.echo) {
                             LibraryRow(symbol: "ear", title: "Listen & Echo",
                                        subtitle: "Remember a short pattern and hum it back",
                                        footer: "Two notes, then three")

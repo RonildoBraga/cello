@@ -33,20 +33,18 @@ struct VoicePracticeView<Header: View>: View {
     private let mode: VoicePracticeMode
     private let nextLesson: PracticeLesson?
     private let onStartLesson: ((PracticeLesson) -> Void)?
-    private let onShowLessons: (() -> Void)?
     private let onNextPhrase: (() -> Void)?
     private let header: (Bool) -> Header
 
     init(store: SessionStore, capture: CaptureController, mode: VoicePracticeMode,
          nextLesson: PracticeLesson? = nil, onStartLesson: ((PracticeLesson) -> Void)? = nil,
-         onShowLessons: (() -> Void)? = nil, onNextPhrase: (() -> Void)? = nil,
+         onNextPhrase: (() -> Void)? = nil,
          @ViewBuilder header: @escaping (Bool) -> Header) {
         self.store = store
         self.capture = capture
         self.mode = mode
         self.nextLesson = nextLesson
         self.onStartLesson = onStartLesson
-        self.onShowLessons = onShowLessons
         self.onNextPhrase = onNextPhrase
         self.header = header
     }
@@ -60,14 +58,6 @@ struct VoicePracticeView<Header: View>: View {
     var body: some View {
         recordingPracticeScreen
             .toolbar {
-                if let onShowLessons {
-                    ToolbarItem(placement: .topBarLeading) {
-                        PracticeLessonsButton(disabled: controlsLocked) {
-                            cancelFlow(stopCapture: true)
-                            onShowLessons()
-                        }
-                    }
-                }
                 if capture.isReady {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button { cancelFlow(stopCapture: true) } label: {
