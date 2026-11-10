@@ -131,8 +131,7 @@ struct MelodyRhythmTimingChart: View {
                 Text("No timing data to plot for this round.")
                     .font(.subheadline).foregroundStyle(Palette.muted).padding(.vertical, 14)
             }
-        }.padding(17).frame(maxWidth: .infinity, alignment: .leading)
-            .background(.white, in: RoundedRectangle(cornerRadius: 19))
+        }.card()
             .accessibilityElement(children: .contain)
     }
 }

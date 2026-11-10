@@ -23,10 +23,8 @@ struct MelodyRhythmView: View {
         MelodyRhythmRoundView(store: store, capture: capture, context: context,
                               onNext: nextSection.map { next in { section = next } }) { locked in
             VStack(alignment: .leading, spacing: 12) {
-                Text("Rhythm").font(.system(size: 27, weight: .semibold, design: .serif))
-                    .foregroundStyle(Palette.ink)
-                Text("Tap once when each note starts. Keep counting while a long note continues.")
-                    .font(.footnote).foregroundStyle(Palette.muted)
+                ScreenHeader(eyebrow: piece.title, title: "Rhythm",
+                             subtitle: "Tap once when each note starts. Keep counting while a long note continues.")
                 HStack {
                     Menu {
                         ForEach(MelodySection.allCases) { item in
@@ -57,7 +55,7 @@ struct MelodyRhythmView: View {
                 }
             }
         }.id("\(piece.rawValue)|\(section.rawValue)")
-            .navigationTitle(piece.title).navigationBarTitleDisplayMode(.inline)
+            .screenTitle(piece.title)
     }
 }
 
@@ -112,8 +110,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
                         } label: {
                             Label(context.reference.section == .whole ? "Hear melody" : "Hear phrase",
                                   systemImage: "speaker.wave.2")
-                                .font(.subheadline.weight(.medium)).frame(minHeight: 44)
-                        }.disabled(locked).foregroundStyle(Palette.forest)
+                        }.buttonStyle(SecondaryActionButtonStyle()).disabled(locked)
                             .accessibilityIdentifier("melodyRhythmHearButton")
                     }
                     if finishedAttempt == nil, let error = store.errorMessage {
@@ -123,7 +120,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
                         Text(message).font(.footnote).foregroundStyle(Palette.muted)
                             .accessibilityIdentifier("melodyRhythmAudioMessage")
                     }
-                }.padding(.horizontal, 22).padding(.top, 16).padding(.bottom, 24)
+                }.screenContent()
             }.onChange(of: running) { _, active in
                 if active {
                     withAnimation(reduceMotion ? nil : .default) {
@@ -143,7 +140,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
                 }
             }
         }.background(Palette.paper)
-            .safeAreaInset(edge: .bottom, spacing: 0) { actionControls }
+            .bottomActionBar { actionControls }
             .onAppear { isVisible = true }
             .onDisappear { isVisible = false; stop(); capture.stop() }
             .onChange(of: scenePhase) { _, phase in
@@ -166,7 +163,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
     private var pattern: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Note lengths").font(.subheadline.weight(.semibold)).foregroundStyle(Palette.ink)
+                SectionTitle("Note lengths")
                 Spacer()
                 Text("in beats").font(.caption).foregroundStyle(Palette.muted)
             }
@@ -174,8 +171,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
                             focusOnCurrentPhrase: running || capture.isPlayingReference)
             Text(patternInstructions)
                 .font(.footnote).foregroundStyle(Palette.muted)
-        }.padding(17).background(.white, in: RoundedRectangle(cornerRadius: 19))
-            .accessibilityIdentifier("melodyRhythmPatternInstructions").id("melodyRhythmPattern")
+        }.card().accessibilityIdentifier("melodyRhythmPatternInstructions").id("melodyRhythmPattern")
     }
 
     private var patternInstructions: String {
@@ -193,13 +189,9 @@ private struct MelodyRhythmRoundView<Header: View>: View {
     }
 
     private var tapCard: some View {
-        VStack(spacing: 14) {
-            HStack {
-                Text(phaseTitle).font(.system(size: 10, weight: .semibold)).tracking(1.6)
-                    .accessibilityIdentifier("melodyRhythmPhase")
-                Spacer()
-                Text("\(context.reference.tempoBPM) BPM").font(.caption)
-            }.foregroundStyle(.white.opacity(0.65))
+        StatusCard(label: phaseTitle, labelIdentifier: "melodyRhythmPhase") {
+            Text("\(context.reference.tempoBPM) BPM")
+        } content: {
             HStack(spacing: 18) {
                 Text(beatLabel).font(.system(size: 54, weight: .light, design: .rounded)).monospacedDigit()
                     .frame(width: 85, height: 85)
@@ -217,16 +209,15 @@ private struct MelodyRhythmRoundView<Header: View>: View {
             } label: {
                 Label("Tap", systemImage: "hand.tap").font(.headline)
                     .frame(maxWidth: .infinity, minHeight: 68)
-                    .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: 16))
+                    .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: Layout.controlRadius))
             }.buttonStyle(.plain).disabled(!running || !(timing?.canTap(at: now) ?? false))
                 .opacity(running && (timing?.canTap(at: now) ?? false) ? 1 : 0.45)
                 .accessibilityLabel("Tap at each note start")
                 .accessibilityIdentifier("melodyRhythmTapButton")
             Text("\(timing?.offsets.count ?? 0) / \(context.expectedTapTimes.count) starts · \(timing?.unexpectedTapCount ?? 0) extra")
-                .font(.caption).foregroundStyle(.white.opacity(0.65))
+                .font(.caption).foregroundStyle(.white.opacity(0.7))
                 .accessibilityIdentifier("melodyRhythmTapCount")
-        }.foregroundStyle(.white).padding(20)
-            .background(Palette.forest, in: RoundedRectangle(cornerRadius: 24))
+        }
     }
 
     private var actionControls: some View {
@@ -237,10 +228,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
         } label: {
             Label(running ? "Stop" : capture.isPlayingReference ? "Cancel" : timing == nil ? "Start" : "Try again",
                   systemImage: running || capture.isPlayingReference ? "stop.fill" : "play.fill")
-                .font(.headline).foregroundStyle(.white).frame(maxWidth: .infinity, minHeight: 56)
-                .background(Palette.forest, in: RoundedRectangle(cornerRadius: 18))
-        }.buttonStyle(.plain).accessibilityIdentifier("melodyRhythmStartButton")
-            .padding(.horizontal, 22).padding(.vertical, 12).background(Palette.paper)
+        }.buttonStyle(PrimaryActionButtonStyle()).accessibilityIdentifier("melodyRhythmStartButton")
     }
 
     private var phaseTitle: String {

@@ -138,8 +138,7 @@ struct PitchTraceView: View {
                 .accessibilityHint("Above zero is higher pitch; below zero is lower pitch.")
                 .accessibilityIdentifier("pitchTraceChart")
             }
-        }.padding(17).frame(maxWidth: .infinity, alignment: .leading)
-            .background(.white, in: RoundedRectangle(cornerRadius: 19))
+        }.card()
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("pitchTraceCard")
     }

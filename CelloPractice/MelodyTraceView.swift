@@ -193,8 +193,7 @@ struct MelodyTraceView: View {
             } else {
                 Text("The melody reference is unavailable.").font(.subheadline).foregroundStyle(Palette.muted)
             }
-        }.padding(17).frame(maxWidth: .infinity, alignment: .leading)
-            .background(.white, in: RoundedRectangle(cornerRadius: 19))
+        }.card()
     }
 
     private func legend(_ title: String, color: Color, dashed: Bool = false) -> some View {

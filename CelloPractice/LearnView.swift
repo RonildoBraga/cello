@@ -13,10 +13,9 @@ struct MusicLibraryView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 26) {
-                    Text("Build your way to the music you want to play.")
-                        .font(.subheadline).foregroundStyle(Palette.muted)
+                    ScreenHeader(title: "Music", subtitle: "Build your way to the music you want to play.")
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Foundations").font(.headline).foregroundStyle(Palette.ink)
+                        SectionTitle("Foundations")
                         ForEach(LearningArea.allCases) { area in
                             let lessons = PracticeLesson.lessons(in: area)
                             let completed = lessons.filter {
@@ -25,32 +24,31 @@ struct MusicLibraryView: View {
                             NavigationLink {
                                 foundationLessons(area)
                             } label: {
-                                MusicLibraryRow(title: area.title, subtitle: areaPurpose(area),
-                                                systemImage: areaSymbol(area),
-                                                footer: "\(completed) of \(lessons.count) lessons completed")
+                                LibraryRow(symbol: areaSymbol(area), title: area.title, subtitle: areaPurpose(area),
+                                           footer: "\(completed) of \(lessons.count) lessons completed")
                             }.buttonStyle(.plain)
                                 .accessibilityIdentifier("foundation-\(area.id)")
                                 .accessibilityLabel("\(area.title), \(completed) of \(lessons.count) lessons completed")
                         }
                     }
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Pieces").font(.headline).foregroundStyle(Palette.ink)
+                        SectionTitle("Pieces")
                         ForEach(MusicPiece.allCases) { piece in
                             NavigationLink {
                                 piecePath(piece)
                             } label: {
-                                MusicLibraryRow(title: piece.title, subtitle: piece.subtitle,
-                                                systemImage: "music.note.list", footer: piece.statusLabel)
+                                LibraryRow(symbol: "music.note.list", title: piece.title, subtitle: piece.subtitle,
+                                           footer: piece.statusLabel)
                             }.buttonStyle(.plain)
                                 .accessibilityIdentifier("piece-\(piece.id)")
                                 .accessibilityLabel("\(piece.title), \(piece.subtitle), \(piece.statusLabel)")
                         }
                     }
                     resources
-                }.padding(20).padding(.bottom, 24)
+                }.screenContent()
             }.background(Palette.paper)
                 .accessibilityIdentifier("musicLibraryHome")
-                .navigationTitle("Music")
+                .screenTitle("Music")
         }.tint(Palette.forest)
     }
 
@@ -62,69 +60,55 @@ struct MusicLibraryView: View {
     private func piecePath(_ piece: MusicPiece) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 25) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(piece.statusLabel).font(.caption.weight(.semibold)).foregroundStyle(Palette.gold)
-                        .accessibilityIdentifier("pieceStatus")
-                    Text(piece.title).font(.system(size: 30, weight: .semibold, design: .serif))
-                        .foregroundStyle(Palette.ink).accessibilityIdentifier("pieceDetailTitle")
-                    Text(piece.summary).font(.subheadline).foregroundStyle(Palette.muted)
-                }
+                ScreenHeader(eyebrow: piece.statusLabel, title: piece.title, subtitle: piece.summary,
+                             titleIdentifier: "pieceDetailTitle", eyebrowIdentifier: "pieceStatus")
                 if let melody = piece.melodyPiece {
                     NavigationLink {
                         MelodyHummingView(store: store, capture: capture, piece: melody)
                     } label: {
-                        MusicLibraryRow(title: "Humming", subtitle: "Record phrases and earn Notes, Timing and Clarity stars",
-                                        systemImage: "waveform", footer: "Four phrases, then the whole melody")
+                        LibraryRow(symbol: "waveform", title: "Humming",
+                                   subtitle: "Record phrases and earn Notes, Timing and Clarity stars",
+                                   footer: "Four phrases, then the whole melody")
                     }.buttonStyle(.plain)
                         .accessibilityIdentifier("melodyHummingLink")
                     NavigationLink {
                         MelodyRhythmView(store: melodyRhythmStore, capture: capture, piece: melody)
                     } label: {
-                        MusicLibraryRow(title: "Rhythm", subtitle: "Tap the melody’s note starts and follow its longer notes",
-                                        systemImage: "metronome", footer: "Four phrases, then the whole melody")
+                        LibraryRow(symbol: "metronome", title: "Rhythm",
+                                   subtitle: "Tap the melody’s note starts and follow its longer notes",
+                                   footer: "Four phrases, then the whole melody")
                     }.buttonStyle(.plain)
                         .accessibilityIdentifier("melodyRhythmLink")
                     NavigationLink {
                         MelodyReferenceView(capture: capture, piece: melody)
                     } label: {
-                        MusicLibraryRow(title: "Listen & follow", subtitle: "Hear the melody or one short phrase",
-                                        systemImage: "play.circle.fill", footer: "Recorded hum & cello · 60 BPM")
+                        LibraryRow(symbol: "play.circle.fill", title: "Listen & follow",
+                                   subtitle: "Hear the melody or one short phrase",
+                                   footer: "Recorded hum & cello · 60 BPM")
                     }.buttonStyle(.plain)
                         .accessibilityIdentifier("melodyReferenceLink")
                 }
                 VStack(alignment: .leading, spacing: 18) {
-                    Text("Learning path").font(.headline).foregroundStyle(Palette.ink)
+                    SectionTitle("Learning path")
                     ForEach(Array(piece.milestones.enumerated()), id: \.offset) { index, milestone in
-                        HStack(alignment: .top, spacing: 12) {
-                            Text("\(index + 1)").font(.caption.weight(.semibold))
-                                .foregroundStyle(Palette.forest).frame(width: 25, height: 25)
-                                .background(Palette.forest.opacity(0.08), in: Circle())
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text(milestone.title).font(.subheadline.weight(.semibold)).foregroundStyle(Palette.ink)
-                                Text(milestone.detail).font(.footnote).foregroundStyle(Palette.muted)
-                            }
-                        }
+                        NumberedStep(number: index + 1, title: milestone.title, detail: milestone.detail)
                     }
-                }.padding(18).frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.white, in: RoundedRectangle(cornerRadius: 20))
-                    .accessibilityIdentifier("pieceMilestones")
+                }.card().accessibilityIdentifier("pieceMilestones")
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Practise foundations").font(.headline).foregroundStyle(Palette.ink)
+                    SectionTitle("Practise foundations")
                     Text(piece.melodyPiece != nil ? "Build the skills behind the melody." : "These shared skills are available now. Piece-specific exercises are planned.")
                         .font(.footnote).foregroundStyle(Palette.muted)
                     ForEach(LearningArea.allCases) { area in
                         NavigationLink {
                             foundationLessons(area)
                         } label: {
-                            MusicLibraryRow(title: area.title, subtitle: areaPurpose(area),
-                                            systemImage: areaSymbol(area))
+                            LibraryRow(symbol: areaSymbol(area), title: area.title, subtitle: areaPurpose(area))
                         }.buttonStyle(.plain)
                             .accessibilityIdentifier("pieceFoundation-\(area.id)")
                     }
                 }
-            }.padding(22).padding(.bottom, 24)
-        }.background(Palette.paper)
-            .navigationTitle(piece.title).navigationBarTitleDisplayMode(.inline)
+            }.screenContent()
+        }.background(Palette.paper).screenTitle(piece.title)
     }
 
     private func areaPurpose(_ area: LearningArea) -> String {
@@ -173,26 +157,24 @@ private struct FoundationLessonsView: View {
     let onStartLesson: (PracticeLesson) -> Void
 
     private var lessons: [PracticeLesson] { PracticeLesson.lessons(in: area) }
+    private var completedCount: Int {
+        lessons.filter { LessonState(lesson: $0, store: store, rhythmStores: rhythmStores).progress.completed }.count
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                VStack(alignment: .leading, spacing: 7) {
-                    Text(area.title).font(.system(size: 27, weight: .semibold, design: .serif))
-                        .foregroundStyle(Palette.ink).accessibilityIdentifier("foundationAreaTitle")
-                    let completed = lessons.filter {
-                        LessonState(lesson: $0, store: store, rhythmStores: rhythmStores).progress.completed
-                    }.count
-                    Text("\(completed) of \(lessons.count) lessons completed · Choose any lesson")
-                        .font(.footnote).foregroundStyle(Palette.muted)
-                        .accessibilityIdentifier("foundationCompletionSummary")
-                }
+                ScreenHeader(title: area.title,
+                             subtitle: "\(completedCount) of \(lessons.count) lessons completed · Choose any lesson",
+                             titleIdentifier: "foundationAreaTitle",
+                             subtitleIdentifier: "foundationCompletionSummary")
                 if area == .cello {
                     NavigationLink {
                         CelloIntroductionView(capture: capture)
                     } label: {
-                        MusicLibraryRow(title: "Meet your cello", subtitle: "Explore the parts and hear the four strings",
-                                        systemImage: "music.note", footer: "Start here · Listen and explore")
+                        LibraryRow(symbol: "music.note", title: "Meet your cello",
+                                   subtitle: "Explore the parts and hear the four strings",
+                                   footer: "Start here · Listen and explore")
                     }.buttonStyle(.plain).accessibilityIdentifier("celloIntroductionLink")
                 }
                 VStack(spacing: 12) {
@@ -211,42 +193,18 @@ private struct FoundationLessonsView: View {
                 }
                 if area == .humming {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Ear training").font(.headline).foregroundStyle(Palette.ink)
+                        SectionTitle("Ear training")
                         NavigationLink {
                             EchoPracticeView(store: store, capture: capture)
                         } label: {
-                            MusicLibraryRow(title: "Listen & Echo", subtitle: "Remember a short pattern and hum it back",
-                                            systemImage: "ear", footer: "Two notes, then three")
+                            LibraryRow(symbol: "ear", title: "Listen & Echo",
+                                       subtitle: "Remember a short pattern and hum it back",
+                                       footer: "Two notes, then three")
                         }.buttonStyle(.plain).accessibilityIdentifier("echoPracticeLink")
                     }
                 }
-            }.padding(20).padding(.bottom, 24)
-        }.background(Palette.paper)
-            .navigationTitle(area.title).navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-private struct MusicLibraryRow: View {
-    let title: String
-    let subtitle: String
-    let systemImage: String
-    var footer: String? = nil
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 13) {
-            Image(systemName: systemImage).font(.title3).foregroundStyle(Palette.forest)
-                .frame(width: 43, height: 43)
-                .background(Palette.forest.opacity(0.07), in: RoundedRectangle(cornerRadius: 13))
-            VStack(alignment: .leading, spacing: 5) {
-                Text(title).font(.headline).foregroundStyle(Palette.ink)
-                Text(subtitle).font(.footnote).foregroundStyle(Palette.muted)
-                if let footer { Text(footer).font(.caption).foregroundStyle(Palette.forest) }
-            }
-            Spacer(minLength: 0)
-            Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
-        }.padding(17).frame(maxWidth: .infinity, alignment: .leading)
-            .background(.white, in: RoundedRectangle(cornerRadius: 19))
-            .contentShape(Rectangle())
+            }.screenContent()
+        }.background(Palette.paper).screenTitle(area.title)
     }
 }
 
@@ -295,21 +253,7 @@ private struct LessonRow: View {
     let state: LessonState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 15) {
-            HStack(spacing: 13) {
-                Text(String(format: "%02d", lesson.number))
-                    .font(.system(size: 19, weight: .semibold, design: .serif))
-                    .foregroundStyle(Palette.forest)
-                    .frame(width: 43, height: 43)
-                    .background(Palette.forest.opacity(0.07), in: RoundedRectangle(cornerRadius: 13))
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(lesson.title).font(.headline).foregroundStyle(Palette.ink)
-                    Text(lesson.shortPurpose).font(.footnote).foregroundStyle(Palette.muted)
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right").font(.caption.weight(.semibold))
-                    .foregroundStyle(Palette.muted)
-            }
+        LibraryRow(leading: .number(lesson.number), title: lesson.title, subtitle: lesson.shortPurpose) {
             HStack(spacing: 8) {
                 if state.progress.completed {
                     Label("Completed", systemImage: "checkmark.circle.fill")
@@ -322,16 +266,14 @@ private struct LessonRow: View {
                 if let best = state.bestStars {
                     HStack(spacing: 6) {
                         Text("Best").foregroundStyle(Palette.muted)
-                        LessonStars(count: best, size: 10)
+                        Stars(count: best, size: 10)
                     }.accessibilityIdentifier("lessonBestScore-\(lesson.id)")
                 } else {
                     Text("No score yet").foregroundStyle(Palette.muted)
                         .accessibilityIdentifier("lessonBestScore-\(lesson.id)")
                 }
             }.font(.caption.weight(.medium))
-        }.padding(17).frame(maxWidth: .infinity, alignment: .leading)
-            .background(.white, in: RoundedRectangle(cornerRadius: 19))
-            .contentShape(Rectangle())
+        }
     }
 }
 
@@ -347,56 +289,32 @@ private struct LessonDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 25) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("LESSON \(String(format: "%02d", lesson.number)) · \(lesson.area.title.uppercased())")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .tracking(1.5).foregroundStyle(Palette.gold)
-                    Text(lesson.title)
-                        .font(.system(size: 30, weight: .semibold, design: .serif))
-                        .foregroundStyle(Palette.ink)
-                        .accessibilityIdentifier("lessonDetailTitle")
-                    Text(lesson.purpose).font(.subheadline).foregroundStyle(Palette.muted)
-                }
+                ScreenHeader(eyebrow: "Lesson \(String(format: "%02d", lesson.number)) · \(lesson.area.title)",
+                             title: lesson.title, subtitle: lesson.purpose, titleIdentifier: "lessonDetailTitle")
 
                 progressCard
 
                 VStack(alignment: .leading, spacing: 15) {
-                    Text("How to practise").font(.headline).foregroundStyle(Palette.ink)
+                    SectionTitle("How to practise")
                     ForEach(Array(lesson.instructions.enumerated()), id: \.offset) { index, instruction in
-                        HStack(alignment: .top, spacing: 12) {
-                            Text("\(index + 1)")
-                                .font(.caption.weight(.semibold)).foregroundStyle(Palette.forest)
-                                .frame(width: 23, height: 23)
-                                .background(Palette.forest.opacity(0.08), in: Circle())
-                            Text(instruction).font(.subheadline).foregroundStyle(Palette.muted)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+                        NumberedStep(number: index + 1, detail: instruction)
                     }
                 }.accessibilityElement(children: .contain)
                     .accessibilityIdentifier("lessonInstruction")
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Three small goals").font(.headline).foregroundStyle(Palette.ink)
+                    SectionTitle("Three small goals")
                     ForEach(Array(lesson.goals.enumerated()), id: \.offset) { _, item in
                         goal(item.title, detail: item.detail)
                     }
                 }
-            }.padding(22).padding(.bottom, 20)
+            }.screenContent()
         }.background(Palette.paper)
-            .navigationTitle("Lesson \(lesson.number)")
-            .navigationBarTitleDisplayMode(.inline)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                Button {
-                    onStartLesson(lesson)
-                } label: {
-                    Text(state.hasAttempts ? "Practise again" : "Start lesson")
-                        .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 17)
-                        .foregroundStyle(.white)
-                        .background(Palette.forest, in: RoundedRectangle(cornerRadius: 16))
-                }.buttonStyle(.plain)
+            .screenTitle("Lesson \(lesson.number)")
+            .bottomActionBar {
+                Button(state.hasAttempts ? "Practise again" : "Start lesson") { onStartLesson(lesson) }
+                    .buttonStyle(PrimaryActionButtonStyle())
                     .accessibilityIdentifier("startLessonButton")
-                    .padding(.horizontal, 22).padding(.top, 12).padding(.bottom, 10)
-                    .background(Palette.paper)
             }
     }
 
@@ -429,15 +347,14 @@ private struct LessonDetailView: View {
                  : "Three 3-star \(lesson.attemptNoun) among your last five scored attempts complete this lesson. Every lesson is available now.")
                 .font(.footnote).foregroundStyle(Palette.muted)
                 .fixedSize(horizontal: false, vertical: true)
-        }.padding(17).frame(maxWidth: .infinity, alignment: .leading)
-            .background(.white, in: RoundedRectangle(cornerRadius: 19))
+        }.card()
     }
 
     private func score(_ title: String, stars: Int?) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             Text(title).font(.caption).foregroundStyle(Palette.muted)
             if let stars {
-                LessonStars(count: stars, size: 16)
+                Stars(count: stars)
             } else {
                 Text("No score yet").font(.footnote).foregroundStyle(Palette.muted)
             }
@@ -451,21 +368,5 @@ private struct LessonDetailView: View {
             Text("\(title). ").font(.subheadline.weight(.semibold)).foregroundStyle(Palette.forest)
                 + Text(detail).font(.subheadline).foregroundStyle(Palette.muted)
         }
-    }
-}
-
-private struct LessonStars: View {
-    let count: Int
-    let size: CGFloat
-
-    var body: some View {
-        HStack(spacing: 3) {
-            ForEach(0..<3) { index in
-                Image(systemName: index < count ? "star.fill" : "star")
-                    .foregroundStyle(index < count ? Palette.gold : Palette.muted.opacity(0.45))
-            }
-        }.font(.system(size: size, weight: .medium))
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(count) of 3 stars")
     }
 }

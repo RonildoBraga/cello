@@ -21,32 +21,28 @@ struct CelloIntroductionView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("Learn the parts and hear the four strings, from low to high.")
-                    .font(.subheadline).foregroundStyle(Palette.muted)
+                ScreenHeader(title: "Meet your cello",
+                             subtitle: "Learn the parts and hear the four strings, from low to high.")
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text("Find the parts").font(.headline)
+                        SectionTitle("Find the parts")
                         Spacer()
                         Text("Front view").font(.caption).foregroundStyle(Palette.muted)
                     }
                     CelloDiagramView()
-                }.padding(17).background(.white, in: RoundedRectangle(cornerRadius: 19))
+                }.card()
                 stringExamples
                 lessonPath
-            }.foregroundStyle(Palette.ink).padding(.horizontal, 22).padding(.vertical, 18)
+            }.foregroundStyle(Palette.ink).screenContent()
         }.background(Palette.paper)
-            .navigationTitle("Meet your cello").navigationBarTitleDisplayMode(.inline)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+            .screenTitle("Meet your cello")
+            .bottomActionBar {
                 Button {
                     capture.stop()
                     dismiss()
                 } label: {
                     Label("View open-string lessons", systemImage: "arrow.right")
-                        .font(.headline).foregroundStyle(.white)
-                        .frame(maxWidth: .infinity, minHeight: 56)
-                        .background(Palette.forest, in: RoundedRectangle(cornerRadius: 18))
-                }.buttonStyle(.plain).accessibilityIdentifier("celloIntroBrowseLessons")
-                    .padding(.horizontal, 22).padding(.vertical, 12).background(Palette.paper)
+                }.buttonStyle(PrimaryActionButtonStyle()).accessibilityIdentifier("celloIntroBrowseLessons")
             }
             .onAppear { isVisible = true }
             .onDisappear { isVisible = false; selectedString = nil; capture.stop() }
@@ -58,7 +54,7 @@ struct CelloIntroductionView: View {
     private var stringExamples: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Hear the strings").font(.headline)
+                SectionTitle("Hear the strings")
                 Spacer()
                 Text("Low → high").font(.caption).foregroundStyle(Palette.muted)
             }
@@ -66,7 +62,7 @@ struct CelloIntroductionView: View {
                 .font(.footnote).foregroundStyle(Palette.muted)
             ForEach(strings) { string in
                 HStack(spacing: 12) {
-                    Text(string.targetNote!.dropLast()).font(.system(size: 24, weight: .semibold, design: .serif))
+                    Text(string.targetNote!.dropLast()).font(.system(.title2, design: .serif).weight(.semibold))
                         .foregroundStyle(Palette.forest).frame(width: 30)
                     Text(string.targetNote!).font(.subheadline).foregroundStyle(Palette.muted)
                     Spacer()
@@ -100,27 +96,17 @@ struct CelloIntroductionView: View {
                 Text(message).font(.footnote).foregroundStyle(Palette.muted)
                     .accessibilityIdentifier("celloIntroPlaybackMessage")
             }
-        }.padding(17).background(.white, in: RoundedRectangle(cornerRadius: 19))
+        }.card()
     }
 
     private var lessonPath: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Your next steps").font(.headline)
+            SectionTitle("Your next steps")
             Text("With your cello, build these skills one at a time.")
                 .font(.footnote).foregroundStyle(Palette.muted)
             ForEach(nextSteps.indices, id: \.self) { index in
-                HStack(alignment: .top, spacing: 12) {
-                    Text("\(index + 1)").font(.caption.weight(.semibold))
-                        .foregroundStyle(Palette.forest).frame(width: 25, height: 25)
-                        .background(Palette.forest.opacity(0.08), in: Circle())
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(nextSteps[index].0).font(.subheadline.weight(.semibold))
-                        Text(nextSteps[index].1).font(.footnote).foregroundStyle(Palette.muted)
-                    }
-                }
+                NumberedStep(number: index + 1, title: nextSteps[index].0, detail: nextSteps[index].1)
             }
-        }.padding(17).frame(maxWidth: .infinity, alignment: .leading)
-            .background(.white, in: RoundedRectangle(cornerRadius: 19))
-            .accessibilityIdentifier("celloIntroNextSteps")
+        }.card().accessibilityIdentifier("celloIntroNextSteps")
     }
 }

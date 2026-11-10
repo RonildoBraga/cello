@@ -26,14 +26,9 @@ struct MelodyHummingView: View {
         VoicePracticeView(store: store, capture: capture, context: context,
                           onNextPhrase: nextSection.map { next in { section = next } }) { locked in
             VStack(alignment: .leading, spacing: 17) {
-                VStack(alignment: .leading, spacing: 7) {
-                    Text("Humming").font(.system(size: 27, weight: .semibold, design: .serif))
-                        .foregroundStyle(Palette.ink)
-                    Text(piece == .odeToJoy
-                         ? "Follow five notes moving up and down. Hear the phrase, then record after 3–2–1."
-                         : "Hear the phrase, then record the same notes and rhythm. Start humming after 3–2–1.")
-                        .font(.footnote).foregroundStyle(Palette.muted)
-                }
+                ScreenHeader(eyebrow: piece.title, title: "Humming", subtitle: piece == .odeToJoy
+                             ? "Follow five notes moving up and down. Hear the phrase, then record after 3–2–1."
+                             : "Hear the phrase, then record the same notes and rhythm. Start humming after 3–2–1.")
                 Picker("Voice register", selection: $register) {
                     Text("Low voice").tag(MelodyRegister.lowVoice)
                     Text("Higher voice").tag(MelodyRegister.higherVoice)
@@ -68,7 +63,6 @@ struct MelodyHummingView: View {
                                     : capture.isPlayingReference ? capture.referenceElapsed : nil)
             }.id("practiceTop")
         }.id("\(piece.rawValue)|\(register.rawValue)|\(section.rawValue)")
-            .background(Palette.paper)
-            .navigationTitle(piece.title).navigationBarTitleDisplayMode(.inline)
+            .background(Palette.paper).screenTitle(piece.title)
     }
 }
