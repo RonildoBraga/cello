@@ -32,25 +32,37 @@ struct MelodyNotesView: View {
             }
             GeometryReader { geometry in
                 HStack(spacing: 4) {
+                    let rowWidth: CGFloat = geometry.size.width - CGFloat(max(0, events.count - 1)) * 4
                     ForEach(events, id: \.offset) { index, event in
-                        let note = context.frequency(for: event).map {
-                            TunerReading(frequency: $0, targetFrequency: nil).noteName
-                        } ?? "Rest"
-                        let label = labelStyle == .pitch || event.midiNote == nil ? note
-                            : event.durationBeats == 0.5 ? "½"
-                            : event.durationBeats == 1.5 ? "1½" : "\(event.durationBeats.formatted())"
-                        Text(label).font(.system(size: 14, weight: .semibold, design: .rounded))
-                            .minimumScaleFactor(0.7).lineLimit(1)
-                            .frame(width: max(0, (geometry.size.width - CGFloat(max(0, events.count - 1)) * 4)
-                                * event.durationBeats / 4), height: 40)
-                            .foregroundStyle(current == index ? .white : Palette.forest)
-                            .background(current == index ? Palette.forest : Palette.forest.opacity(0.07),
-                                        in: RoundedRectangle(cornerRadius: 9))
-                            .accessibilityLabel(labelStyle == .pitch ? "\(note), \(event.durationBeats.formatted()) beats"
-                                                : "\(event.midiNote == nil ? "Rest" : "Note"), \(event.durationBeats.formatted()) beats")
+                        tile(event, width: max(0, rowWidth * CGFloat(event.durationBeats) / 4),
+                             isCurrent: current == index)
                     }
                 }
             }.frame(height: 40)
         }
+    }
+
+    // Kept as small typed steps: one long expression here exceeds the type-checker's
+    // time limit on some Xcode versions.
+    private func tile(_ event: MelodyEvent, width: CGFloat, isCurrent: Bool) -> some View {
+        let beats: String = event.durationBeats.formatted()
+        let note: String = context.frequency(for: event).map {
+            TunerReading(frequency: $0, targetFrequency: nil).noteName
+        } ?? "Rest"
+        let label: String
+        if labelStyle == .pitch || event.midiNote == nil { label = note }
+        else if event.durationBeats == 0.5 { label = "½" }
+        else if event.durationBeats == 1.5 { label = "1½" }
+        else { label = beats }
+        let spoken: String = labelStyle == .pitch ? "\(note), \(beats) beats"
+            : "\(event.midiNote == nil ? "Rest" : "Note"), \(beats) beats"
+        let foreground: Color = isCurrent ? .white : Palette.forest
+        let background: Color = isCurrent ? Palette.forest : Palette.forest.opacity(0.07)
+        return Text(label).font(.system(size: 14, weight: .semibold, design: .rounded))
+            .minimumScaleFactor(0.7).lineLimit(1)
+            .frame(width: width, height: 40)
+            .foregroundStyle(foreground)
+            .background(background, in: RoundedRectangle(cornerRadius: 9))
+            .accessibilityLabel(spoken)
     }
 }
