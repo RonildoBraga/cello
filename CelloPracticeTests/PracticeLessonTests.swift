@@ -55,44 +55,14 @@ final class PracticeLessonTests: XCTestCase {
         }
     }
 
-    func testSelectionRemembersCompleteLessonsIndependentlyForEachArea() {
-        var selection = PracticeSelection()
-        XCTAssertEqual(selection.area, .humming)
-        XCTAssertEqual(selection.lesson, .steadyHum)
-        selection.area = .rhythm
-        XCTAssertEqual(selection.lesson, .pulse)
-        selection.area = .cello
-        XCTAssertEqual(selection.lesson, .openG)
-        selection.select(.openD)
-        selection.select(.twoTaps)
-        XCTAssertEqual(selection.area, .rhythm)
-        selection.area = .humming
-        XCTAssertEqual(selection.lesson, .steadyHum)
-        selection.select(.matchHum)
-        selection.area = .rhythm
-        XCTAssertEqual(selection.lesson, .twoTaps)
-        selection.area = .cello
-        XCTAssertEqual(selection.lesson, .openD)
-        selection.select(.pulse)
-        XCTAssertEqual(selection.area, .rhythm, "Starting a library lesson should select its own area atomically")
-        XCTAssertEqual(selection.lesson, .pulse)
-        selection.area = .humming
-        XCTAssertEqual(selection.lesson, .matchHum)
-        selection.area = .cello
-        XCTAssertEqual(selection.lesson, .openD)
-    }
-
     func testEveryLessonRoutesToItsOwnAreaAndTypedActivityWithoutAddingRecordingTargets() {
-        var selection = PracticeSelection()
         XCTAssertEqual(LearningArea.allCases, [.humming, .rhythm, .cello])
         XCTAssertEqual(PracticeSection.allCases, [.humming, .cello])
         for area in LearningArea.allCases {
-            XCTAssertEqual(area.defaultLesson.area, area)
+            XCTAssertFalse(PracticeLesson.lessons(in: area).isEmpty)
         }
         for lesson in PracticeLesson.allCases {
-            selection.select(lesson)
-            XCTAssertEqual(selection.lesson, lesson)
-            XCTAssertEqual(selection.area, lesson.area)
+            XCTAssertTrue(PracticeLesson.lessons(in: lesson.area).contains(lesson))
             switch lesson.activity {
             case .recording(let exercise):
                 XCTAssertNotNil(exercise.section)

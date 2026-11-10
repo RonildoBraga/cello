@@ -4,7 +4,7 @@ A native iPhone practice companion for beginners learning music while preparing 
 
 ## Practice
 
-The **Music** library groups shared **Humming**, **Rhythm** and **Cello** foundations, then shows piece-based learning paths. **Practice** opens the selected exercise, and **Recordings** keeps the local history.
+The **Music** library groups shared **Humming**, **Rhythm** and **Cello** foundations, then shows piece-based learning paths. Choosing a lesson or piece activity opens its practice screen inside Music, with Back returning to where you chose it; a **Continue** row leads straight to the foundation lesson practised last. **Recordings** keeps the local history.
 
 The foundations include:
 
@@ -20,7 +20,7 @@ The foundations include:
 
 Open **Music → Foundations → Cello → Meet your cello** for an original labelled diagram, the four recorded string-pitch examples from low to high, and the route into playing. Hear is manual and needs no microphone/camera capture. Reading and listening leave performance scores and completion unchanged. The introduction returns to the existing playing lessons; setup, first-position instruction and cello melody assessment remain in [issue #6](https://github.com/RonildoBraga/cello/issues/6). See [the introductory sources and draft practical lesson plan](docs/first-cello-lessons.md).
 
-The **Cello** area has separate C/G/D/A open-string targets. Each practice area remembers its lesson selection. Foundation lesson pages show instructions, best/latest scores and earned completion; every exercise stays available. Original IDs, lesson numbers and earned progress are retained.
+The **Cello** area has separate C/G/D/A open-string targets. Foundation lesson pages show instructions, best/latest scores and earned completion; every exercise stays available. Original IDs, lesson numbers and earned progress are retained.
 
 **Pieces** starts with Hot Cross Buns and a longer-term goal of Bach’s Cello Suite No. 1 Prelude. Open **Music → Hot Cross Buns → Humming** to hear, record and review four short phrases, then join the whole melody. Voice references use G2–B2 or G3–B3 at 60 BPM. Record starts a three-second countdown, then captures four seconds for a phrase or sixteen for the whole tune. Results show separate **Notes**, **Timing** and **Clarity** stars, a moving-reference pitch chart and one next suggestion. Three three-star takes among the last five rated attempts earn completion for that exact phrase and reference. Every phrase stays available.
 

@@ -20,11 +20,12 @@ Music
     Hot Cross Buns → Humming; Rhythm (each: four phrases, then whole melody); Listen & follow
     Ode to Joy → Humming; Rhythm (opening: four phrases, then whole); Listen & follow
     Bach, Suite No. 1 Prelude → long-term learning path
-Practice → the selected foundation exercise
 Recordings → existing local audio/video history
 ```
 
-Music, Practice and Recordings remain visible iPhone tabs. Within Music, native lists, detail pages and back navigation express the hierarchy. The Music toolbar button returns to the library root. Starting a lesson from any route selects its area, resets that exercise to ready and opens Practice. Switching areas remembers the prior lesson in each area.
+Music and Recordings are the two iPhone tabs. Practice is a screen, not a tab: every activity — a foundation lesson, a piece's humming or rhythm, Listen & follow, Listen & Echo — is pushed inside Music and left with Back ([issue #33](https://github.com/RonildoBraga/cello/issues/33)). Starting a foundation lesson pushes a fresh, ready practice screen above that lesson's page; "Try lesson N" replaces it with the next lesson's page and practice screen, so Back always matches what is on screen. Music shows a Continue row for the foundation lesson practised last.
+
+An earlier release had a separate Practice tab with its own area and lesson pickers. It was removed because it duplicated the library, could fall out of step with the Music tab, and could not host piece or Echo practice.
 
 This is a design choice informed by [Apple’s sidebar guidance](https://developer.apple.com/design/human-interface-guidelines/sidebars): a tab bar is worth considering where sidebar space is limited. A custom hidden drawer is unnecessary for this small iPhone library. A larger-screen sidebar can be considered if the catalogue grows.
 
@@ -32,7 +33,7 @@ This is a design choice informed by [Apple’s sidebar guidance](https://develop
 
 - Each existing exercise belongs to one visible area; the Rhythm menu contains only rhythm exercises.
 - Original lesson IDs and displayed numbers stay stable: Humming 1–2, Rhythm 3–5 and Cello 1–4. Saved ratings, raw media, references and earned completion are unchanged.
-- Library, exercise menu and next actions share the same lesson-selection action. Humming Lesson 2 can still recommend Rhythm Lesson 3.
+- Library, Continue and next actions share the same lesson-opening action. Humming Lesson 2 can still recommend Rhythm Lesson 3.
 - A navigation area never supplies a recording pitch target. Existing voice/cello target rules stay separate from the new `LearningArea` model.
 - Leaving practice cancels unfinished rounds/count-ins. A take already finishing saves under its original exercise and reference.
 - Piece pages show concrete milestones, planned status and usable links to shared foundations. They contain no inactive Start-piece control or fabricated readiness percentage.

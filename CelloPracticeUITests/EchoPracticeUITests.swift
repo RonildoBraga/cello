@@ -178,7 +178,7 @@ final class EchoPracticeUITests: XCTestCase {
     func testInterruptedHearNeverUnlocksRecordOrChangesFoundationHistory() {
         let app = XCUIApplication()
         app.launch()
-        app.tabBars.buttons["Practice"].tap()
+        openSteadyHumPractice(in: app)
         XCTAssertTrue(app.staticTexts["currentTargetLabel"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["practiceProgressText"].waitForExistence(timeout: 5))
         let foundationTarget = app.staticTexts["currentTargetLabel"].label
@@ -186,7 +186,11 @@ final class EchoPracticeUITests: XCTestCase {
         app.tabBars.buttons["Recordings"].tap()
         XCTAssertTrue(app.navigationBars["Recordings"].waitForExistence(timeout: 5))
         let recordingIDs = visibleRecordingIDs(in: app)
-        openHummingFoundation(in: app)
+        // Back from Steady hum practice to its lesson page, then to the Humming list.
+        app.tabBars.buttons["Music"].tap()
+        app.navigationBars["Humming"].buttons.firstMatch.tap()
+        app.navigationBars["Lesson 1"].buttons.firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["foundationCompletionSummary"].waitForExistence(timeout: 5))
         let summary = app.staticTexts["foundationCompletionSummary"].label
         openEcho(in: app)
         let echoProgress = app.staticTexts["practiceProgressText"].label
@@ -194,11 +198,8 @@ final class EchoPracticeUITests: XCTestCase {
 
         hear.tap()
         waitForRecord(label: "Cancel", enabled: true, in: app)
-        app.tabBars.buttons["Practice"].tap()
-        XCTAssertTrue(app.navigationBars["Humming"].waitForExistence(timeout: 5))
-        waitForRecord(label: "Record", enabled: true, in: app)
-        XCTAssertEqual(app.staticTexts["currentTargetLabel"].label, foundationTarget)
-        XCTAssertEqual(app.staticTexts["practiceProgressText"].label, foundationProgress)
+        app.tabBars.buttons["Recordings"].tap()
+        XCTAssertTrue(app.navigationBars["Recordings"].waitForExistence(timeout: 5))
         app.tabBars.buttons["Music"].tap()
         XCTAssertTrue(app.navigationBars["Listen & Echo"].waitForExistence(timeout: 5))
         assertRecordNeedsHear(in: app)
@@ -219,9 +220,26 @@ final class EchoPracticeUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["melodyRatingStars"].exists)
         assertNoTargetHints(in: app)
         assertNoWrittenInputOrPermissionAlerts(in: app)
+        app.navigationBars["Listen & Echo"].buttons.firstMatch.tap()
+        openSteadyHumPractice(in: app)
+        waitForRecord(label: "Record", enabled: true, in: app)
+        XCTAssertEqual(app.staticTexts["currentTargetLabel"].label, foundationTarget)
+        XCTAssertEqual(app.staticTexts["practiceProgressText"].label, foundationProgress)
         app.tabBars.buttons["Recordings"].tap()
         XCTAssertTrue(app.navigationBars["Recordings"].waitForExistence(timeout: 5))
         XCTAssertEqual(visibleRecordingIDs(in: app), recordingIDs)
+    }
+
+    /// From the Music home or the Humming list, opens Steady hum's practice screen.
+    private func openSteadyHumPractice(in app: XCUIApplication) {
+        let lesson = app.buttons["lesson-steadyHum"]
+        if !lesson.exists { openHummingFoundation(in: app) }
+        reveal(lesson, in: app)
+        lesson.tap()
+        let start = app.buttons["startLessonButton"]
+        XCTAssertTrue(start.waitForExistence(timeout: 5))
+        start.tap()
+        XCTAssertTrue(app.staticTexts["practiceLessonTitle"].waitForExistence(timeout: 5))
     }
 
     private func openHummingFoundation(in app: XCUIApplication) {

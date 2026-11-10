@@ -92,12 +92,8 @@ final class CelloIntroUITests: XCTestCase {
         reveal(g, in: app)
         g.tap()
         waitForStop(g)
-        app.tabBars.buttons["Practice"].tap()
-        XCTAssertTrue(app.navigationBars["Humming"].waitForExistence(timeout: 5))
-        let record = app.buttons["practiceRecordButton"]
-        let ready = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "label == %@ AND enabled == true", "Record"), object: record)
-        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed)
+        app.tabBars.buttons["Recordings"].tap()
+        XCTAssertTrue(app.navigationBars["Recordings"].waitForExistence(timeout: 5))
         app.tabBars.buttons["Music"].tap()
         XCTAssertTrue(app.navigationBars["Meet your cello"].waitForExistence(timeout: 5))
         waitForHear(g)
