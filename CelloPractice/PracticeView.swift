@@ -25,8 +25,7 @@ struct PracticeView: View {
         NavigationStack {
             activityScreen
                 .background(Palette.paper)
-                .navigationTitle(selection.area.title)
-                .navigationBarTitleDisplayMode(.inline)
+                .screenTitle(selection.area.title)
         }
     }
 
@@ -70,9 +69,8 @@ struct PracticeView: View {
             } label: {
                 HStack(alignment: .top, spacing: 14) {
                     VStack(alignment: .leading, spacing: 7) {
-                        Text(lesson.title)
-                            .font(.system(size: 27, weight: .semibold, design: .serif))
-                            .foregroundStyle(Palette.ink)
+                        Text(lesson.title).font(.screenTitle).foregroundStyle(Palette.ink)
+                            .accessibilityAddTraits(.isHeader)
                         Text(lesson.practicePrompt).font(.footnote).foregroundStyle(Palette.muted)
                             .multilineTextAlignment(.leading)
                     }

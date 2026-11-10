@@ -62,7 +62,7 @@ struct MelodyNotesView: View {
             .minimumScaleFactor(0.7).lineLimit(1)
             .frame(width: width, height: 40)
             .foregroundStyle(foreground)
-            .background(background, in: RoundedRectangle(cornerRadius: 9))
+            .background(background, in: RoundedRectangle(cornerRadius: Layout.tileRadius))
             .accessibilityLabel(spoken)
     }
 }

@@ -19,15 +19,9 @@ struct MelodyReferenceView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(piece.title)
-                        .font(.system(size: 27, weight: .semibold, design: .serif))
-                        .foregroundStyle(Palette.ink)
-                    Text(piece == .odeToJoy
-                         ? "Hear the five-note opening, then gently hum along. Choose a register that feels easy."
-                         : "Listen first, then gently hum along. Choose a register that feels easy.")
-                        .font(.subheadline).foregroundStyle(Palette.muted)
-                }
+                ScreenHeader(eyebrow: piece.title, title: "Listen & follow", subtitle: piece == .odeToJoy
+                             ? "Hear the five-note opening, then gently hum along. Choose a register that feels easy."
+                             : "Listen first, then gently hum along. Choose a register that feels easy.")
                 VStack(alignment: .leading, spacing: 12) {
                     Picker("Reference register", selection: $register) {
                         ForEach(MelodyRegister.allCases) { item in
@@ -40,7 +34,7 @@ struct MelodyReferenceView: View {
                 }
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text("Follow the notes").font(.headline)
+                        SectionTitle("Follow the notes")
                         Spacer()
                         Menu {
                             ForEach(MelodySection.allCases) { item in
@@ -64,7 +58,7 @@ struct MelodyReferenceView: View {
                          ? "Longer tiles hold longer. Phrase 4 has a long note, a quick note, then a held ending."
                          : "Longer tiles hold longer. The quick notes in phrase 3 last half a beat each.")
                         .font(.caption).foregroundStyle(Palette.muted)
-                }.padding(18).background(.white, in: RoundedRectangle(cornerRadius: 20))
+                }.card()
                 VStack(alignment: .leading, spacing: 7) {
                     Label(register == .cello ? "Recorded cello" : "Recorded hum", systemImage: "waveform")
                         .font(.subheadline.weight(.semibold)).foregroundStyle(Palette.forest)
@@ -77,10 +71,10 @@ struct MelodyReferenceView: View {
                     Text(message).font(.footnote).foregroundStyle(Palette.muted)
                         .accessibilityIdentifier("melodyPlaybackMessage")
                 }
-            }.foregroundStyle(Palette.ink).padding(20).padding(.bottom, 12)
+            }.foregroundStyle(Palette.ink).screenContent()
         }.id(piece).background(Palette.paper)
-            .navigationTitle("Listen & follow").navigationBarTitleDisplayMode(.inline)
-            .safeAreaInset(edge: .bottom, spacing: 0) { playbackControl }
+            .screenTitle("Listen & follow")
+            .bottomActionBar { playbackControl }
             .onChange(of: piece) { _, _ in hasRequestedPlayback = false; capture.stop() }
             .onChange(of: register) { _, _ in hasRequestedPlayback = false; capture.stop() }
             .onChange(of: section) { _, _ in hasRequestedPlayback = false; capture.stop() }
@@ -92,7 +86,7 @@ struct MelodyReferenceView: View {
     }
 
     private var playbackControl: some View {
-        VStack(spacing: 10) {
+        Group {
             if capture.isPlayingReference {
                 HStack {
                     Text("Playing \(section == .whole ? "melody" : section.title.lowercased())")
@@ -112,9 +106,7 @@ struct MelodyReferenceView: View {
             } label: {
                 Label(capture.isPlayingReference ? "Stop" : section == .whole ? "Hear melody" : "Hear phrase",
                       systemImage: capture.isPlayingReference ? "stop.fill" : "play.fill")
-                    .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 13)
-            }.buttonStyle(.borderedProminent).tint(Palette.forest)
-                .accessibilityIdentifier("melodyPlayButton")
-        }.padding(.horizontal, 20).padding(.vertical, 14).background(Palette.paper)
+            }.buttonStyle(PrimaryActionButtonStyle()).accessibilityIdentifier("melodyPlayButton")
+        }
     }
 }

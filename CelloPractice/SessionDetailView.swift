@@ -16,18 +16,8 @@ struct SessionDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                VStack(alignment: .leading, spacing: 7) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(session.title)
-                            .font(.system(size: 27, weight: .semibold, design: .serif))
-                            .foregroundStyle(Palette.ink)
-                        Spacer(minLength: 8)
-                        Text(timeString(session.duration)).font(.subheadline.monospacedDigit())
-                            .foregroundStyle(Palette.muted)
-                    }
-                    Text(session.createdAt.formatted(date: .long, time: .shortened))
-                        .font(.caption).foregroundStyle(Palette.muted)
-                }
+                ScreenHeader(title: session.title,
+                             subtitle: "\(session.createdAt.formatted(date: .long, time: .shortened)) · \(timeString(session.duration))")
                 if let rating = session.melodyRating, let context = session.melodyContext {
                     MelodyFeedbackView(rating: rating, isEcho: EchoLevel.selection(for: context) != nil)
                     MelodyTraceView(context: context, rating: rating, duration: session.duration)
@@ -45,7 +35,7 @@ struct SessionDetailView: View {
                         .font(.subheadline.weight(.semibold)).foregroundStyle(Palette.forest)
                     VideoPlayer(player: player).frame(height: 220)
                         .accessibilityIdentifier("sessionPlaybackPlayer")
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .clipShape(RoundedRectangle(cornerRadius: Layout.cardRadius))
                 }
                 DisclosureGroup("Recording details") {
                     VStack(alignment: .leading, spacing: 8) {
@@ -82,8 +72,8 @@ struct SessionDetailView: View {
                 }
                 if let error { Text(error).font(.footnote).foregroundStyle(.red) }
                 if let error = store.errorMessage { Text(error).font(.footnote).foregroundStyle(.red) }
-            }.padding(20).padding(.bottom, 84)
-        }.background(Palette.paper).navigationTitle("Your session").navigationBarTitleDisplayMode(.inline)
+            }.screenContent()
+        }.background(Palette.paper).screenTitle("Your session")
             .onDisappear { player.pause() }
     }
 }

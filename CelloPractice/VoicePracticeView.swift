@@ -201,7 +201,7 @@ struct VoicePracticeView<Header: View>: View {
                     if let error = store.errorMessage {
                         Text(error).font(.footnote).foregroundStyle(.red)
                     }
-                }.padding(.horizontal, 22).padding(.top, 16).padding(.bottom, 26)
+                }.screenContent()
             }
             .onChange(of: latestSession?.id) { _, id in
                 withAnimation {
@@ -209,7 +209,7 @@ struct VoicePracticeView<Header: View>: View {
                 }
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) { recordingControls }
+        .bottomActionBar { recordingControls }
     }
 
     @ViewBuilder private var lessonProgress: some View {
@@ -245,9 +245,7 @@ struct VoicePracticeView<Header: View>: View {
                     .font(.subheadline).foregroundStyle(Palette.muted)
             } else {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(melodyContext == nil ? "TARGET" : "RECORDED HUM")
-                        .font(.system(size: 10, weight: .semibold)).tracking(1.4)
-                        .foregroundStyle(Palette.muted)
+                    Eyebrow(text: melodyContext == nil ? "Target" : "Recorded hum")
                     Text(melodyContext.map { "\($0.referenceKey) · \(referenceRange(for: $0))" }
                          ?? String(format: "%@ · %.1f Hz", targetNote, targetFrequency))
                         .font(.subheadline.weight(.medium)).foregroundStyle(Palette.ink)
@@ -260,17 +258,14 @@ struct VoicePracticeView<Header: View>: View {
             Button { previewReference() } label: {
                 Label(isEcho ? "Hear pattern" : melodyContext.map { $0.section == .whole ? "Hear melody" : "Hear phrase" }
                       ?? (section == .humming ? "Hear hum" : "Hear string"), systemImage: "speaker.wave.2")
-                    .font(.subheadline.weight(.medium)).frame(minHeight: 44)
-                    .padding(.horizontal, 14)
-                    .background(Palette.forest.opacity(0.06), in: Capsule())
-            }.buttonStyle(.plain).foregroundStyle(Palette.forest)
+            }.buttonStyle(SecondaryActionButtonStyle())
                 .disabled(controlsLocked || restSeconds > 0)
                 .accessibilityIdentifier("previewTargetButton")
         }
     }
 
     private var recordingControls: some View {
-        VStack(spacing: 10) {
+        Group {
             if restSeconds > 0 {
                 Text("Rest your voice · \(restSeconds)s").font(.caption).foregroundStyle(Palette.muted)
             }
@@ -293,32 +288,23 @@ struct VoicePracticeView<Header: View>: View {
                     }
                     Text(recordButtonTitle)
                     if capture.isRecording { Text(timeString(capture.elapsed)).monospacedDigit() }
-                }.font(.headline).foregroundStyle(.white)
-                    .frame(maxWidth: .infinity, minHeight: 56)
-                    .background(capture.isRecording ? Color.red : Palette.forest,
-                                in: RoundedRectangle(cornerRadius: 18))
-                    .opacity(saving || restSeconds > 0 || needsEchoReference ? 0.55 : 1)
-            }.buttonStyle(.plain)
+                }
+            }.buttonStyle(PrimaryActionButtonStyle(color: capture.isRecording ? .red : Palette.forest))
                 .disabled(saving || needsEchoReference || (restSeconds > 0 && !isBusy && !capture.isRecording))
                 .accessibilityIdentifier("practiceRecordButton")
-        }.padding(.horizontal, 22).padding(.top, 12).padding(.bottom, 12)
-            .frame(maxWidth: .infinity)
-            .background(Palette.paper)
+        }
     }
 
     private var echoCard: some View {
-        VStack(spacing: 22) {
-            HStack {
-                Text(saving ? "REVIEWING" : capture.isRecording ? "RECORDING" : phase == .previewing ? "LISTEN" : isBusy ? "GET READY" : "READY")
-                    .font(.system(size: 10, weight: .semibold)).tracking(1.6)
-                Spacer()
-                Image(systemName: "ear").font(.subheadline)
-            }.foregroundStyle(.white.opacity(0.65))
+        StatusCard(label: saving ? "REVIEWING" : capture.isRecording ? "RECORDING"
+                   : phase == .previewing ? "LISTEN" : isBusy ? "GET READY" : "READY") {
+            Image(systemName: "ear")
+        } content: {
             if saving {
                 ProgressView().tint(.white).frame(height: 62)
             } else {
                 Text(countInSeconds > 0 ? "\(countInSeconds)" : phase == .previewing ? "Listen" : capture.isRecording ? "Hum it back" : "Your turn")
-                    .font(.system(size: countInSeconds > 0 ? 62 : 36, weight: .light, design: .rounded))
+                    .font(countInSeconds > 0 ? .statusCount : .statusValue)
                     .monospacedDigit().frame(minHeight: 62)
                     .accessibilityIdentifier("echoPracticeStatus")
             }
@@ -332,26 +318,20 @@ struct VoicePracticeView<Header: View>: View {
             if capture.isRecording {
                 ProgressView(value: min(capture.elapsed, recordingDuration), total: recordingDuration).tint(.white)
             }
-        }.foregroundStyle(.white).padding(22).frame(maxWidth: .infinity, minHeight: 220)
-            .background(Palette.forest, in: RoundedRectangle(cornerRadius: 26))
-            .accessibilityElement(children: .contain).accessibilityIdentifier("echoPracticeCard")
+        }.accessibilityElement(children: .contain).accessibilityIdentifier("echoPracticeCard")
     }
 
     private var tuner: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Text(saving ? "REVIEWING" : capture.isRecording ? "RECORDING"
-                     : phase == .previewing ? "LISTEN" : isBusy ? "GET READY" : "LIVE TUNER")
-                    .font(.system(size: 10, weight: .semibold)).tracking(1.6)
-                Spacer()
-                if capture.isRecording { Circle().fill(.red).frame(width: 7, height: 7) }
-            }.foregroundStyle(.white.opacity(0.6))
+        StatusCard(label: saving ? "REVIEWING" : capture.isRecording ? "RECORDING"
+                   : phase == .previewing ? "LISTEN" : isBusy ? "GET READY" : "LIVE TUNER") {
+            if capture.isRecording { Circle().fill(.red).frame(width: 7, height: 7) }
+        } content: {
             VStack(spacing: 7) {
                 if saving {
                     ProgressView().tint(.white).frame(height: 56)
                 } else {
                     Text(tunerTitle)
-                        .font(.system(size: countInSeconds > 0 ? 62 : 46, weight: .light, design: .rounded))
+                        .font(countInSeconds > 0 ? .statusCount : .statusValue)
                         .monospaced().contentTransition(.numericText()).frame(minHeight: 58)
                         .accessibilityIdentifier("livePitchNote")
                 }
@@ -370,11 +350,8 @@ struct VoicePracticeView<Header: View>: View {
                     .accessibilityIdentifier("livePitchCents")
                 Spacer()
                 Text("High")
-            }.font(.caption).foregroundStyle(.white.opacity(0.6))
-        }.foregroundStyle(.white).padding(22)
-            .frame(maxWidth: .infinity)
-            .background(Palette.forest, in: RoundedRectangle(cornerRadius: 26))
-            .accessibilityElement(children: .contain)
+            }.font(.caption).foregroundStyle(.white.opacity(0.7))
+        }.accessibilityElement(children: .contain)
             .accessibilityIdentifier(isEcho ? "echoLiveTuner" : "liveTuner")
     }
 
@@ -386,7 +363,7 @@ struct VoicePracticeView<Header: View>: View {
                         .frame(width: 44, height: 44).background(.black.opacity(0.5), in: Circle())
                         .foregroundStyle(.white)
                 }.disabled(controlsLocked).accessibilityLabel("Switch camera").padding(12)
-            }.frame(height: 225).clipShape(RoundedRectangle(cornerRadius: 22))
+            }.frame(height: 225).clipShape(RoundedRectangle(cornerRadius: Layout.cardRadius))
     }
 
     private var tunerTitle: String {

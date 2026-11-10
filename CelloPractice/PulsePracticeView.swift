@@ -44,14 +44,14 @@ struct PulsePracticeView<Header: View>: View {
                         }
                         pulseCard
                     }
-                }.padding(.horizontal, 22).padding(.top, 16).padding(.bottom, 26)
+                }.screenContent()
             }
             .onChange(of: finishedAttempt?.id) { _, id in
                 withAnimation(reduceMotion ? nil : .default) {
                     scroll.scrollTo(id == nil ? "pulseTop" : "pulseResult", anchor: .top)
                 }
             }
-        }.safeAreaInset(edge: .bottom, spacing: 0) { actionControls }
+        }.bottomActionBar { actionControls }
             .background(Palette.paper)
             .onDisappear { stop() }
             .onChange(of: isActive) { _, active in if !active { stop() } }
@@ -59,12 +59,9 @@ struct PulsePracticeView<Header: View>: View {
     }
 
     private var pulseCard: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Text(phaseTitle).font(.system(size: 10, weight: .semibold)).tracking(1.6)
-                Spacer()
-                Text("60 BPM").font(.caption)
-            }.foregroundStyle(.white.opacity(0.65))
+        StatusCard(label: phaseTitle) {
+            Text("60 BPM")
+        } content: {
             if store.exercise != .pulse && timing == nil {
                 rhythmInstructions
             } else {
@@ -74,7 +71,7 @@ struct PulsePracticeView<Header: View>: View {
                         .scaleEffect(pulseIsBright && !reduceMotion ? 1.035 : 1)
                     Circle().strokeBorder(.white.opacity(0.30), lineWidth: 1)
                         .frame(width: 132, height: 132)
-                    Text(beatLabel).font(.system(size: 62, weight: .light, design: .rounded))
+                    Text(beatLabel).font(.statusCount)
                         .monospacedDigit().foregroundStyle(.white)
                 }.frame(height: 158)
                     .accessibilityElement(children: .ignore)
@@ -89,7 +86,7 @@ struct PulsePracticeView<Header: View>: View {
                 Label("Tap", systemImage: "hand.tap")
                     .font(.headline).foregroundStyle(.white)
                     .frame(maxWidth: .infinity, minHeight: 72)
-                    .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: 16))
+                    .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: Layout.controlRadius))
             }.buttonStyle(.plain)
                 .disabled(!isActive || !running || !(timing?.canTap(at: now) ?? false))
                 .opacity(running && (timing?.canTap(at: now) ?? false) ? 1 : 0.45)
@@ -97,10 +94,8 @@ struct PulsePracticeView<Header: View>: View {
                 .accessibilityHint(tapHint)
                 .accessibilityIdentifier("pulseTapButton")
             Text(roundCount)
-                .font(.caption).foregroundStyle(.white.opacity(0.65))
-        }.padding(22).frame(maxWidth: .infinity)
-            .background(Palette.forest, in: RoundedRectangle(cornerRadius: 26))
-            .accessibilityElement(children: .contain)
+                .font(.caption).foregroundStyle(.white.opacity(0.7))
+        }.accessibilityElement(children: .contain)
     }
 
     private var rhythmInstructions: some View {
@@ -117,7 +112,7 @@ struct PulsePracticeView<Header: View>: View {
                              : (index.isMultiple(of: 2) ? "beat" : "between")).font(.caption2)
                     }.frame(maxWidth: .infinity).padding(.vertical, 10)
                         .background(.white.opacity(index.isMultiple(of: 2) ? 0.16 : 0.07),
-                                    in: RoundedRectangle(cornerRadius: 12))
+                                    in: RoundedRectangle(cornerRadius: Layout.tileRadius))
                 }
             }.accessibilityElement(children: .ignore)
                 .accessibilityLabel(mixed ? "Count one, two and, three, four and. Tap once on odd numbers and twice on even numbers."
@@ -159,15 +154,9 @@ struct PulsePracticeView<Header: View>: View {
         Button {
             if running { stop() } else { start() }
         } label: {
-            HStack(spacing: 10) {
-                Image(systemName: running ? "stop.fill" : "play.fill")
-                Text(running ? "Stop" : timing == nil ? "Start" : "Try again")
-            }.font(.headline).foregroundStyle(.white)
-                .frame(maxWidth: .infinity, minHeight: 56)
-                .background(Palette.forest, in: RoundedRectangle(cornerRadius: 18))
-        }.buttonStyle(.plain).disabled(!isActive)
-            .padding(.horizontal, 22).padding(.top, 12).padding(.bottom, 12)
-            .frame(maxWidth: .infinity).background(Palette.paper)
+            Label(running ? "Stop" : timing == nil ? "Start" : "Try again",
+                  systemImage: running ? "stop.fill" : "play.fill")
+        }.buttonStyle(PrimaryActionButtonStyle()).disabled(!isActive)
     }
 
     private var phaseTitle: String {
@@ -224,7 +213,7 @@ struct PulsePracticeView<Header: View>: View {
             coverageRule,
             "Timing · Land within 150 ms of each expected tap for 75% of your taps.",
             "Evenness · Keep the middle 80% of your tap offsets within a 200 ms range."
-        ], title: "THIS ROUND", unscoredLabel: "Couldn’t rate this round", unscoredSystemImage: "hand.tap",
+        ], title: "This round", unscoredLabel: "Couldn’t rate this round", unscoredSystemImage: "hand.tap",
            identifiers: PracticeResultIdentifiers(stars: "pulse.stars", unscored: "pulse.unscored", feedback: "pulse.feedback"),
            errorMessage: store.errorMessage)
         .accessibilityIdentifier("pulse.result")

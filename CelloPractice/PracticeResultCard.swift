@@ -18,7 +18,7 @@ struct PracticeResultCard: View {
     let goals: [PracticeGoal]
     let feedback: String
     let starRules: [String]
-    var title = "THIS TAKE"
+    var title = "This take"
     var unscoredLabel = "Couldn’t rate this take"
     var unscoredSystemImage = "waveform"
     var identifiers = PracticeResultIdentifiers()
@@ -28,8 +28,7 @@ struct PracticeResultCard: View {
         VStack(alignment: .leading, spacing: 15) {
             if let starCount {
                 HStack(alignment: .firstTextBaseline) {
-                    Text(title).font(.system(size: 10, weight: .bold, design: .rounded))
-                        .tracking(1.5).foregroundStyle(Palette.muted)
+                    Eyebrow(text: title)
                     Spacer()
                     Text("\(starCount) of 3 stars").font(.subheadline.weight(.semibold))
                         .foregroundStyle(Palette.forest).accessibilityIdentifier(identifiers.stars)
@@ -52,12 +51,7 @@ struct PracticeResultCard: View {
                 }.font(.caption).foregroundStyle(Palette.muted).padding(.top, 9)
             }.font(.caption.weight(.medium)).foregroundStyle(Palette.muted)
             if let errorMessage { Text(errorMessage).font(.caption).foregroundStyle(.red) }
-        }.padding(18).frame(maxWidth: .infinity, alignment: .leading)
-            .background(.white, in: RoundedRectangle(cornerRadius: 20))
-            .overlay {
-                RoundedRectangle(cornerRadius: 20).strokeBorder(Palette.forest.opacity(0.06), lineWidth: 1)
-                    .allowsHitTesting(false)
-            }.accessibilityElement(children: .contain)
+        }.card().accessibilityElement(children: .contain)
     }
 
     private func goalsRow(stacked: Bool) -> some View {

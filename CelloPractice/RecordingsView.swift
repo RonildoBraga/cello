@@ -4,7 +4,8 @@ struct RecordingsView: View {
     @ObservedObject var store: SessionStore
     var body: some View {
         NavigationStack {
-            Group {
+            VStack(alignment: .leading, spacing: 0) {
+                ScreenHeader(title: "Recordings").padding(.horizontal, Layout.gutter).padding(.top, 16)
                 if store.sessions.isEmpty {
                     ContentUnavailableView {
                         Label("No recordings", systemImage: "waveform.path")
@@ -26,8 +27,9 @@ struct RecordingsView: View {
                                 HStack(spacing: 12) {
                                     Image(systemName: "play.fill").font(.subheadline)
                                         .foregroundStyle(Palette.forest)
-                                        .frame(width: 42, height: 42)
-                                        .background(Palette.forest.opacity(0.07), in: RoundedRectangle(cornerRadius: 13))
+                                        .frame(width: Layout.tileSize, height: Layout.tileSize)
+                                        .background(Palette.forest.opacity(0.07),
+                                                    in: RoundedRectangle(cornerRadius: Layout.tileRadius))
                                     VStack(alignment: .leading, spacing: 5) {
                                         Text(session.title).font(.subheadline.weight(.semibold))
                                             .foregroundStyle(Palette.ink)
@@ -39,9 +41,7 @@ struct RecordingsView: View {
                                         Text(timeString(session.duration)).font(.caption.monospacedDigit())
                                             .foregroundStyle(Palette.muted)
                                         if let stars = session.starCount {
-                                            Label("\(stars)/3", systemImage: "star.fill").font(.caption2.weight(.semibold))
-                                                .foregroundStyle(Palette.gold)
-                                                .accessibilityLabel("\(stars) of 3 stars")
+                                            Stars(count: stars, size: 10)
                                         }
                                     }
                                 }.padding(.vertical, 8)
@@ -55,7 +55,7 @@ struct RecordingsView: View {
                     }.listStyle(.plain).scrollContentBackground(.hidden)
                 }
             }.background(Palette.paper)
-                .navigationTitle("Recordings")
+                .screenTitle("Recordings")
                 .toolbar { if !store.sessions.isEmpty { EditButton() } }
                 .onAppear { store.refreshPendingRecordings() }
         }

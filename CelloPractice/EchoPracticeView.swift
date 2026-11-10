@@ -38,13 +38,8 @@ struct EchoPracticeView: View {
         VoicePracticeView(store: store, capture: capture, context: context,
                           onNextPhrase: newPattern) { locked in
             VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 7) {
-                    Text("Listen & Echo")
-                        .font(.system(size: 27, weight: .semibold, design: .serif))
-                        .foregroundStyle(Palette.ink)
-                    Text("Hear the pattern, then hum it back. Follow the tuning bar as you record.")
-                        .font(.footnote).foregroundStyle(Palette.muted)
-                }
+                ScreenHeader(eyebrow: "Ear training", title: "Listen & Echo",
+                             subtitle: "Hear the pattern, then hum it back. Follow the tuning bar as you record.")
                 Picker("Voice register", selection: registerSelection) {
                     Text("Low voice").tag(MelodyRegister.lowVoice)
                     Text("Higher voice").tag(MelodyRegister.higherVoice)
@@ -63,8 +58,7 @@ struct EchoPracticeView: View {
                     Spacer()
                     Button(action: newPattern) {
                         Label("New pattern", systemImage: "shuffle")
-                            .font(.subheadline.weight(.medium)).frame(minHeight: 44)
-                    }.buttonStyle(.plain).foregroundStyle(Palette.forest).disabled(locked)
+                    }.buttonStyle(SecondaryActionButtonStyle()).disabled(locked)
                         .accessibilityIdentifier("echoNewPatternButton")
                 }
                 if choice.level == .twoNotes,
@@ -73,14 +67,12 @@ struct EchoPracticeView: View {
                         levelSelection.wrappedValue = .threeNotes
                     } label: {
                         Label("Try three notes", systemImage: "arrow.right")
-                            .font(.subheadline.weight(.medium)).frame(minHeight: 44)
-                    }.buttonStyle(.plain).foregroundStyle(Palette.forest).disabled(locked)
+                    }.buttonStyle(SecondaryActionButtonStyle()).disabled(locked)
                         .accessibilityIdentifier("echoNextLevelButton")
                 }
             }.id("practiceTop")
         }.id("\(choice.level.pieceID)|\(register.rawValue)|\(choice.patternIndex)")
-            .background(Palette.paper)
-            .navigationTitle("Listen & Echo").navigationBarTitleDisplayMode(.inline)
+            .background(Palette.paper).screenTitle("Listen & Echo")
     }
 
     private func newPattern() {
