@@ -305,7 +305,8 @@ struct VoicePracticeView<Header: View>: View {
                     Spacer()
                     Text("High")
                 }.font(.caption).foregroundStyle(.white.opacity(0.7))
-                if !capture.isRecording { tunerTargetPicker(onCard: false) }
+                // From the count-in on, the tuner follows the score: nothing to choose.
+                if phase == .idle || phase == .previewing { tunerTargetPicker(onCard: false) }
             }
         }.accessibilityElement(children: .contain)
             .accessibilityIdentifier(showsMeter ? mode.tunerIdentifier : "echoPracticeCard")

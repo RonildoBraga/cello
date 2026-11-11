@@ -17,7 +17,7 @@ The rating rules below are unchanged.
 
 ## Choosing what the tuner listens for
 
-Before a take, the live tuner compares the voice with one note. A take with several different notes (a pair in Meet the notes, a phrase, the whole melody) shows them under the meter as "Tune to" chips, in the order they first sound; the first is chosen to begin with. During the take the tuner follows the score by itself, so the chips are gone. After a take the tuner sits inside the take's chart card, under the chart, with the same chips: look at the take, then try the correction at once. If the microphone has been turned off, the row offers to turn it on. A single note has nothing to choose, and Listen & Echo, whose tuner is hidden until the take, offers none.
+Before a take, the live tuner compares the voice with one note. A take with several different notes (a pair in Meet the notes, a phrase, the whole melody) shows them under the meter as "Tune to" chips, in the order they first sound; the first is chosen to begin with. From the count-in to the end of the take the tuner follows the score by itself, so the chips are gone. After a take the tuner sits inside the take's chart card, under the chart, with the same chips: look at the take, then try the correction at once. If the microphone has been turned off, the row offers to turn it on. A single note has nothing to choose, and Listen & Echo, whose tuner is hidden until the take, offers none.
 
 ## Assessment version 1
 
