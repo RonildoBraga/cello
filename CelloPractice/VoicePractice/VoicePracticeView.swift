@@ -65,8 +65,8 @@ struct VoicePracticeView<Header: View>: View {
     private var needsReference: Bool {
         mode.requiresHearFirst && !referenceWasHeard && phase == .idle && !capture.isRecording
     }
-    /// The pitch meter is hidden while a mode keeps its target secret before the take.
-    private var showsMeter: Bool { !mode.hidesTunerUntilRecording || capture.isRecording }
+    /// Echo shows no pitch until the take starts, so the pattern is not given away.
+    private var showsMeter: Bool { !mode.isEcho || capture.isRecording }
 
     var body: some View {
         recordingPracticeScreen
@@ -305,8 +305,6 @@ struct VoicePracticeView<Header: View>: View {
                     Spacer()
                     Text("High")
                 }.font(.caption).foregroundStyle(.white.opacity(0.7))
-                // From the count-in on, the tuner follows the score: nothing to choose.
-                if phase == .idle || phase == .previewing { tunerTargetPicker(onCard: false) }
             }
         }.accessibilityElement(children: .contain)
             .accessibilityIdentifier(showsMeter ? mode.tunerIdentifier : "echoPracticeCard")
@@ -331,31 +329,25 @@ struct VoicePracticeView<Header: View>: View {
             }.frame(minHeight: 30)
             PitchMeter(cents: reading.cents ?? 0, active: reading.cents != nil, range: mode.meterRange, onCard: true)
                 .frame(height: 30).padding(.horizontal, 6)
-            tunerTargetPicker(onCard: true)
-        }.accessibilityElement(children: .contain).accessibilityIdentifier(mode.tunerIdentifier)
-    }
-
-    /// With several notes in a take, the learner picks which one the tuner listens for.
-    @ViewBuilder private func tunerTargetPicker(onCard: Bool) -> some View {
-        let ink = onCard ? Palette.forest : Color.white
-        if mode.tunerTargets.count > 1 {
-            HStack(spacing: 8) {
-                Text("Tune to").font(.caption).foregroundStyle(onCard ? Palette.muted : .white.opacity(0.7))
-                ForEach(mode.tunerTargets, id: \.self) { target in
-                    let name = TunerReading(frequency: target, targetFrequency: nil).noteName
-                    let selected = target == currentTarget
-                    Button(name) { tunerTarget = target }
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(selected ? (onCard ? .white : Palette.forest) : ink)
-                        .padding(.horizontal, 13).frame(minWidth: 44, minHeight: 44)
-                        .background(ink.opacity(selected ? 1 : onCard ? 0.07 : 0.12), in: Capsule())
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Tune to \(name)")
-                        .accessibilityAddTraits(selected ? .isSelected : [])
-                        .accessibilityIdentifier("tunerTarget-\(name)")
+            // With several notes in the take, the learner picks which one the tuner listens for.
+            if mode.tunerTargets.count > 1 {
+                HStack(spacing: 8) {
+                    Text("Tune to").font(.caption).foregroundStyle(Palette.muted)
+                    ForEach(mode.tunerTargets, id: \.self) { target in
+                        let name = TunerReading(frequency: target, targetFrequency: nil).noteName
+                        let selected = target == currentTarget
+                        Button(name) { tunerTarget = target }
+                            .font(.subheadline.weight(.semibold)).foregroundStyle(selected ? .white : Palette.forest)
+                            .padding(.horizontal, 13).frame(minWidth: 44, minHeight: 44)
+                            .background(Palette.forest.opacity(selected ? 1 : 0.07), in: Capsule())
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Tune to \(name)")
+                            .accessibilityAddTraits(selected ? .isSelected : [])
+                            .accessibilityIdentifier("tunerTarget-\(name)")
+                    }
                 }
-            }.disabled(controlsLocked)
-        }
+            }
+        }.accessibilityElement(children: .contain).accessibilityIdentifier(mode.tunerIdentifier)
     }
 
     private var camera: some View {

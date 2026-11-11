@@ -100,8 +100,6 @@ enum VoicePracticeMode: Equatable {
 
     /// Echo unlocks Record only after its pattern has been heard to the end.
     var requiresHearFirst: Bool { isEcho }
-    /// Echo shows no pitch until the take starts, so the pattern is not given away.
-    var hidesTunerUntilRecording: Bool { isEcho }
     /// Video helps review posture and bowing; a hummed note needs only the microphone.
     var recordsVideo: Bool {
         if case .note(let exercise) = self { return exercise.section == .cello }
