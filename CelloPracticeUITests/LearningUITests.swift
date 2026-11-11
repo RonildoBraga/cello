@@ -726,12 +726,14 @@ final class LearningUITests: XCTestCase {
         XCTAssertTrue(method.buttons["Voice"].isSelected)
         XCTAssertFalse(app.buttons["celloIntroductionLink"].exists)
         method.buttons["Cello"].tap()
-        XCTAssertTrue(app.buttons["part-E3"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["previewTargetButton"].label.hasPrefix("D3"))
+        XCTAssertTrue(app.buttons["part-F♯3"].waitForExistence(timeout: 5))
+        // The note on show keeps its place: A2, the second note, becomes E3.
+        XCTAssertTrue(hear.label.hasPrefix("E3"))
         XCTAssertTrue(app.buttons["celloIntroductionLink"].exists, "On the cello, Meet your cello is one tap away")
         screenshot("Hot Cross Buns · meet the notes on the cello")
         method.buttons["Voice"].tap()
-        XCTAssertTrue(app.buttons["part-A2"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["part-B2"].waitForExistence(timeout: 5))
+        XCTAssertTrue(hear.label.hasPrefix("A2"))
         assertNoWrittenInput(in: app)
         assertNoPermissionAlerts(in: app)
     }
@@ -1302,7 +1304,7 @@ final class LearningUITests: XCTestCase {
         // The lesson bar moves back and forward inside the level.
         XCTAssertEqual(app.staticTexts["lessonPosition"].label, "Lesson 2 of 6")
         let previous = app.buttons["previousLessonButton"]
-        XCTAssertEqual(previous.label, "Previous lesson, Steady hum")
+        XCTAssertEqual(previous.label, "Previous lesson, Steady note")
         previous.tap()
         let title = app.staticTexts["practiceLessonTitle"]
         let onFirst = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Steady note"), object: title)
@@ -1310,7 +1312,7 @@ final class LearningUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts["lessonPosition"].label, "Lesson 1 of 6")
         XCTAssertFalse(previous.isEnabled, "The first lesson of a level has no previous lesson")
         XCTAssertEqual(app.buttons["previewTargetButton"].label, target)
-        screenshot("Steady hum · lesson bar at the first lesson")
+        screenshot("Steady note · lesson bar at the first lesson")
 
         // Back from practice returns straight to the path.
         app.navigationBars["Humming"].buttons.firstMatch.tap()

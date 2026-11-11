@@ -134,8 +134,11 @@ final class CelloIntroUITests: XCTestCase {
         start.tap()
         let cello = app.segmentedControls["practiceMethodPicker"].buttons["Cello"]
         XCTAssertTrue(cello.waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["celloIntroductionLink"].exists, "The voice has no instrument to meet")
-        cello.tap()
+        // The method stays as chosen for the rest of a launch, so a second visit is already on the cello.
+        if !cello.isSelected {
+            XCTAssertFalse(app.buttons["celloIntroductionLink"].exists, "The voice has no instrument to meet")
+            cello.tap()
+        }
         let link = app.buttons["celloIntroductionLink"]
         XCTAssertTrue(link.waitForExistence(timeout: 5))
         link.tap()
