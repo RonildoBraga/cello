@@ -31,6 +31,18 @@ final class HummingGuidanceTests: XCTestCase {
         XCTAssertEqual(drill[0].level, 0.5)
     }
 
+    func testTheTunerOffersEachDifferentNoteOnceAndOnlyWhenThereAreSeveral() {
+        let phrase = VoicePracticeMode.phrase(MelodyPiece.hotCrossBuns.humming(register: .lowVoice, section: .whole))
+        XCTAssertEqual(phrase.tunerTargets.map { TunerReading(frequency: $0, targetFrequency: nil).noteName },
+                       ["B2", "A2", "G2"], "In the order the notes first sound")
+        XCTAssertEqual(phrase.tunerTargets.first, phrase.target(at: 0), "The first note is the one chosen to begin with")
+        XCTAssertTrue(VoicePracticeMode.note(.steadyHum).tunerTargets.isEmpty)
+        XCTAssertTrue(VoicePracticeMode.phrase(NoteDrill.notes(for: .hotCrossBuns)[0].context).tunerTargets.isEmpty)
+        let pattern = EchoLevel.twoNotes.newPattern(register: .lowVoice, excluding: nil)
+        XCTAssertTrue(VoicePracticeMode.echo(pattern.context, level: .twoNotes).tunerTargets.isEmpty,
+                      "Echo keeps its notes secret")
+    }
+
     func testFeedbackNamesTheNoteThatChangedLateAndByHowMuch() {
         // The commonest real mistake: the second of two notes starting late.
         let rating = rating([note(0, start: 0, onset: 0, timed: true),

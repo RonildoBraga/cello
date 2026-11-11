@@ -48,6 +48,16 @@ enum VoicePracticeMode: Equatable {
         return context.frequency(for: context.expectedEvents[index])
     }
 
+    /// The take's different notes in the order they first sound, when it has more than one.
+    /// Echo offers none: its tuner stays hidden so the notes are not given away.
+    var tunerTargets: [Double] {
+        guard !isEcho, let context = melodyContext else { return [] }
+        var targets: [Double] = []
+        for target in context.expectedEvents.compactMap({ context.frequency(for: $0) })
+        where !targets.contains(target) { targets.append(target) }
+        return targets.count > 1 ? targets : []
+    }
+
     /// Humming takes stop by themselves; cello takes run until Stop.
     var isTimed: Bool { melodyContext != nil || exercise == .steadyHum || exercise == .matchHum }
     var duration: TimeInterval { melodyContext?.duration ?? 3 }

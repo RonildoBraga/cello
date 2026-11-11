@@ -709,6 +709,16 @@ final class LearningUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [again], timeout: 3), .completed, "The chip on show replays its note")
         waitForRecord(in: app, timeout: 10)
         XCTAssertFalse(app.staticTexts["melodyRatingStars"].exists, "Hearing a note is not a take")
+        XCTAssertFalse(app.buttons["tunerTarget-A2"].exists, "One note leaves the tuner nothing to choose")
+
+        // A pair of notes lets the tuner listen for either; the first is chosen to begin with.
+        app.buttons["part-B2 then G2 · going lower"].tap()
+        waitForRecord(in: app, timeout: 10)
+        let second = app.buttons["tunerTarget-G2"]
+        app.scroll(to: second)
+        XCTAssertTrue(app.buttons["tunerTarget-B2"].isSelected)
+        second.tap()
+        XCTAssertTrue(second.isSelected, "The tuner listens for the chosen note")
         assertNoWrittenInput(in: app)
         assertNoPermissionAlerts(in: app)
     }

@@ -63,6 +63,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isVisible = false
+    @State private var screen = UUID()
     @StateObject private var round = RhythmRound<MelodyRhythmTiming>()
     @State private var finishedAttempt: MelodyRhythmAttempt?
 
@@ -124,14 +125,14 @@ private struct MelodyRhythmRoundView<Header: View>: View {
                     else { start() }
                 }.accessibilityIdentifier("melodyRhythmStartButton")
             }
-            .onAppear { isVisible = true }
+            .onAppear { isVisible = true; capture.claim(screen) }
             .task {
                 guard hearOnArrival else { return }
                 hearOnArrival = false
                 await capture.waitUntilQuiet()
                 hear()
             }
-            .onDisappear { isVisible = false; round.stop(); capture.stop() }
+            .onDisappear { isVisible = false; round.stop(); capture.release(screen) }
             .onChange(of: scenePhase) { _, phase in
                 if isVisible, phase != .active { round.stop(); capture.stop() }
             }

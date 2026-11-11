@@ -15,6 +15,10 @@ Saved takes showed the pitch was mostly right while the second note of a pattern
 
 The rating rules below are unchanged.
 
+## Choosing what the tuner listens for
+
+Before a take, the live tuner compares the voice with one note. A take with several different notes (a pair in Meet the notes, a phrase, the whole melody) shows them under the meter as "Tune to" chips, in the order they first sound; the first is chosen to begin with. During the take the tuner follows the score by itself, so the chips are gone. A single note has nothing to choose, and Listen & Echo, whose tuner is hidden until the take, offers none.
+
 ## Assessment version 1
 
 Saved media is decoded to 48 kHz mono PCM on the movie timeline. Leading silence is retained; missing media cannot be concatenated into an apparently continuous note. The grader uses the frozen expected interval without shifting the learner's start, transposing the hum or folding octaves onto the target. Codec/file-output sound after the expected end does not change the exercise result; the complete original media remains available.

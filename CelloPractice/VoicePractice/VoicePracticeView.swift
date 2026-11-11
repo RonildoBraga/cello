@@ -21,6 +21,7 @@ struct VoicePracticeView<Header: View>: View {
     @ObservedObject private var capture: CaptureController
     @Environment(\.scenePhase) private var scenePhase
     @State private var isVisible = false
+    @State private var screen = UUID()
     @State private var phase: Phase = .idle
     @State private var pendingRecord = false
     @State private var flowToken = UUID()
@@ -39,6 +40,8 @@ struct VoicePracticeView<Header: View>: View {
     @State private var saved = false
     @State private var referenceWasHeard = false
     @State private var latestSession: PracticeSession?
+    /// The note the idle tuner listens for; nil is the take's first note.
+    @State private var tunerTarget: Double?
     private var hasResult: Bool { latestSession?.rating != nil || latestSession?.melodyRating != nil }
 
     private let mode: VoicePracticeMode
@@ -77,14 +80,19 @@ struct VoicePracticeView<Header: View>: View {
                     }
                 }
             }
-            .onAppear { isVisible = true }
+            .onAppear { isVisible = true; capture.claim(screen) }
             .task {
                 guard hearOnArrival else { return }
                 hearOnArrival = false
                 await capture.waitUntilQuiet()
                 previewReference()
             }
-            .onDisappear { isVisible = false; referenceWasHeard = false; cancelFlow(stopCapture: true) }
+            .onDisappear {
+                isVisible = false
+                referenceWasHeard = false
+                cancelFlow(stopCapture: false)
+                capture.release(screen)
+            }
             .onChange(of: scenePhase) { _, newPhase in
                 guard isVisible else { return }
                 if newPhase == .background {
@@ -293,9 +301,29 @@ struct VoicePracticeView<Header: View>: View {
                     Spacer()
                     Text("High")
                 }.font(.caption).foregroundStyle(.white.opacity(0.7))
+                if !capture.isRecording, mode.tunerTargets.count > 1 { tunerTargetPicker }
             }
         }.accessibilityElement(children: .contain)
             .accessibilityIdentifier(showsMeter ? mode.tunerIdentifier : "echoPracticeCard")
+    }
+
+    /// Before a take with several notes, the learner picks which one the tuner listens for.
+    private var tunerTargetPicker: some View {
+        HStack(spacing: 8) {
+            Text("Tune to").font(.caption).foregroundStyle(.white.opacity(0.7))
+            ForEach(mode.tunerTargets, id: \.self) { target in
+                let name = TunerReading(frequency: target, targetFrequency: nil).noteName
+                let selected = target == currentTarget
+                Button(name) { tunerTarget = target }
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(selected ? Palette.forest : .white)
+                    .padding(.horizontal, 13).frame(minWidth: 44, minHeight: 44)
+                    .background(selected ? .white : .white.opacity(0.12), in: Capsule())
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Tune to \(name)")
+                    .accessibilityAddTraits(selected ? .isSelected : [])
+                    .accessibilityIdentifier("tunerTarget-\(name)")
+            }
+        }.disabled(controlsLocked)
     }
 
     private var camera: some View {
@@ -317,7 +345,9 @@ struct VoicePracticeView<Header: View>: View {
         if reading.frequency != nil { return reading.noteName }
         return capture.isRecording ? mode.recordingTitle : mode.idleTitle
     }
-    private var currentTarget: Double? { mode.target(at: capture.isRecording ? capture.elapsed : 0) }
+    private var currentTarget: Double? {
+        capture.isRecording ? mode.target(at: capture.elapsed) : tunerTarget ?? mode.target(at: 0)
+    }
     private var reading: TunerReading { TunerReading(frequency: capture.frequency, targetFrequency: currentTarget) }
     private var isBusy: Bool { phase != .idle && phase != .recording }
     private var controlsLocked: Bool { isBusy || capture.isRecording || saving || capture.isPlayingReference }
