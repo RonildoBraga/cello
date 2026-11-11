@@ -3,23 +3,11 @@ import XCTest
 @testable import Cello
 
 final class PracticeLessonTests: XCTestCase {
-    func testLessonBookSeparatesAreasAndPreservesExistingIDs() {
-        let humming = PracticeLesson.lessons(in: .humming)
-        XCTAssertEqual(humming.map(\.id), ["steadyHum", "matchHum"])
-        XCTAssertTrue(humming.allSatisfy { $0.area == .humming })
-        XCTAssertEqual(humming.map(\.activity), [.recording(.steadyHum), .recording(.matchHum)])
-
-        let rhythm = PracticeLesson.lessons(in: .rhythm)
-        XCTAssertEqual(rhythm.map(\.id), ["pulse", "twoTaps", "mixedRhythm"])
-        XCTAssertTrue(rhythm.allSatisfy { $0.area == .rhythm })
-        XCTAssertEqual(rhythm.map(\.activity), [.rhythm(.pulse), .rhythm(.twoTaps), .rhythm(.mixedRhythm)])
-
-        let cello = PracticeLesson.lessons(in: .cello)
-        XCTAssertEqual(cello.map(\.id), ["openC", "openG", "openD", "openA"])
-        XCTAssertEqual(cello.map(\.activity), [.recording(.openC), .recording(.openG),
-                                                 .recording(.openD), .recording(.openA)])
-        XCTAssertTrue(cello.allSatisfy { $0.area == .cello })
-        XCTAssertEqual(humming.count + rhythm.count + cello.count, PracticeLesson.allCases.count)
+    func testLessonBookPreservesExistingIDsAndActivities() {
+        XCTAssertEqual(PracticeLesson.allCases.map(\.id), ["steadyHum", "matchHum", "pulse", "twoTaps", "mixedRhythm"])
+        XCTAssertEqual(PracticeLesson.allCases.map(\.activity),
+                       [.recording(.steadyHum), .recording(.matchHum), .rhythm(.pulse), .rhythm(.twoTaps), .rhythm(.mixedRhythm)])
+        XCTAssertEqual(PracticeSection.allCases, [.humming, .cello])
     }
 
     func testEarnedCompletionSurvivesDeletedHistory() {
@@ -55,27 +43,10 @@ final class PracticeLessonTests: XCTestCase {
         for step in Level.path[0].lessons {
             guard case .lesson(let lesson) = step else { continue }
             explained += " " + (lesson.primer?.paragraphs.joined(separator: " ").lowercased() ?? "")
-            let copy = ([lesson.purpose, lesson.practicePrompt] + lesson.instructions
+            let copy = ([lesson.purpose, lesson.practicePrompt(.voice), lesson.practicePrompt(.cello)] + lesson.instructions
                         + lesson.goals.flatMap { [$0.title, $0.detail] }).joined(separator: " ").lowercased()
             for term in ["pitch", "beat", "cents", "register", "bpm", "pulse"] where copy.contains(term) {
                 XCTAssertTrue(explained.contains(term), "\(lesson.title) uses “\(term)” before a primer explains it")
-            }
-        }
-    }
-
-    func testEveryLessonRoutesToItsOwnAreaAndTypedActivityWithoutAddingRecordingTargets() {
-        XCTAssertEqual(LearningArea.allCases, [.humming, .rhythm, .cello])
-        XCTAssertEqual(PracticeSection.allCases, [.humming, .cello])
-        for area in LearningArea.allCases {
-            XCTAssertFalse(PracticeLesson.lessons(in: area).isEmpty)
-        }
-        for lesson in PracticeLesson.allCases {
-            XCTAssertTrue(PracticeLesson.lessons(in: lesson.area).contains(lesson))
-            switch lesson.activity {
-            case .recording(let exercise):
-                XCTAssertNotNil(exercise.section)
-                XCTAssertEqual(lesson.area, exercise.section == .humming ? .humming : .cello)
-            case .rhythm: XCTAssertEqual(lesson.area, .rhythm)
             }
         }
     }

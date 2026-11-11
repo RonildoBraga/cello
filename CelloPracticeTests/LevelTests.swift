@@ -2,17 +2,27 @@ import XCTest
 @testable import Cello
 
 final class LevelTests: XCTestCase {
-    func testPathIsFirstSoundsThenOneLevelPerMelodyThenTheCello() {
-        XCTAssertEqual(Level.path.map(\.id), ["firstSounds", "hotCrossBuns", "odeToJoy", "cello"])
-        XCTAssertEqual(Level.path.map(\.number), [1, 2, 3, 4])
+    func testPathIsFirstSoundsThenOneLevelPerMelodyWithNoSeparateCelloLevel() {
+        XCTAssertEqual(Level.path.map(\.id), ["firstSounds", "hotCrossBuns", "odeToJoy"])
+        XCTAssertEqual(Level.path.map(\.number), [1, 2, 3])
         XCTAssertEqual(Level.path[0].lessons, [.lesson(.steadyHum), .lesson(.matchHum), .lesson(.pulse),
                                              .lesson(.twoTaps), .lesson(.mixedRhythm), .echo])
-        XCTAssertEqual(Level.path[3].lessons, [.celloIntroduction, .lesson(.openC), .lesson(.openG),
-                                             .lesson(.openD), .lesson(.openA)])
+    }
+
+    func testSteadyNoteIsOneLessonForVoiceAndCello() {
+        XCTAssertEqual(PracticeLesson.steadyHum.title, "Steady note")
+        XCTAssertEqual(PracticeLesson.allCases.filter(\.hasCelloSide), [.steadyHum])
+        XCTAssertEqual(PracticeMethod.openStrings.map(\.targetNote), ["C2", "G2", "D3", "A3"], "Low to high")
+        XCTAssertTrue(PracticeMethod.openStrings.allSatisfy { $0.section == .cello })
+        XCTAssertNotEqual(PracticeLesson.steadyHum.practicePrompt(.cello), PracticeLesson.steadyHum.practicePrompt(.voice))
+        XCTAssertEqual(PracticeLesson.matchHum.practicePrompt(.cello), PracticeLesson.matchHum.practicePrompt(.voice))
+        // A recording keeps the name of what was recorded.
+        XCTAssertEqual(Exercise.steadyHum.title, "Steady hum")
+        XCTAssertEqual(Exercise.openG.title, "Open G string")
     }
 
     func testEveryMelodyLevelHasTheSameLessonsInTheSameOrder() {
-        XCTAssertEqual(Level.path.count, MelodyPiece.allCases.count + 2)
+        XCTAssertEqual(Level.path.count, MelodyPiece.allCases.count + 1)
         for (level, piece) in zip(Level.path.dropFirst(), MelodyPiece.allCases) {
             XCTAssertEqual(level.title, piece.title)
             XCTAssertEqual(level.lessons, [.listen(piece), .tap(piece), .meetNotes(piece), .hum(piece), .wholeMelody(piece)])
@@ -31,7 +41,7 @@ final class LevelTests: XCTestCase {
         XCTAssertEqual(Set(all.map(\.id)).count, all.count)
         // Lesson rows keep the identifier they had in the old libraries.
         XCTAssertEqual(PathLesson.lesson(.pulse).id, "lesson-pulse")
-        XCTAssertTrue(all.contains(.echo) && all.contains(.celloIntroduction), "Nothing sits outside the levels")
+        XCTAssertTrue(all.contains(.echo), "Nothing sits outside the levels")
     }
 
     func testNextLessonIsTheFirstUnfinishedLessonOnThePath() {
@@ -65,13 +75,6 @@ final class LevelTests: XCTestCase {
         XCTAssertTrue(Level.today(isPassed: { _ in true }, stars: { _ in 3 }).isEmpty)
     }
 
-    func testTheCelloLevelComesLastOnThePath() {
-        let beforeCello = Set(Level.path.dropLast().flatMap(\.lessons))
-        let next = Level.nextLesson { beforeCello.contains($0) }
-        XCTAssertEqual(next?.level.id, "cello")
-        XCTAssertEqual(next?.lesson, .celloIntroduction)
-    }
-
     func testALessonShowsTheWeakestBestScoreAcrossItsParts() {
         XCTAssertEqual(LessonProgress([PracticeProgress(stars: [1, 2])]).bestStars, 2)
         XCTAssertEqual(LessonProgress([PracticeProgress(stars: [3]), PracticeProgress(stars: [2, 1])]).bestStars, 2)
@@ -95,7 +98,7 @@ final class LevelTests: XCTestCase {
         XCTAssertEqual(last?.onwardSpoken, "Next level, Hot Cross Buns")
         XCTAssertEqual(first?.onwardSpoken, "Next lesson, Listen & match")
         XCTAssertNil(first?.nextLevel)
-        let veryLast = Level.position(of: .lesson(.openA))
+        let veryLast = Level.position(of: .wholeMelody(.odeToJoy))
         XCTAssertNil(veryLast?.onward, "The path ends at the last lesson of the last level")
 
         let notes = Level.position(of: .meetNotes(.odeToJoy))

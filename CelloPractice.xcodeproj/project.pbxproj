@@ -300,7 +300,7 @@ BA3D416E28885D56C3B09550 = { isa = PBXBuildFile; fileRef = 9D7B56C05612415982328
 BAFF3AA2A04F46DDCEED7667 = { isa = PBXBuildFile; fileRef = 2C6BC7F21D0F8944218B3B03; };
 B582AEEAADE0FD9DD08E4CC4 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoicePracticeView.swift; sourceTree = "<group>"; };
 25B58B7398A864A63D5EBC24 = { isa = PBXBuildFile; fileRef = B582AEEAADE0FD9DD08E4CC4; };
-15F6FB304612BA30304CB4F8 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearningArea.swift; sourceTree = "<group>"; };
+15F6FB304612BA30304CB4F8 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PracticeMethod.swift; sourceTree = "<group>"; };
 97396A9107DB0D0DB2927309 = { isa = PBXBuildFile; fileRef = 15F6FB304612BA30304CB4F8; };
 }; rootObject = 98F54143AB4E86B28C3AFEE0;
 }

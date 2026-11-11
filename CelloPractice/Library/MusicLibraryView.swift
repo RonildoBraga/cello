@@ -7,6 +7,7 @@ enum MusicRoute: Hashable {
     case primer(PracticeLesson)
     case lesson(PracticeLesson)
     case practice(PracticeLesson)
+    /// The instrument's parts and strings, opened from a lesson's cello side.
     case celloIntroduction
     case echo
     /// Humming a melody, opened at a phrase or at the whole melody.
@@ -21,9 +22,8 @@ extension MusicRoute {
     /// lesson and show no lesson bar.
     var pathLesson: PathLesson? {
         switch self {
-        case .primer, .lesson: return nil
+        case .primer, .lesson, .celloIntroduction: return nil
         case .practice(let lesson): return .lesson(lesson)
-        case .celloIntroduction: return .celloIntroduction
         case .echo: return .echo
         case .pieceHumming(let piece, let section): return section == .whole ? .wholeMelody(piece) : .hum(piece)
         case .pieceRhythm(let piece): return .tap(piece)
@@ -42,7 +42,6 @@ extension PathLesson {
         case .meetNotes(let piece): return .pieceNotes(piece)
         case .hum(let piece): return .pieceHumming(piece, .phrase1)
         case .wholeMelody(let piece): return .pieceHumming(piece, .whole)
-        case .celloIntroduction: return .celloIntroduction
         case .echo: return .echo
         }
     }
@@ -130,8 +129,21 @@ struct MusicLibraryView: View {
     }
 
     private func route(for step: PathLesson) -> MusicRoute {
-        if case .lesson(let lesson) = step, needsPrimer(lesson) { return .primer(lesson) }
-        return step.route
+        guard case .lesson(let lesson) = step else { return step.route }
+        if needsPrimer(lesson) { return .primer(lesson) }
+        // The lesson page describes humming; a lesson practised on the cello opens straight into practice.
+        return celloLeads(lesson) != nil ? .practice(lesson) : step.route
+    }
+
+    /// The cello's progress in a lesson with a cello side, when it has got further than
+    /// the voice's. Either method passes the lesson, and the path shows the one ahead.
+    private func celloLeads(_ lesson: PracticeLesson) -> LessonProgress? {
+        guard lesson.hasCelloSide else { return nil }
+        let voice = LessonState(lesson: lesson, store: store, rhythmStores: rhythmStores).step
+        let cello = LessonProgress(PracticeMethod.openStrings.map {
+            store.progress(for: $0, targetFrequency: VoicePracticeMode.note($0).targetFrequency)
+        }, partNoun: "strings")
+        return cello.passed && !voice.gold || cello.started && !voice.started ? cello : nil
     }
 
     // MARK: Path
@@ -212,6 +224,7 @@ struct MusicLibraryView: View {
     private func state(for step: PathLesson) -> PathRowState {
         switch step {
         case .lesson(let lesson):
+            if let cello = celloLeads(lesson) { return PathRowState(progress: cello) }
             let lesson = LessonState(lesson: lesson, store: store, rhythmStores: rhythmStores)
             return PathRowState(progress: lesson.step, stars: lesson.bestStars ?? 0)
         case .listen(let piece):
@@ -238,11 +251,6 @@ struct MusicLibraryView: View {
             ]))
         case .echo:
             return PathRowState(progress: LessonProgress([store.echoProgress(for: .twoNotes, register: .lowVoice)]))
-        case .celloIntroduction:
-            let read = StoredIDs.contains(StoredIDs.celloIntroduction, in: seenPrimers)
-            return PathRowState(progress: LessonProgress([PracticeProgress(successfulAttempts: 0, completed: false,
-                                                                      passed: read)]),
-                             status: read ? "Read" : "Not read yet", stars: nil)
         }
     }
 }

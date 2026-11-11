@@ -41,6 +41,8 @@ extension EnvironmentValues {
 /// The top of every lesson's screen: which level this is, the lesson's title and
 /// a plain line about what to do.
 struct LessonHeader: View {
+    /// Set by a screen that belongs to no lesson of its own, such as Meet your cello.
+    var title: String? = nil
     var subtitle: String? = nil
     var collapsesSubtitle = false
     var titleIdentifier = "screenTitle"
@@ -50,7 +52,7 @@ struct LessonHeader: View {
 
     var body: some View {
         ScreenHeader(eyebrow: lesson.flatMap(Level.position).map { "Level \($0.level.number) · \($0.level.title)" },
-                     title: lesson?.title ?? "", subtitle: subtitle,
+                     title: title ?? lesson?.title ?? "", subtitle: subtitle,
                      titleIdentifier: titleIdentifier, eyebrowIdentifier: eyebrowIdentifier,
                      collapsesSubtitle: collapsesSubtitle)
     }

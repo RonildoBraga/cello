@@ -7,39 +7,99 @@ struct FoundationPracticeView: View {
     @ObservedObject var store: SessionStore
     @ObservedObject var capture: CaptureController
     let rhythmStores: RhythmStores
+    @State private var method: PracticeMethod
+    /// The open string on show when the lesson is practised on the cello.
+    @State private var string: Exercise
+    /// A chip was tapped to switch string: the string it shows plays once.
+    @State private var hearOnArrival = false
+
+    /// The lesson opens the way it was last practised: by voice, or on the string last played.
+    init(lesson: PracticeLesson, store: SessionStore, capture: CaptureController, rhythmStores: RhythmStores) {
+        self.lesson = lesson
+        self.store = store
+        self.capture = capture
+        self.rhythmStores = rhythmStores
+        let strings = PracticeMethod.openStrings
+        let last = store.sessions.first { $0.exercise == .steadyHum || strings.contains($0.exercise) }?.exercise
+        let lastString = last.flatMap { strings.contains($0) ? $0 : nil }
+        _method = State(initialValue: lastString == nil ? .voice : .cello)
+        _string = State(initialValue: lastString ?? strings[0])
+    }
+
+    private var onCello: Bool { lesson.hasCelloSide && method == .cello }
 
     var body: some View {
         Group {
             switch lesson.activity {
             case .recording(let exercise):
-                noteLesson(exercise)
+                noteLesson(onCello ? string : exercise)
             case .rhythm(let exercise):
                 PulsePracticeView(store: rhythmStores.store(for: exercise)) { header }
             }
-        }.background(Palette.paper).screenTitle(lesson.area.title)
+        }.background(Palette.paper).screenTitle(screenTitle)
     }
 
-    /// One note to hum: one chip, tapped to hear it.
+    /// What the screen is called on the back stack: the kind of practice on show.
+    private var screenTitle: String {
+        if case .rhythm = lesson.activity { return "Rhythm" }
+        return onCello ? "Cello" : "Humming"
+    }
+
+    private func progress(_ exercise: Exercise) -> PracticeProgress {
+        store.progress(for: exercise, targetFrequency: VoicePracticeMode.note(exercise).targetFrequency)
+    }
+
+    /// One note to hum, or the four open strings to play: each a chip, tapped to hear it.
     private func noteLesson(_ exercise: Exercise) -> some View {
         let mode = VoicePracticeMode.note(exercise)
-        return VoicePracticeView(store: store, capture: capture, mode: mode) { controls in
-            noteHeader(mode, controls)
-        }
+        let strings = PracticeMethod.openStrings
+        let parts = onCello ? LessonParts(strings, current: exercise, noun: "String", title: { $0.targetNote ?? "" },
+                                          passed: progress(exercise).passed) { string = $0 } : nil
+        return VoicePracticeView(store: store, capture: capture, mode: mode, parts: parts,
+                                 hearOnArrival: $hearOnArrival) { controls in
+            VStack(alignment: .leading, spacing: 17) {
+                header
+                if lesson.hasCelloSide { methodChips.disabled(controls.locked) }
+                let hearing = PartHearing(spoken: mode.hearSpoken, identifier: "previewTargetButton") { changed in
+                    if changed { hearOnArrival = true } else { controls.hear() }
+                }
+                Group {
+                    if onCello {
+                        PartStrip(parts: strings, selection: $string, short: { $0.targetNote ?? "" }, title: \.title,
+                                  progress: progress, hear: hearing)
+                    } else {
+                        let note = TunerReading(frequency: mode.targetFrequency, targetFrequency: nil).noteName
+                        PartStrip<String>(parts: [note], selection: .constant(note), short: { $0 }, title: { $0 },
+                                          hear: hearing)
+                    }
+                }.disabled(controls.locked)
+            }
+        }.id(exercise)
     }
 
-    private func noteHeader(_ mode: VoicePracticeMode,
-                            _ controls: PracticeHeaderControls) -> some View {
-        let note = TunerReading(frequency: mode.targetFrequency, targetFrequency: nil).noteName
-        let hearing = PartHearing(spoken: mode.hearSpoken, identifier: "previewTargetButton") { _ in controls.hear() }
-        return VStack(alignment: .leading, spacing: 17) {
-            header
-            PartStrip<String>(parts: [note], selection: .constant(note), short: { $0 }, title: { $0 }, hear: hearing)
-                .disabled(controls.locked)
+    /// Voice or cello, each with its own mark once passed. On the cello, the
+    /// instrument's parts and strings are one tap away.
+    private var methodChips: some View {
+        HStack(spacing: 8) {
+            PartStrip(parts: PracticeMethod.allCases, selection: Binding(get: { method }, set: { next in
+                // The cello is filmed and the voice is not: release the microphone between them.
+                if next != method { capture.stop() }
+                method = next
+            }), short: \.title, title: \.title, progress: { method in
+                let parts = method == .cello ? PracticeMethod.openStrings.map(progress) : [progress(.steadyHum)]
+                return PracticeProgress(successfulAttempts: 0, completed: parts.allSatisfy(\.completed),
+                                        passed: parts.allSatisfy(\.passed))
+            })
+            if onCello {
+                NavigationLink(value: MusicRoute.celloIntroduction) {
+                    Label("Meet your cello", systemImage: "info.circle").labelStyle(.iconOnly)
+                }.buttonStyle(SecondaryActionButtonStyle()).accessibilityIdentifier("celloIntroductionLink")
+            }
         }
     }
 
     private var header: some View {
-        LessonHeader(subtitle: lesson.practicePrompt,
+        LessonHeader(subtitle: lesson.practicePrompt(onCello ? .cello : .voice),
                    titleIdentifier: "practiceLessonTitle", eyebrowIdentifier: "practiceLessonArea")
             .id("practiceTop")
     }

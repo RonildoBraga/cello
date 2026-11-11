@@ -8,20 +8,19 @@ A native iPhone practice companion for beginners learning music while preparing 
 
 | Level | Lessons |
 | --- | --- |
-| 1 · First sounds | Steady hum → Listen & match → Pulse → Two taps per beat → Mixed rhythm → Listen & Echo |
+| 1 · First sounds | Steady note → Listen & match → Pulse → Two taps per beat → Mixed rhythm → Listen & Echo |
 | 2 · Hot Cross Buns | Listen → Tap it → Meet the notes → Hum it → Whole melody |
 | 3 · Ode to Joy | Listen → Tap it → Meet the notes → Hum it → Whole melody |
-| 4 · Cello · open strings | Meet your cello → Open C → Open G → Open D → Open A |
 
 Each Level 1 lesson opens the first time with a short primer that explains its new idea in plain words: a note, higher and lower, a beat, two taps per beat.
 
-Every lesson belongs to a level, and every lesson uses the same compact row: its place in the level, its title, how far it has got and its best score. The cello level comes last because it needs an instrument. The **About** tab holds the long-term goal (Bach’s Cello Suite No. 1), who built the app, where every sound comes from and what informed the lessons. See [the path design](https://github.com/RonildoBraga/cello/issues/53).
+Every lesson belongs to a level, and every lesson uses the same compact row: its place in the level, its title, how far it has got and its best score. The cello has no level of its own: **Steady note** can be practised by voice or on the cello (the four open strings), chosen with the Voice / Cello chips on its practice screen. Progress is kept for each, and either one passes the lesson. The **About** tab holds the long-term goal (Bach’s Cello Suite No. 1), who built the app, where every sound comes from and what informed the lessons. See [the path design](https://github.com/RonildoBraga/cello/issues/53).
 
 The lessons include:
 
 | Area | Lesson | Exercise | Focus |
 | --- | --- | --- | --- |
-| Humming | 1 | Steady hum | Sustain one gentle note for three seconds. |
+| Voice or cello | 1 | Steady note | Sustain one gentle note: a three-second hum, or each open string. |
 | Humming | 2 | Listen & match | Hear a human example, then hum the same note. |
 | Rhythm | 3 | Pulse | Tap one steady beat each second. |
 | Rhythm | 4 | Two taps per beat | Count `1 & 2 &`, adding a tap halfway between beats. |
@@ -29,9 +28,9 @@ The lessons include:
 
 **Music → First sounds → Listen & Echo** adds ear training with fresh two-note and three-note patterns. Tap the pattern's chip, listen to the complete recorded-human reference, then Record after the count of 1–2–3–4. During recording, the live tuning bar follows each target note and shows measured pitch, cents and a higher/lower cue. Stars and the performance chart appear after saving. Two notes last four seconds; three last six. Each level earns separate progress across patterns, with three three-star takes among the last five rated takes completing that level. Both levels remain available. This activity has its own ledger and keeps the original numbered foundation lessons unchanged. See [the Echo practice design and assessment](docs/listen-and-echo.md).
 
-Open **Music → Cello · open strings → Meet your cello** for an original labelled diagram, the four recorded string-pitch examples from low to high, and the route into playing. Hear is manual and needs no microphone/camera capture. Reading and listening leave performance scores and completion unchanged. The introduction returns to the existing playing lessons; setup, first-position instruction and cello melody assessment remain in [issue #6](https://github.com/RonildoBraga/cello/issues/6). See [the introductory sources and draft practical lesson plan](docs/first-cello-lessons.md).
+Choose **Cello** in **Steady note** and tap the information button to open **Meet your cello**, with an original labelled diagram, the four recorded string-pitch examples from low to high, and the route into playing. Hear is manual and needs no microphone/camera capture. Reading and listening leave performance scores and completion unchanged. The introduction returns to the open strings; setup, first-position instruction and cello melody assessment remain in [issue #6](https://github.com/RonildoBraga/cello/issues/6). See [the introductory sources and draft practical lesson plan](docs/first-cello-lessons.md).
 
-The cello lessons have separate C/G/D/A open-string targets. Lesson pages show instructions, best/latest scores and earned completion; every exercise stays available. Original IDs, lesson numbers and earned progress are retained.
+On the cello, Steady note has separate C/G/D/A open-string targets. Lesson pages show instructions, best/latest scores and earned completion; every exercise stays available. Original IDs, lesson numbers and earned progress are retained.
 
 The first melody is Hot Cross Buns. **Meet the notes** plays each of its notes for you to hum back, one at a time, before you hum phrases. Open **Music → Hot Cross Buns → Hum it** to hear, record and review four short phrases, then join them in the **Whole melody** step. The voice reference uses G2–B2 at 60 BPM. Record starts a three-second countdown, then captures four seconds for a phrase or sixteen for the whole tune. Results show separate **Notes**, **Timing** and **Clarity** stars, a moving-reference pitch chart and one next suggestion. Three three-star takes among the last five rated attempts earn completion for that exact phrase and reference. Every phrase stays available.
 

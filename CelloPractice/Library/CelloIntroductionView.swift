@@ -8,9 +8,8 @@ struct CelloIntroductionView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var isVisible = false
     @State private var selectedString: Exercise?
-    @AppStorage(StoredIDs.seenPrimers) private var seenPrimers = ""
 
-    private let strings: [Exercise] = [.openC, .openG, .openD, .openA]
+    private let strings = PracticeMethod.openStrings
     private let nextSteps = [
         ("Get set up", "Find a comfortable setup with a teacher."),
         ("Open strings", "Build an even sound on one string."),
@@ -22,7 +21,7 @@ struct CelloIntroductionView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                LessonHeader(subtitle: "Learn the parts and hear the four strings, from low to high.")
+                LessonHeader(title: "Meet your cello", subtitle: "Learn the parts and hear the four strings, from low to high.")
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         SectionTitle("Find the parts")
@@ -41,13 +40,10 @@ struct CelloIntroductionView: View {
                     capture.stop()
                     dismiss()
                 } label: {
-                    Label("View open-string lessons", systemImage: "arrow.right")
+                    Label("Play the open strings", systemImage: "arrow.right")
                 }.buttonStyle(PrimaryActionButtonStyle()).accessibilityIdentifier("celloIntroBrowseLessons")
             }
-            .onAppear {
-                isVisible = true
-                seenPrimers = StoredIDs.adding(StoredIDs.celloIntroduction, to: seenPrimers)
-            }
+            .onAppear { isVisible = true }
             .onDisappear { isVisible = false; selectedString = nil; capture.stop() }
             .onChange(of: scenePhase) { _, phase in
                 if isVisible, phase != .active { selectedString = nil; capture.stop() }
