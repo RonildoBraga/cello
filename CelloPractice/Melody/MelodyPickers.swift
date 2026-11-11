@@ -31,13 +31,3 @@ struct ChoiceMenu<Choice: Hashable>: View {
         }.accessibilityLabel("\(name): \(title(selection))")
     }
 }
-
-/// Chooses a phrase or the whole melody.
-struct SectionMenu: View {
-    @Binding var selection: MelodySection
-    var isCompleted: (MelodySection) -> Bool = { _ in false }
-
-    var body: some View {
-        ChoiceMenu(choices: MelodySection.allCases, selection: $selection, title: \.title, isCompleted: isCompleted)
-    }
-}

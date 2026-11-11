@@ -32,7 +32,7 @@ struct MelodyReferenceView: View {
                     HStack {
                         SectionTitle("Follow the notes")
                         Spacer()
-                        SectionMenu(selection: $section).accessibilityIdentifier("melodySectionPicker")
+                        ChoiceMenu(choices: MelodySection.allCases, selection: $section, title: \.title).accessibilityIdentifier("melodySectionPicker")
                     }
                     MelodyNotesView(context: context,
                                     elapsed: capture.isPlayingReference ? capture.referenceElapsed : nil)

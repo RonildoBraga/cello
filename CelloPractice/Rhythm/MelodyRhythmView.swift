@@ -9,16 +9,25 @@ struct MelodyRhythmView: View {
 
     private var context: MelodyRhythmContext { piece.rhythm(section: section) }
 
+    /// The four phrases, then all of them together. That last part is tapped,
+    /// so it is not called "Whole melody", which is the lesson where it is hummed.
+    private static let parts = MelodySection.phrases + [.whole]
+    private static func title(_ section: MelodySection) -> String {
+        section == .whole ? "All phrases" : section.title
+    }
+
     var body: some View {
         MelodyRhythmRoundView(store: store, capture: capture, context: context,
                               patternHint: piece.rhythmHint(for: section),
-                              next: section.next.map { next in (next.title, { section = next }) }) { locked in
+                              parts: LessonParts(Self.parts, current: section, noun: "Part", title: Self.title,
+                                                 passed: store.progress(for: context).passed) { section = $0 }) { locked in
             VStack(alignment: .leading, spacing: 12) {
                 LessonHeader(subtitle: "Tap once when each note starts. Keep counting while a long note continues.",
                            collapsesSubtitle: store.progress(for: context).successfulAttempts > 0)
                 HStack {
-                    SectionMenu(selection: $section) { store.progress(for: piece.rhythm(section: $0)).completed }
-                        .disabled(locked).accessibilityIdentifier("melodyRhythmSectionPicker")
+                    ChoiceMenu(choices: Self.parts, selection: $section, title: Self.title) {
+                        store.progress(for: piece.rhythm(section: $0)).completed
+                    }.disabled(locked).accessibilityIdentifier("melodyRhythmSectionPicker")
                     Spacer()
                     Text("\(Int(context.duration)) seconds · \(context.reference.tempoBPM) BPM")
                         .font(.caption).foregroundStyle(Palette.muted)
@@ -43,7 +52,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
     @ObservedObject var capture: CaptureController
     let context: MelodyRhythmContext
     let patternHint: String
-    let next: (title: String, action: () -> Void)?
+    let parts: LessonParts
     @ViewBuilder let header: (Bool) -> Header
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -116,7 +125,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
                 }
             }
         }.background(Palette.paper)
-            .bottomActionBar(lessonsLocked: locked) {
+            .bottomActionBar(lessonsLocked: locked, parts: parts) {
                 RhythmStartButton(round: round, listening: capture.isPlayingReference) {
                     if running { round.stop() }
                     else if capture.isPlayingReference { capture.stop() }
@@ -131,11 +140,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
     }
 
     private var progress: some View {
-        let saved = store.progress(for: context)
-        let step = next.map {
-            NextPart.item($0.title, completed: saved.completed, identifier: "nextRhythmPhraseButton", action: $0.action)
-        }
-        return PracticeProgressView(progress: saved, next: step, disabled: locked, attemptNoun: "rounds")
+        PracticeProgressView(progress: store.progress(for: context), attemptNoun: "rounds")
     }
 
     private var pattern: some View {

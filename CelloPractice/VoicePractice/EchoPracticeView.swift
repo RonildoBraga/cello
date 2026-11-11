@@ -22,8 +22,7 @@ struct EchoPracticeView: View {
     }
 
     var body: some View {
-        VoicePracticeView(store: store, capture: capture, mode: .echo(context, level: level),
-                          nextPhrase: ("New pattern", newPattern)) { locked in
+        VoicePracticeView(store: store, capture: capture, mode: .echo(context, level: level)) { locked in
             VStack(alignment: .leading, spacing: 16) {
                 LessonHeader(subtitle: "Hear the pattern, then hum it back. Follow the tuning bar as you record.",
                            collapsesSubtitle: store.echoProgress(for: level, register: register).successfulAttempts > 0)

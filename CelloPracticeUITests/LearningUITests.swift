@@ -86,7 +86,8 @@ final class LearningUITests: XCTestCase {
         app.pathLesson("lesson-hotCrossBuns-whole").tap()
         XCTAssertTrue(app.navigationBars["Hot Cross Buns"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.staticTexts["screenTitle"].label, "Whole melody")
-        XCTAssertEqual(app.buttons["melodyHummingSectionPicker"].label, "Section: Whole melody")
+        XCTAssertFalse(app.buttons["melodyHummingSectionPicker"].exists, "Whole melody is one part: nothing to choose")
+        XCTAssertFalse(app.staticTexts["lessonPartPosition"].exists)
         XCTAssertFalse(app.staticTexts["melodyRatingStars"].exists, "Opening a lesson must not invent a score")
         screenshot("Hot Cross Buns · whole melody lesson")
         app.pathLesson("lesson-hotCrossBuns-hum").tap()
@@ -94,22 +95,36 @@ final class LearningUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts["screenTitle"].label, "Hum it")
         XCTAssertEqual(app.buttons["melodyHummingSectionPicker"].label, "Section: Phrase 1")
 
-        // Choosing another section stays in this lesson, so the lesson bar still
-        // leads somewhere: on to Whole melody, and back again at phrase 1.
-        selectMelodyHummingSection("Whole melody", in: app)
-        XCTAssertEqual(app.staticTexts["lessonPosition"].label, "Lesson 4 of 5")
-        app.buttons["nextLessonButton"].tap()
+        // The lesson bar is the one way forward: through the phrases, then to
+        // the next lesson, then into the next level. And back the same way.
+        let picker = app.buttons["melodyHummingSectionPicker"]
+        let next = app.buttons["nextLessonButton"]
+        let previous = app.buttons["previousLessonButton"]
         let position = app.staticTexts["lessonPosition"]
+        XCTAssertEqual(app.staticTexts["lessonPartPosition"].label, "Phrase 1 of 4")
+        XCTAssertEqual(previous.label, "Previous lesson, Meet the notes")
+        XCTAssertEqual(next.label, "Next part, Phrase 2")
+        XCTAssertFalse(app.buttons["nextMelodyPhraseButton"].exists, "There is no second way to move on")
+        next.tap()
+        let onPhraseTwo = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Section: Phrase 2"), object: picker)
+        XCTAssertEqual(XCTWaiter.wait(for: [onPhraseTwo], timeout: 5), .completed)
+        XCTAssertEqual(position.label, "Lesson 4 of 5", "A phrase is a part of the same lesson")
+        XCTAssertEqual(previous.label, "Previous part")
+        previous.tap()
+        let onPhraseOne = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Section: Phrase 1"), object: picker)
+        XCTAssertEqual(XCTWaiter.wait(for: [onPhraseOne], timeout: 5), .completed)
+
+        selectMelodyHummingSection("Phrase 4", in: app)
+        XCTAssertEqual(next.label, "Next lesson, Whole melody")
+        next.tap()
         let onWhole = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Lesson 5 of 5"), object: position)
         XCTAssertEqual(XCTWaiter.wait(for: [onWhole], timeout: 5), .completed)
         XCTAssertEqual(app.staticTexts["screenTitle"].label, "Whole melody")
-        XCTAssertEqual(app.buttons["nextLessonButton"].label, "Next level, Ode to Joy",
-                       "The last lesson of a level leads on to the next level")
-        selectMelodyHummingSection("Phrase 2", in: app)
-        app.buttons["previousLessonButton"].tap()
+        XCTAssertEqual(next.label, "Next level, Ode to Joy", "The last lesson of a level leads on to the next level")
+        previous.tap()
         let onHum = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Lesson 4 of 5"), object: position)
         XCTAssertEqual(XCTWaiter.wait(for: [onHum], timeout: 5), .completed)
-        XCTAssertEqual(app.buttons["melodyHummingSectionPicker"].label, "Section: Phrase 1")
+        XCTAssertEqual(picker.label, "Section: Phrase 1")
         openLesson("pulse", title: "Pulse", in: app)
         app.buttons["startLessonButton"].tap()
         assertInlinePulseReady(in: app)
@@ -311,7 +326,7 @@ final class LearningUITests: XCTestCase {
         let progress = app.staticTexts["practiceProgressText"]
         reveal(progress, in: app)
         XCTAssertTrue(progress.label.contains("Goal reached"))
-        XCTAssertTrue(app.buttons["nextMelodyPhraseButton"].isEnabled)
+        XCTAssertTrue(app.buttons["nextLessonButton"].isEnabled)
         selectMelodyHummingSection("Phrase 3", in: app)
         reveal(progress, in: app)
         XCTAssertFalse(progress.label.contains("Goal reached"), "A different phrase earns its own completion")
@@ -836,10 +851,12 @@ final class LearningUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["melodyRatingStars"].exists)
         screenshot("Ode to Joy · humming ready in the low voice")
 
-        selectMelodyHummingSection("Whole melody", in: app)
+        app.pathLesson("lesson-odeToJoy-whole").tap()
+        waitForRecord(in: app)
         XCTAssertTrue(duration.label.contains("16 seconds"))
         XCTAssertTrue(app.buttons["previewTargetButton"].label.contains("Hear melody"))
         XCTAssertFalse(app.staticTexts["LISTEN"].exists)
+        openMelodyHumming(in: app, pieceID: "odeToJoy")
         selectMelodyHummingSection("Phrase 4", in: app)
         XCTAssertTrue(target.label.contains("G2–D3"))
         XCTAssertTrue(duration.label.contains("4 seconds"))
@@ -902,7 +919,7 @@ final class LearningUITests: XCTestCase {
         openMelodyRhythm(in: app, pieceID: "odeToJoy")
         XCTAssertEqual(app.staticTexts["melodyRhythmTapCount"].label, "0 / 4 starts · 0 extra")
         XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label == %@", "Note, 1 beats")).count, 4)
-        selectMelodyRhythmSection("Whole melody", in: app)
+        selectMelodyRhythmSection("All phrases", in: app)
         XCTAssertTrue(app.staticTexts["melodyRhythmDuration"].label.contains("16 seconds"))
         for number in 1...4 { XCTAssertTrue(app.staticTexts["Phrase \(number)"].exists) }
         let progress = app.staticTexts["practiceProgressText"].label
@@ -982,7 +999,7 @@ final class LearningUITests: XCTestCase {
         selectMelodyRhythmSection("Phrase 3", in: app)
         XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label == %@", "Note, 0.5 beats")).count, 8)
         XCTAssertFalse(tap.exists)
-        selectMelodyRhythmSection("Whole melody", in: app)
+        selectMelodyRhythmSection("All phrases", in: app)
         XCTAssertTrue(duration.label.contains("16 seconds"))
         selectMelodyRhythmSection("Phrase 1", in: app)
 
@@ -1066,7 +1083,7 @@ final class LearningUITests: XCTestCase {
         openMelodyRhythm(in: app)
         selectMelodyRhythmSection("Phrase 3", in: app)
         XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label == %@", "Note, 0.5 beats")).count, 8)
-        selectMelodyRhythmSection("Whole melody", in: app)
+        selectMelodyRhythmSection("All phrases", in: app)
         XCTAssertTrue(app.staticTexts["melodyRhythmDuration"].label.contains("16 seconds"))
         let progress = app.staticTexts["practiceProgressText"].label
         for number in 1...4 {
@@ -1160,10 +1177,12 @@ final class LearningUITests: XCTestCase {
         assertNoPermissionAlerts(in: app)
         screenshot("Hot Cross Buns · humming ready for phrase 1")
 
-        selectMelodyHummingSection("Whole melody", in: app)
+        app.pathLesson("lesson-hotCrossBuns-whole").tap()
+        waitForRecord(in: app)
         XCTAssertTrue(duration.label.contains("16 seconds"), "Whole-melody takes must not use the three-second foundation limit")
         XCTAssertTrue(app.buttons["previewTargetButton"].label.contains("Hear melody"))
-        XCTAssertFalse(app.staticTexts["LISTEN"].exists, "Changing phrase must not autoplay")
+        XCTAssertFalse(app.staticTexts["LISTEN"].exists, "Opening a lesson must not autoplay")
+        openMelodyHumming(in: app)
         selectMelodyHummingSection("Phrase 3", in: app)
         XCTAssertTrue(duration.label.contains("4 seconds"))
         XCTAssertTrue(target.label.contains("G2–B2"))

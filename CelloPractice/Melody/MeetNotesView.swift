@@ -18,13 +18,13 @@ struct MeetNotesView: View {
 
     private var drills: [NoteDrill] { NoteDrill.drills(for: piece) }
     private var context: MelodyPracticeContext { drill.context }
-    private var next: NoteDrill? {
-        drills.firstIndex(of: drill).flatMap { drills.indices.contains($0 + 1) ? drills[$0 + 1] : nil }
+    private var parts: LessonParts {
+        LessonParts(drills, current: drill, noun: "Note", title: \.title,
+                    passed: store.melodyProgress(for: context).passed) { drill = $0 }
     }
 
     var body: some View {
-        VoicePracticeView(store: store, capture: capture, mode: .phrase(context),
-                          nextPhrase: next.map { next in (next.title, { drill = next }) }) { locked in
+        VoicePracticeView(store: store, capture: capture, mode: .phrase(context), parts: parts) { locked in
             VStack(alignment: .leading, spacing: 17) {
                 LessonHeader(subtitle: "This melody uses \(NoteDrill.notes(for: piece).count) notes. Hear one, then hum it back after the count of 1–2–3–4. The bar shows how close you are.",
                              collapsesSubtitle: store.melodyProgress(for: context).successfulAttempts > 0)

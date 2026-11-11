@@ -39,7 +39,7 @@ struct MelodyRhythmChartData {
         points = offsets.compactMap { index, offset -> Point? in
             guard times.indices.contains(index), offset.isFinite,
                   abs(offset) <= context.tapWindow(for: index) + 1e-9,
-                  times[index] + offset >= 0, times[index] + offset < context.duration else { return nil }
+                  times[index] + offset < context.duration else { return nil }
             return Point(noteIndex: index, time: times[index], offsetSeconds: offset)
         }.sorted { $0.noteIndex < $1.noteIndex }
         let matched = Set(points.map(\.noteIndex))

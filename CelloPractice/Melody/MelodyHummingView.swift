@@ -16,16 +16,24 @@ struct MelodyHummingView: View {
 
     private var context: MelodyPracticeContext { piece.humming(register: .lowVoice, section: section) }
 
+    /// Hum it steps through the four phrases; Whole melody is one part and a lesson of its own.
+    private var parts: LessonParts? {
+        guard section != .whole else { return nil }
+        return LessonParts(MelodySection.phrases, current: section, noun: "Phrase", title: \.title,
+                           passed: store.melodyProgress(for: context).passed) { section = $0 }
+    }
+
     var body: some View {
-        VoicePracticeView(store: store, capture: capture, mode: .phrase(context),
-                          nextPhrase: section.next.map { next in (next.title, { section = next }) }) { locked in
+        VoicePracticeView(store: store, capture: capture, mode: .phrase(context), parts: parts) { locked in
             VStack(alignment: .leading, spacing: 17) {
                 LessonHeader(subtitle: piece.hummingIntro,
                            collapsesSubtitle: store.melodyProgress(for: context).successfulAttempts > 0)
                 HStack {
-                    SectionMenu(selection: $section) {
-                        store.melodyProgress(for: piece.humming(register: .lowVoice, section: $0)).completed
-                    }.disabled(locked).accessibilityIdentifier("melodyHummingSectionPicker")
+                    if section != .whole {
+                        ChoiceMenu(choices: MelodySection.phrases, selection: $section, title: \.title) {
+                            store.melodyProgress(for: piece.humming(register: .lowVoice, section: $0)).completed
+                        }.disabled(locked).accessibilityIdentifier("melodyHummingSectionPicker")
+                    }
                     Spacer()
                     Text("\(Int(context.duration)) seconds · \(context.tempoBPM) BPM")
                         .font(.caption).foregroundStyle(Palette.muted)

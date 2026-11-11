@@ -16,28 +16,9 @@ struct PracticeRatingView: View {
     }
 }
 
-/// The suggested next part inside a lesson: the next phrase, note or pattern.
-/// Moving between lessons is the lesson bar's job.
-struct NextPart {
-    /// "Try" before the current goal is reached, "Continue to" after.
-    let caption: String
-    let title: String
-    let spokenLabel: String
-    let identifier: String
-    let action: () -> Void
-
-    static func item(_ title: String, completed: Bool, identifier: String, action: @escaping () -> Void) -> NextPart {
-        let verb = completed ? "Continue to" : "Try"
-        return NextPart(caption: verb, title: title, spokenLabel: "\(verb) \(title)",
-                        identifier: identifier, action: action)
-    }
-}
-
-/// Progress towards this activity's goal, with the suggested next lesson beside it.
+/// Progress towards this activity's two results, in words.
 struct PracticeProgressView: View {
     let progress: PracticeProgress
-    var next: NextPart? = nil
-    var disabled = false
     var attemptNoun = "takes"
 
     var body: some View {
@@ -55,21 +36,6 @@ struct PracticeProgressView: View {
                 .foregroundStyle(progress.completed ? Palette.forest : Palette.muted)
                 .accessibilityIdentifier("practiceProgressText")
             Spacer(minLength: 0)
-            if let next {
-                Button(action: next.action) {
-                    HStack(spacing: 5) {
-                        VStack(alignment: .trailing, spacing: 3) {
-                            Text(next.caption).font(.caption2)
-                            Text(next.title).font(.caption.weight(.semibold))
-                        }
-                        Image(systemName: "arrow.right")
-                    }.font(.caption.weight(.semibold)).frame(minHeight: 44)
-                        .contentShape(Rectangle())
-                }.buttonStyle(.plain).foregroundStyle(Palette.forest)
-                    .disabled(disabled).opacity(disabled ? 0.45 : 1)
-                    .accessibilityLabel(next.spokenLabel)
-                    .accessibilityIdentifier(next.identifier)
-            }
         }.frame(minHeight: 44).padding(.horizontal, 2)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("practiceProgressCard")
