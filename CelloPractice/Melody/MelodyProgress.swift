@@ -5,6 +5,7 @@ import Foundation
 struct MelodyProgressLedger: SessionProgressLedger {
     let schemaVersion: Int
     var completedKeys: Set<String>
+    var passedKeys: Set<String>?
 
     init(schemaVersion: Int = 1, completedKeys: Set<String> = []) {
         self.schemaVersion = schemaVersion

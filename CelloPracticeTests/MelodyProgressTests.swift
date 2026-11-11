@@ -22,7 +22,8 @@ final class MelodyProgressTests: XCTestCase {
             session(at: $0.offset, context: context, success: $0.element)
         }
         var ledger = MelodyProgressLedger()
-        XCTAssertFalse(ledger.update(from: sessions))
+        ledger.update(from: sessions)
+        XCTAssertTrue(ledger.completedKeys.isEmpty, "A pass is kept, but it is not gold")
         XCTAssertEqual(ledger.progress(for: context, sessions: sessions).successfulAttempts, 1)
         XCTAssertFalse(ledger.progress(for: context, sessions: sessions).completed)
     }
@@ -64,7 +65,8 @@ final class MelodyProgressTests: XCTestCase {
                                        match: true, steady: true, hold: true))
         }
         var ledger = MelodyProgressLedger()
-        XCTAssertFalse(ledger.update(from: sessions))
+        ledger.update(from: sessions)
+        XCTAssertTrue(ledger.completedKeys.isEmpty, "A pass is kept, but it is not gold")
         XCTAssertEqual(ledger.progress(for: current, sessions: sessions).successfulAttempts, 2)
         XCTAssertFalse(ledger.progress(for: otherVersion, sessions: sessions).completed)
         XCTAssertFalse(ledger.progress(for: ungraded, sessions: sessions).completed)

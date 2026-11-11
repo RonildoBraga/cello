@@ -1,7 +1,7 @@
 import Foundation
 
 /// Two tiers. `passed` moves the path on: one decent attempt. `completed` is
-/// gold: the earned milestone, which survives later takes.
+/// gold. Both are earned milestones: they survive later takes and deleted ones.
 struct PracticeProgress: Equatable {
     let successfulAttempts: Int
     let requiredAttempts = CompletionRule.requiredSuccesses
@@ -19,12 +19,13 @@ struct PracticeProgress: Equatable {
     }
 
     /// Applies both tiers to one activity's scored attempts, newest first.
-    init(stars newestFirst: [Int], alreadyCompleted: Bool = false) {
+    init(stars newestFirst: [Int], alreadyCompleted: Bool = false, alreadyPassed: Bool = false) {
         let successes = CompletionRule.recentSuccesses(newestFirst.map { $0 == CompletionRule.goldStars })
         let completed = alreadyCompleted || successes >= CompletionRule.requiredSuccesses
+        // A pass whose takes were deleted still shows the score that earned it.
         self.init(successfulAttempts: completed ? CompletionRule.requiredSuccesses : successes,
-                  completed: completed, passed: CompletionRule.passed(newestFirst),
-                  bestStars: newestFirst.max())
+                  completed: completed, passed: alreadyPassed || CompletionRule.passed(newestFirst),
+                  bestStars: (newestFirst + (alreadyPassed ? [CompletionRule.passingStars] : [])).max())
     }
 }
 
@@ -68,6 +69,9 @@ enum CompletionRule {
 protocol SessionProgressLedger: Codable {
     var schemaVersion: Int { get }
     var completedKeys: Set<String> { get set }
+    /// Passes, kept so that deleting recordings to free space keeps them. Files
+    /// written before passes were kept have no such field and read as nil.
+    var passedKeys: Set<String>? { get set }
     /// The achievement a rated session counts towards, or nil when it counts for none.
     static func eligibleKey(for session: PracticeSession) -> String?
     /// The stars an eligible session earned.
@@ -81,7 +85,8 @@ extension SessionProgressLedger {
         guard let key else { return PracticeProgress(successfulAttempts: 0, completed: false) }
         let recent = sessions.filter { Self.eligibleKey(for: $0) == key }.sorted(by: Self.newestFirst)
         return PracticeProgress(stars: recent.map { Self.starCount(for: $0) ?? 0 },
-                                alreadyCompleted: completedKeys.contains(key))
+                                alreadyCompleted: completedKeys.contains(key),
+                                alreadyPassed: passedKeys?.contains(key) ?? false)
     }
 
     /// Returns true when a milestone was added and the ledger needs saving.
@@ -90,9 +95,13 @@ extension SessionProgressLedger {
         let attempts = sessions.sorted { Self.newestFirst($1, $0) }.compactMap { session in
             Self.eligibleKey(for: session).map { (key: $0, success: Self.succeeded(session)) }
         }
-        let known = completedKeys.count
+        let passes = Set(sessions.compactMap { session in
+            (Self.starCount(for: session) ?? 0) >= CompletionRule.passingStars ? Self.eligibleKey(for: session) : nil
+        })
+        let known = completedKeys.count + (passedKeys?.count ?? 0)
         completedKeys.formUnion(CompletionRule.earnedKeys(attempts))
-        return completedKeys.count != known
+        if !passes.isSubset(of: passedKeys ?? []) { passedKeys = (passedKeys ?? []).union(passes) }
+        return completedKeys.count + (passedKeys?.count ?? 0) != known
     }
 
     private static func newestFirst(_ lhs: PracticeSession, _ rhs: PracticeSession) -> Bool {
@@ -105,6 +114,7 @@ extension SessionProgressLedger {
 struct PracticeProgressLedger: SessionProgressLedger {
     let schemaVersion: Int
     var completedKeys: Set<String>
+    var passedKeys: Set<String>?
 
     init(schemaVersion: Int = 1, completedKeys: Set<String> = []) {
         self.schemaVersion = schemaVersion

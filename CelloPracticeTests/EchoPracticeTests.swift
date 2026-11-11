@@ -153,7 +153,8 @@ final class EchoPracticeTests: XCTestCase {
         XCTAssertEqual(ledger.progress(for: .twoNotes, register: .lowVoice, sessions: old).successfulAttempts, 0)
 
         var mixed = old + (try (3..<5).map { try session(at: $0, pattern: $0) })
-        XCTAssertFalse(ledger.update(from: mixed))
+        ledger.update(from: mixed)
+        XCTAssertTrue(ledger.completedKeys.isEmpty, "A pass is kept, but it is not gold")
         let unfinished = ledger.progress(for: .twoNotes, register: .lowVoice, sessions: mixed)
         XCTAssertEqual(unfinished.successfulAttempts, 2)
         XCTAssertFalse(unfinished.completed)
@@ -221,7 +222,8 @@ final class EchoPracticeTests: XCTestCase {
             session(at: 19, register: .higherVoice, pattern: 0)
         ]
         var ledger = EchoProgressLedger()
-        XCTAssertFalse(ledger.update(from: history))
+        ledger.update(from: history)
+        XCTAssertTrue(ledger.completedKeys.isEmpty, "A pass is kept, but it is not gold")
         XCTAssertEqual(ledger.progress(for: .twoNotes, register: .lowVoice, sessions: history).successfulAttempts, 2)
         XCTAssertFalse(ledger.progress(for: .twoNotes, register: .lowVoice, sessions: history).completed)
         XCTAssertFalse(MelodyProgressLedger().progress(for: try .hotCrossBuns(register: .lowVoice,
@@ -238,7 +240,8 @@ final class EchoPracticeTests: XCTestCase {
             try session(at: $0.offset, pattern: $0.offset % 6, success: $0.element)
         }
         var ledger = EchoProgressLedger()
-        XCTAssertFalse(ledger.update(from: history))
+        ledger.update(from: history)
+        XCTAssertTrue(ledger.completedKeys.isEmpty, "A pass is kept, but it is not gold")
         let progress = ledger.progress(for: .twoNotes, register: .lowVoice, sessions: history)
         XCTAssertFalse(progress.completed)
         XCTAssertEqual(progress.successfulAttempts, 1)
