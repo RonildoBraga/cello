@@ -78,20 +78,9 @@ struct PulseAttempt: Codable, Identifiable {
 
     var cue: String {
         guard isScored else { return "Tap along at least three times to get a score." }
-        if exercise == .mixedRhythm && unexpectedTapCount > 1 {
-            return "Tap once on odd numbers and twice on even numbers. Leave the space after 1, 3, 5 and 7."
-        }
-        if !beatsGoal { return "Keep tapping through more of the round." }
-        if !timingGoal {
-            return (medianOffsetMilliseconds ?? 0) < 0
-                ? "Let the pulse arrive before you tap."
-                : "Try landing your tap a little earlier, with the pulse."
-        }
-        if !evennessGoal {
-            return exercise == .mixedRhythm ? "Keep the beat steady as you switch between one tap and two."
-                : "Keep the same space between each tap."
-        }
-        return "Your taps stayed close to the pulse. Keep that easy rhythm."
+        let kind: TapDiagnosis.Kind = exercise == .pulse ? .pulse : exercise == .twoTaps ? .twoTaps : .mixed
+        return TapDiagnosis.feedback(kind: kind, expected: totalBeats, offsets: offsets, extras: unexpectedTapCount,
+                                     coverage: beatsGoal, timing: timingGoal, evenness: evennessGoal)
     }
 
     fileprivate var isValid: Bool {

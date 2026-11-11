@@ -155,7 +155,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
         RhythmTapCard(round: round, tempoBPM: context.reference.tempoBPM, listening: capture.isPlayingReference,
                       cue: capture.isPlayingReference ? "Listen to the pattern."
                         : running ? elapsed == nil ? "Get ready to tap." : "Feel each beat. Tap only when a note starts."
-                        : "Wait for 4–3–2–1, then tap the pattern.",
+                        : "Count 1–2–3–4, then tap as each dot reaches the line.",
                       count: "\(round.timing?.offsets.count ?? 0) / \(context.expectedTapTimes.count) starts · \(round.timing?.unexpectedTapCount ?? 0) extra",
                       tapLabel: "Tap at each note start",
                       tapHint: running ? "" : "Tap Start, then wait for the count-in.",
