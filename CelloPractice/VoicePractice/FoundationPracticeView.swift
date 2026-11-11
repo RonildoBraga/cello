@@ -12,9 +12,7 @@ struct FoundationPracticeView: View {
         Group {
             switch lesson.activity {
             case .recording(let exercise):
-                VoicePracticeView(store: store, capture: capture, mode: .note(exercise)) { locked in
-                    header.disabled(locked)
-                }
+                VoicePracticeView(store: store, capture: capture, mode: .note(exercise)) { _ in header }
             case .rhythm(let exercise):
                 PulsePracticeView(store: rhythmStores.store(for: exercise)) { header }
             }

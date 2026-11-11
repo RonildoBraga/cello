@@ -30,7 +30,7 @@ Every step uses one compact row, whatever it opens: step number, title, progress
 
 ### Inside a step
 
-Every step's screen opens with the same header (`StepHeader`): the level ("Level 1 · First sounds"), the step's title, one plain line about what to do, and a step bar, "‹ Step 1 of 6 · Listen & match ›". The arrows move to the previous and next step of the level and fade at its first and last step. Moving with the bar replaces the screen, so Back always returns to Music. A lesson's page, with instructions and scores, is what a tap on the path opens; its Start button also leads to a practice screen directly above the path.
+Every step's screen opens with the same header (`StepHeader`): the level ("Level 1 · First sounds"), the step's title and one plain line about what to do. A step bar, "‹ Step 1 of 6 · Listen & match ›", is pinned at the bottom just above the main button, where the thumb already is; it was first tried under the title, where it pushed the practice area down. The shared bottom action bar adds it on any screen that belongs to a step, and holds it still while a take or round is in flight. The arrows move to the previous and next step of the level and fade at its first and last step. Moving with the bar replaces the screen, so Back always returns to Music. A lesson's page, with instructions and scores, is what a tap on the path opens; its Start button also leads to a practice screen directly above the path.
 
 Under the practice area one line reports both tiers in words: "Passed · Gold: 2 of 3 three-star takes". Inside a melody step the same row still offers the next phrase or note.
 

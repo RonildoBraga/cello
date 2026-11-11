@@ -28,7 +28,6 @@ struct EchoPracticeView: View {
                 StepHeader(step: .echo,
                            subtitle: "Hear the pattern, then hum it back. Follow the tuning bar as you record.",
                            collapsesSubtitle: store.echoProgress(for: level, register: register).successfulAttempts > 0)
-                    .disabled(locked)
                 Picker("Pattern length", selection: levelSelection) {
                     ForEach(EchoLevel.allCases) { level in
                         Text(level.title).tag(level)

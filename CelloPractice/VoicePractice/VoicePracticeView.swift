@@ -167,7 +167,7 @@ struct VoicePracticeView<Header: View>: View {
                 }
             }
         }
-        .bottomActionBar { recordingControls }
+        .bottomActionBar(stepsLocked: controlsLocked || restSeconds > 0) { recordingControls }
     }
 
     /// Results and progress give way to the status card while anything is in flight.

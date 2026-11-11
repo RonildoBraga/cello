@@ -53,11 +53,27 @@ extension View {
             }
     }
 
-    /// Pins a screen's primary action above the tab bar.
-    func bottomActionBar<Bar: View>(@ViewBuilder _ bar: @escaping () -> Bar) -> some View {
-        safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 10) { bar() }
-                .padding(.horizontal, Layout.gutter).padding(.vertical, 12)
+    /// Pins a screen's primary action above the tab bar. On a step's screen the
+    /// step bar sits just above it, within reach of the thumb; `stepsLocked`
+    /// holds it still while a take or round is in flight.
+    func bottomActionBar<Bar: View>(stepsLocked: Bool = false, @ViewBuilder _ bar: @escaping () -> Bar) -> some View {
+        modifier(BottomActionBar(stepsLocked: stepsLocked, bar: bar))
+    }
+}
+
+private struct BottomActionBar<Bar: View>: ViewModifier {
+    let stepsLocked: Bool
+    @ViewBuilder let bar: () -> Bar
+    @Environment(\.currentPathStep) private var step
+
+    func body(content: Content) -> some View {
+        content.safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 10) {
+                if let step, let position = Level.position(of: step) {
+                    StepBar(position: position).disabled(stepsLocked)
+                }
+                bar()
+            }.padding(.horizontal, Layout.gutter).padding(.vertical, 12)
                 .frame(maxWidth: .infinity).background(Palette.paper)
         }
     }
