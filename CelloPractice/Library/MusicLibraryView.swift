@@ -47,7 +47,6 @@ struct MusicLibraryView: View {
     /// The levels showing their steps. The level holding the next step opens
     /// each time the path comes into view.
     @State private var open: Set<String> = []
-    @State private var showsAbout = false
 
     /// The first step on the path that has not been passed yet.
     private var next: (level: Level, step: PathStep)? { Level.nextStep(isPassed: isPassed) }
@@ -66,13 +65,6 @@ struct MusicLibraryView: View {
             }.background(Palette.paper)
                 .accessibilityIdentifier("musicLibraryHome")
                 .screenTitle("Music")
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button { showsAbout = true } label: { Image(systemName: "info.circle") }
-                            .accessibilityLabel("About this path").accessibilityIdentifier("aboutButton")
-                    }
-                }
-                .sheet(isPresented: $showsAbout) { AboutPathView() }
                 .onAppear {
                     if let level = next?.level { open.insert(level.id) }
                     if let level = Level.newlyCompleted(celebrated: celebrated, isPassed: isPassed) {

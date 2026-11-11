@@ -10,7 +10,7 @@ final class LearningUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.navigationBars["Music"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.tabBars.buttons["Music"].isSelected)
-        for tab in ["Music", "Recordings"] { XCTAssertTrue(app.tabBars.buttons[tab].isHittable) }
+        for tab in ["Music", "Recordings", "About"] { XCTAssertTrue(app.tabBars.buttons[tab].isHittable) }
         XCTAssertFalse(app.tabBars.buttons["Practice"].exists, "Practice is a screen pushed from Music, not a tab")
         for id in ["foundation-humming", "foundation-rhythm", "foundation-cello", "piece-hotCrossBuns"] {
             XCTAssertFalse(app.buttons[id].exists, "Foundations and Pieces are no longer separate lists")
@@ -50,19 +50,34 @@ final class LearningUITests: XCTestCase {
         // With every level open, one step at most is marked as the next one.
         let marked = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Continue, Step"))
         XCTAssertEqual(marked.count, unfinished ? 1 : 0, "Exactly one step is highlighted as Continue")
-        // The long-term goal and the credits sit behind the info button, off the path.
+        // The long-term goal and the credits live on the About tab, off the path.
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "pathDestinationNote").firstMatch.exists)
-        app.buttons["aboutButton"].tap()
-        let note = app.descendants(matching: .any).matching(identifier: "pathDestinationNote").firstMatch
-        XCTAssertTrue(note.waitForExistence(timeout: 5))
-        XCTAssertTrue(note.label.contains("Bach"))
-        XCTAssertTrue(app.buttons["Creative Commons Attribution 3.0"].exists
-                      || app.links["Creative Commons Attribution 3.0"].exists, "Recording credits stay available")
-        screenshot("Music · about this path")
-        app.buttons["aboutDoneButton"].tap()
-        XCTAssertTrue(app.buttons["level-firstSounds"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["aboutButton"].exists, "Music has no info button")
         assertNoWrittenInput(in: app)
         assertNoPermissionAlerts(in: app)
+    }
+
+    func testAboutTabCreditsTheBuildersAndEverySoundSource() {
+        let app = XCUIApplication.cello()
+        app.launch()
+        app.tabBars.buttons["About"].tap()
+        XCTAssertTrue(app.staticTexts["aboutTitle"].waitForExistence(timeout: 5))
+        for text in ["Ronildo Braga", "Claude, by Anthropic", "“Deep Humming Noise” by retropttam", "VSCO 2 Community Edition"] {
+            let credit = app.staticTexts[text]
+            app.scroll(to: credit)
+        }
+        for link in ["Original recording on Freesound", "Creative Commons Attribution 3.0", "Creative Commons CC0 1.0"] {
+            XCTAssertTrue(app.buttons[link].exists || app.links[link].exists, "\(link) should stay available")
+        }
+        screenshot("About · sound sources")
+        let version = app.staticTexts["aboutVersion"]
+        app.scroll(to: version)
+        XCTAssertTrue(version.label.hasPrefix("Cello "))
+        XCTAssertFalse(app.buttons["practiceRecordButton"].exists)
+        assertNoWrittenInput(in: app)
+        assertNoPermissionAlerts(in: app)
+        app.tabBars.buttons["Music"].tap()
+        XCTAssertTrue(app.buttons["level-firstSounds"].waitForExistence(timeout: 5))
     }
 
     func testMelodyLevelOpensWholeMelodyAndLessonsWithoutInventingScores() {
@@ -1859,7 +1874,7 @@ final class LearningUITests: XCTestCase {
         let headerReady = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: heading)
         XCTAssertEqual(XCTWaiter.wait(for: [headerReady], timeout: 5), .completed)
         XCTAssertEqual(app.staticTexts["practiceLessonArea"].label, "Level 1 · First sounds")
-        for tab in ["Music", "Recordings"] { XCTAssertTrue(app.tabBars.buttons[tab].isHittable) }
+        for tab in ["Music", "Recordings", "About"] { XCTAssertTrue(app.tabBars.buttons[tab].isHittable) }
         XCTAssertFalse(app.navigationBars[title].exists, "The lesson should share the Rhythm practice screen")
         XCTAssertFalse(app.navigationBars.buttons["Done"].exists)
         assertNoPulseHapticsSwitches(in: app)
