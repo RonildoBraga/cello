@@ -1,8 +1,19 @@
 # Melody rhythm
 
-Open **Music → Hot Cross Buns → Rhythm**. Choose any of four phrases or the whole melody, hear the recorded human-voice reference if needed, then press Start. Playback is manual and never part of Start. The round uses four count-in beats at 60 BPM, whole-beat haptics and the complete score duration: four seconds per phrase or sixteen for the melody.
+Open **Music → Hot Cross Buns → Tap it**. Choose any of four phrases or the whole melody, hear the recorded human-voice reference if needed, then press Start. Playback is manual and never part of Start. The round uses four count-in beats at 60 BPM, whole-beat haptics and the complete score duration: four seconds per phrase or sixteen for the melody.
 
 Tap once at each note's start. Proportional tiles show note lengths in beats; the active tile follows the score clock. A two-beat note needs one tap, followed by counting while it continues. The current arrangement has no notated rests. The model also supports rests and gaps, which do not create expected taps. This exercise assesses starts, not how long a note is sustained.
+
+## How a round is shown and measured
+
+These apply to every tapping lesson, the Level 1 rhythm lessons included. They came from reading 51 real rounds in which taps looked late every time, first notes were missed and the feedback did not say why.
+
+- **A tap is timed when the finger lands.** The pad reads the touch's own timestamp. It used to be a button, which reports when the finger lifts and only after the scroll view lets the touch through; that added roughly a tenth of a second to every tap.
+- **The count-in counts up, 1 2 3 4**, and the first tap falls on the next 1. A lane under the count shows each tap as a dot travelling towards a fixed line, with the count-in travelling the same lane, so a tap can be met rather than reacted to. Dots turn gold when hit and hollow when missed.
+- **The first note may be tapped a touch early**, like every other note. The pad used to open at the exact instant of the first note, so a tap a few hundredths early did nothing.
+- **Feedback names the mistake** (`TapDiagnosis`): starting a beat late, a missed first tap, taps where no note starts, extra taps in Mixed rhythm's gaps, missed taps, taps late or early and by how much, or the taps between beats drifting. It names the first that explains the lost star and says how to fix it.
+
+The star rules below are unchanged. Rounds saved before this change keep the offsets and stars they were given.
 
 ## Version-one stars
 

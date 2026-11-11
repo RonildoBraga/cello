@@ -43,7 +43,7 @@ The first melody is Hot Cross Buns. **Meet the notes** plays each of its notes f
 
 - **Hear hum** plays the recorded human example. **Record** starts a three-second countdown, then records a three-second humming take. Cello takes finish when you tap Stop, with a 90-second limit.
 - Humming recordings hold microphone audio and pitch observations only; no camera is used or asked for. Cello recordings add synchronized video, so posture and bowing can be reviewed. A tuning bar and end-of-take pitch chart show distance from the fixed target.
-- Rhythm lessons use four count-in beats at 60 BPM, automatic whole-beat haptics, saved tap timing and a performance chart. Lesson 4 has sixteen tap positions over eight beats; Lesson 5 has twelve over eight beats.
+- Rhythm lessons count in 1–2–3–4 at 60 BPM, show each tap travelling towards a line so it can be met on time, time a tap when the finger lands, and give whole-beat haptics, saved tap timing, a performance chart and feedback that names what went wrong. Lesson 4 has sixteen tap positions over eight beats; Lesson 5 has twelve over eight beats.
 - Voice stars measure Match, Steady and Hold. Rhythm stars measure coverage, Timing and Evenness; Mixed rhythm's Pattern goal requires at least nine of its twelve expected taps and no more than one extra tap outside the pattern.
 - Three three-star attempts among the last five scored attempts earn completion, which remains earned after later attempts.
 - **Recordings** provides local playback and one-tap ZIP export for review. Tapping rounds have no recording; each rhythm lesson page lists its recent rounds.
