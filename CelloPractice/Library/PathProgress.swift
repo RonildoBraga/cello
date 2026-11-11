@@ -45,10 +45,11 @@ struct PathProgress {
             }
             return LessonSummary(voice: progress(.lowVoice), cello: progress(.cello))
         }
-        // The cello's side of a single-note lesson: the four open strings.
-        let strings = LessonProgress(PracticeMethod.openStrings.map {
-            store.progress(for: $0, targetFrequency: VoicePracticeMode.note($0).targetFrequency)
-        }, partNoun: "strings")
+        // The cello's side of a single-note lesson: the four open strings. As for a
+        // hummed note, any saved take of a string is a start, whatever it scored.
+        let stringStates = PracticeMethod.openStrings.map { LessonState(exercise: $0, store: store) }
+        let strings = LessonProgress(stringStates.map(\.progress), started: stringStates.contains(where: \.hasAttempts),
+                                     partNoun: "strings")
 
         summaries = Dictionary(uniqueKeysWithValues: Level.path.flatMap(\.lessons).map { lesson -> (PathLesson, LessonSummary) in
             switch lesson {
@@ -104,21 +105,32 @@ struct LessonState {
     init(lesson: PracticeLesson, store: SessionStore, rhythmStores: RhythmStores) {
         switch lesson.activity {
         case .recording(let exercise):
-            let target = VoicePracticeMode.note(exercise).targetFrequency
-            progress = store.progress(for: exercise, targetFrequency: target)
-            let scores = LessonScoreSummary(exercise: exercise, targetFrequency: target,
-                                            sessions: store.sessions, completed: progress.completed)
-            // A pass or gold outlives its takes, so the best score comes from the progress.
-            bestStars = progress.bestStars
-            latestStars = scores.latestStars
-            hasAttempts = scores.hasAttempts
+            self.init(exercise: exercise, store: store)
         case .rhythm(let exercise):
             let rhythmStore = rhythmStores.store(for: exercise)
-            progress = rhythmStore.progress
-            bestStars = rhythmStore.bestStars
-            latestStars = rhythmStore.attempts.compactMap(\.starCount).first
-            hasAttempts = !rhythmStore.attempts.isEmpty || progress.completed
+            let progress = rhythmStore.progress
+            self.init(progress: progress, bestStars: rhythmStore.bestStars,
+                      latestStars: rhythmStore.attempts.compactMap(\.starCount).first,
+                      hasAttempts: !rhythmStore.attempts.isEmpty || progress.completed)
         }
+    }
+
+    /// One recorded note's scores: a hummed note, or an open string.
+    init(exercise: Exercise, store: SessionStore) {
+        let target = VoicePracticeMode.note(exercise).targetFrequency
+        let progress = store.progress(for: exercise, targetFrequency: target)
+        let scores = LessonScoreSummary(exercise: exercise, targetFrequency: target,
+                                        sessions: store.sessions, completed: progress.completed)
+        // A pass or gold outlives its takes, so the best score comes from the progress.
+        self.init(progress: progress, bestStars: progress.bestStars, latestStars: scores.latestStars,
+                  hasAttempts: scores.hasAttempts)
+    }
+
+    private init(progress: PracticeProgress, bestStars: Int?, latestStars: Int?, hasAttempts: Bool) {
+        self.progress = progress
+        self.bestStars = bestStars
+        self.latestStars = latestStars
+        self.hasAttempts = hasAttempts
     }
 
     var step: LessonProgress { LessonProgress([progress], started: hasAttempts) }

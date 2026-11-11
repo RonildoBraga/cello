@@ -121,6 +121,34 @@ final class PracticeLessonTests: XCTestCase {
                        "Both passed lessons still rank as two stars, so their path order breaks the tie")
     }
 
+    @MainActor
+    func testAnOpenStringTriedButNotPassedStartsTheLessonOnTheCello() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("TriedString-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let directory = root.appendingPathComponent("PracticeSessions")
+        func path() -> PathProgress {
+            PathProgress(store: SessionStore(directory: directory), rhythmStores: RhythmStores(directory: root),
+                         melodyRhythmStore: MelodyRhythmStore(directory: root), listened: "")
+        }
+        XCTAssertFalse(path()[.lesson(.steadyHum)].onCello)
+        XCTAssertEqual(path()[.lesson(.steadyHum)].status, "Not started")
+
+        // One open-string take that earned a single star: tried, not passed.
+        let take = session(at: 0, stars: 1, exercise: .openG, target: try XCTUnwrap(Exercise.openG.targetFrequency))
+        let folder = directory.appendingPathComponent(take.id.uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try SessionStore.writeMetadata(take, to: folder)
+        try Data("archived take".utf8).write(to: folder.appendingPathComponent(take.videoFilename))
+
+        for lesson in [PathLesson.lesson(.steadyHum), .lesson(.matchHum)] {
+            let summary = path()[lesson]
+            XCTAssertTrue(summary.onCello, "The path opens the lesson where it was practised")
+            XCTAssertFalse(summary.progress.passed)
+            XCTAssertEqual(summary.status, "0 of 4 strings passed")
+        }
+        XCTAssertFalse(path()[.lesson(.pulse)].onCello, "A tapping lesson has no cello side")
+    }
+
     func testUnratedHistoryDoesNotBecomeAZeroStarScore() {
         let target = HummingExample.frequency
         let legacy = PracticeSession(id: UUID(), createdAt: Date(), exercise: .steadyHum,
