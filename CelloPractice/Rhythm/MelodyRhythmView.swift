@@ -66,17 +66,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     header(locked).id("melodyRhythmTop")
-                    if let attempt = finishedAttempt, !capture.isPlayingReference {
-                        VStack(spacing: 16) {
-                            MelodyRhythmResultView(attempt: attempt, errorMessage: store.errorMessage)
-                            progress
-                            MelodyRhythmTimingChart(attempt: attempt)
-                        }.id("melodyRhythmResult")
-                    } else {
-                        pattern
-                        tapCard
-                        if !running { progress }
-                    }
+                    // Hearing the phrase comes before tapping it, so the button stays in view above the pattern.
                     HStack {
                         Label("Recorded hum", systemImage: "waveform").font(.caption)
                             .foregroundStyle(Palette.muted)
@@ -89,6 +79,17 @@ private struct MelodyRhythmRoundView<Header: View>: View {
                                   systemImage: "speaker.wave.2")
                         }.buttonStyle(SecondaryActionButtonStyle()).disabled(locked)
                             .accessibilityIdentifier("melodyRhythmHearButton")
+                    }
+                    if let attempt = finishedAttempt, !capture.isPlayingReference {
+                        VStack(spacing: 16) {
+                            MelodyRhythmResultView(attempt: attempt, errorMessage: store.errorMessage)
+                            progress
+                            MelodyRhythmTimingChart(attempt: attempt)
+                        }.id("melodyRhythmResult")
+                    } else {
+                        pattern
+                        tapCard
+                        if !running { progress }
                     }
                     if finishedAttempt == nil, let error = store.errorMessage {
                         Text(error).font(.footnote).foregroundStyle(.red)

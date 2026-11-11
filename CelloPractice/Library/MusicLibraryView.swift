@@ -73,7 +73,9 @@ struct MusicLibraryView: View {
                             .reduce(celebrated) { StoredIDs.adding($1.id, to: $0) }
                     }
                 }
-                .navigationDestination(for: MusicRoute.self) { destination($0) }
+                // A route's screen is rebuilt when the step bar swaps it for another of the
+                // same kind, so it never inherits the previous screen's selections.
+                .navigationDestination(for: MusicRoute.self) { destination($0).id($0) }
         }.tint(Palette.forest).environment(\.openPathStep, open)
     }
 
@@ -91,7 +93,6 @@ struct MusicLibraryView: View {
             LessonDetailView(lesson: lesson, store: store, rhythmStores: rhythmStores, onStartLesson: practise)
         case .practice(let lesson):
             FoundationPracticeView(lesson: lesson, store: store, capture: capture, rhythmStores: rhythmStores)
-                .id(lesson)
         case .celloIntroduction: CelloIntroductionView(capture: capture)
         case .echo: EchoPracticeView(store: store, capture: capture)
         case .pieceHumming(let piece, let section):
