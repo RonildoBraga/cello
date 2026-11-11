@@ -28,6 +28,10 @@ Everything belongs to a level. An earlier version kept the cello lessons, Mixed 
 
 Every lesson uses one compact row, whatever it opens: lesson number, title, progress in words and the best score out of three. A lesson made of phrases or notes shows the weakest best score across them, so three stars means every part reached three. Listen and Meet your cello are not scored and show no stars. A level's lessons share one card, so a whole level fits on a screen.
 
+### Today's practice
+
+Above the levels, a "Today's practice" card answers what to do now. It lists the next lesson on the path, then up to two passed lessons with the lowest best score, earliest first (`Level.today`). Each row is the same row the path uses and opens the same screen. A lesson leaves the list once its best score reaches three stars, so the list changes as the practice is done; no dates or streaks are kept. Unscored lessons (Listen, Meet your cello) are never offered again, and the card disappears when nothing is left. The card replaced the sentence that explained the path.
+
 ### Inside a lesson
 
 Every lesson's screen opens with the same header (`LessonHeader`): the level ("Level 1 · First sounds"), the lesson's title and one plain line about what to do. A lesson bar, "‹ Lesson 1 of 6 · Listen & match ›", is pinned at the bottom just above the main button, where the thumb already is; it was first tried under the title, where it pushed the practice area down. The shared bottom action bar adds it on any screen that belongs to a lesson, and holds it still while a take or round is in flight. The arrows move to the previous and next lesson of the level and fade at its first and last lesson. Moving with the bar replaces the screen, so Back always returns to Music. A lesson's page, with instructions and scores, is what a tap on the path opens; its Start button also leads to a practice screen directly above the path.

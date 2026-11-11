@@ -72,7 +72,8 @@ struct MusicLibraryView: View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    ScreenHeader(title: "Music", subtitle: "Follow the path. The next lesson is marked; every lesson is open.")
+                    ScreenHeader(title: "Music")
+                    today(next: next)
                     ForEach(Level.path) { section($0, next: next) }
                 }.screenContent()
             }.background(Palette.paper)
@@ -172,6 +173,36 @@ struct MusicLibraryView: View {
                             .accessibilityLabel([isNext ? "Continue" : nil, "Lesson \(index + 1)",
                                                  step.title, state.status, state.spokenScore]
                                 .compactMap { $0 }.joined(separator: ", "))
+                    }
+                }.card(padding: 0)
+            }
+        }
+    }
+
+    /// A few minutes of practice chosen for today: the next lesson and the weakest passed ones.
+    @ViewBuilder
+    private func today(next: (level: Level, lesson: PathLesson)?) -> some View {
+        let lessons = Level.today(isPassed: isPassed) { state(for: $0).stars }
+        if !lessons.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Eyebrow(text: "Today’s practice", color: Palette.goldText).accessibilityAddTraits(.isHeader)
+                VStack(spacing: 0) {
+                    ForEach(Array(lessons.enumerated()), id: \.element) { index, step in
+                        let state = state(for: step)
+                        if let position = Level.position(of: step) {
+                            if index > 0 { Divider() }
+                            NavigationLink(value: route(for: step)) {
+                                PathRow(step: step, number: position.index + 1,
+                                        state: PathRowState(progress: state.progress,
+                                                            status: "\(next?.lesson == step ? "Next" : "Again") · \(position.level.title)",
+                                                            stars: state.stars),
+                                        isNext: false)
+                            }.buttonStyle(.plain)
+                                .accessibilityIdentifier("today-\(step.id)")
+                                .accessibilityLabel([next?.lesson == step ? "Continue" : "Practise again", step.title,
+                                                     position.level.title, state.status, state.spokenScore]
+                                    .compactMap { $0 }.joined(separator: ", "))
+                        }
                     }
                 }.card(padding: 0)
             }
