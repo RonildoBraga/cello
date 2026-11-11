@@ -30,14 +30,19 @@ struct PartStrip<Part: Hashable>: View {
     var hear: PartHearing? = nil
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                if let leading {
-                    Text(leading).font(.subheadline.weight(.medium)).foregroundStyle(Palette.muted)
-                        .accessibilityHidden(true)
+        ScrollViewReader { strip in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    if let leading {
+                        Text(leading).font(.subheadline.weight(.medium)).foregroundStyle(Palette.muted)
+                            .accessibilityHidden(true)
+                    }
+                    ForEach(parts, id: \.self) { chip($0) }
                 }
-                ForEach(parts, id: \.self) { chip($0) }
             }
+            // A lesson with many parts runs past the edge of the screen: the part on show stays in view.
+            .onAppear { strip.scrollTo(selection, anchor: .center) }
+            .onChange(of: selection) { _, part in withAnimation { strip.scrollTo(part, anchor: .center) } }
         }
     }
 
