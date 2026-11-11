@@ -12,11 +12,7 @@ struct MelodyProgressLedger: SessionProgressLedger {
         self.completedKeys = completedKeys
     }
 
-    func progress(for context: MelodyPracticeContext, sessions: [PracticeSession]) -> PracticeProgress {
-        progress(forKey: Self.key(for: context), sessions: sessions)
-    }
-
-    private static func key(for context: MelodyPracticeContext) -> String? {
+    static func key(for context: MelodyPracticeContext) -> String? {
         guard context.isValid, context.gradingVersion == MelodyRating.currentVersion,
               !EchoLevel.allCases.contains(where: { $0.pieceID == context.pieceID }) else { return nil }
         // Hash the complete frozen score selection, including events and tuning,

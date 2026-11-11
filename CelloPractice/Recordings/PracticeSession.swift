@@ -1,43 +1,15 @@
 import Foundation
 
-/// Each practice section owns its exercise choices and reference pitch.
-enum PracticeSection: String, CaseIterable, Identifiable {
-    case humming, cello
-
-    var id: String { rawValue }
-    var title: String { self == .humming ? "Humming" : "Cello" }
-
-    var exercises: [Exercise] {
-        switch self {
-        case .humming: return [.steadyHum, .matchHum]
-        case .cello: return [.openC, .openG, .openD, .openA]
-        }
-    }
-
-    var defaultExercise: Exercise { self == .humming ? .steadyHum : .openG }
-
-    func normalizedExercise(_ exercise: Exercise) -> Exercise {
-        exercises.contains(exercise) ? exercise : defaultExercise
-    }
-
-    func effectiveTarget(for exercise: Exercise) -> Double {
-        if self == .humming { return HummingExample.frequency }
-        guard let target = normalizedExercise(exercise).targetFrequency else {
-            preconditionFailure("Cello section exercises must have a string target.")
-        }
-        return target
-    }
-}
-
 enum Exercise: String, Codable, CaseIterable, Identifiable {
     case listen, openC, openG, openD, openA, steadyHum, matchHum
 
     var id: String { rawValue }
 
-    /// Legacy free recordings do not acquire a section retroactively.
-    var section: PracticeSection? {
+    /// How the exercise is practised. A free recording is neither: a legacy one
+    /// stays unrated, and a melody take says how through its register.
+    var method: PracticeMethod? {
         switch self {
-        case .steadyHum, .matchHum: return .humming
+        case .steadyHum, .matchHum: return .voice
         case .openC, .openG, .openD, .openA: return .cello
         case .listen: return nil
         }
@@ -75,13 +47,6 @@ enum Exercise: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    /// Voice exercises use a selected note rather than a fixed string target.
-    var usesComfortableTarget: Bool {
-        switch self {
-        case .listen, .steadyHum, .matchHum: return true
-        case .openC, .openG, .openD, .openA: return false
-        }
-    }
 }
 
 struct PracticeSession: Identifiable, Codable {
@@ -137,7 +102,7 @@ struct PracticeSession: Identifiable, Codable {
     }
 
     var effectiveTargetNote: String? {
-        effectiveTargetFrequency.map { TunerReading(frequency: $0, targetFrequency: nil).noteName }
+        effectiveTargetFrequency.map(NoteName.frequency)
     }
 
     /// Estimates relative to equal-tempered targets at A4 = 440 Hz, not musical grades.

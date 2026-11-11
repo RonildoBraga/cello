@@ -12,10 +12,9 @@ The first delivery separates Humming, Rhythm and Cello inside a Music library. I
 
 ```text
 Music (the path)
-  Level 1 · First sounds      Steady hum → Listen & match → Pulse → Two taps per beat → Mixed rhythm → Listen & Echo
+  Level 1 · First sounds      Steady note → Listen & match → Pulse → Two taps per beat → Mixed rhythm → Listen & Echo
   Level 2 · Hot Cross Buns    Listen → Tap it → Meet the notes → Hum it → Whole melody
   Level 3 · Ode to Joy        Listen → Tap it → Meet the notes → Hum it → Whole melody
-  Level 4 · Cello             Meet your cello → Open C → Open G → Open D → Open A
 About → long-term goal, who built it, sound sources and licences, lesson references
 Recordings → existing local audio/video history
 ```
@@ -27,6 +26,23 @@ The level holding the first unfinished lesson opens when the path appears, and t
 Everything belongs to a level. An earlier version kept the cello lessons, Mixed rhythm, Listen & Echo, a note about Bach and the credits below the levels; on the phone that read as clutter with no place in the journey. Mixed rhythm and Listen & Echo now close Level 1, the cello is the last level because it needs an instrument, and the Bach note and credits moved to an About tab beside Music and Recordings (an info button on Music was tried first and took too much room). Listen & Echo is passed by a passing two-note take; Meet your cello is passed by reading it.
 
 Every lesson uses one compact row, whatever it opens: lesson number, title, progress in words and the best score out of three. A lesson made of phrases or notes shows the weakest best score across them, so three stars means every part reached three. Listen and Meet your cello are not scored and show no stars. A level's lessons share one card, so a whole level fits on a screen.
+
+### Voice or cello
+
+Humming and playing are two ways to do the same lesson, not two paths. Every lesson with a sound to hear or record (Steady note, Listen & match, Listen & Echo, Listen, Meet the notes, Hum it, Whole melody) carries the same Voice / Cello switch in its navigation bar (`PracticeMethod`, `PracticeMethodSwitch`). Listen used to have a picker of its own for the same choice. It sits apart from the chips and is drawn as a segmented control, because it is a different kind of choice: how to practise, not what to hear. The lesson, its goals and its place on the path stay the same; the reference sound, the wording, the tuner and what is recorded follow the choice. Tapping lessons have no switch. The switch is live except while a take is recording; changing it stops whatever is playing.
+
+- **Single-note lessons** (Steady note, Listen & match): by voice, one hummed note; on the cello, the four open strings as chips (C, G, D, A), stepped through by the lesson bar as "String 1 of 4". Both lessons use the same four strings, so a string passed in one is passed in the other. This replaced a separate fourth level of open-string lessons.
+- **Melody lessons and Listen & Echo**: the same notes, phrases and patterns in the cello register (D major on the D string, the register the Listen lesson already offered), each with its own progress.
+
+Progress is kept for each method under its own exercise or register, so switching loses nothing. Either method passes the lesson, and the path row shows whichever has got further. The switch starts on the method of the most recent take and stays as chosen until the app is closed; no setting is stored. A cello take is filmed; a voice take is audio only, so switching releases the microphone and camera. Meet your cello is no longer a lesson: it opens from the information button in the bar while Cello is chosen.
+
+Not yet settled: the cello plays the melodies in D major and the voice hums them in G major, which is usual in beginner cello books but worth a teacher's view; and scoring was tuned on humming and has not been checked against a real cello recording.
+
+### How the path is drawn
+
+`PathProgress` reads every lesson's progress from the stores once for each drawing of the path; the rows, Today's practice and the lesson bar share that one reading. The stores answer from an index of the takes and rounds that they rebuild only when a take is saved or deleted (`SessionProgressLedger.stars(in:)`, `MelodyRhythmStore`), so a lesson's progress is a lookup.
+
+This matters because of how it once went wrong. The path screen observed the capture controller, which publishes about twenty times a second while a take records or a reference plays. Each tick redrew the path behind the lesson, and each drawing worked out every lesson's progress several times over, each time re-encoding and hashing every saved take. With 17 takes that was about 100 ms of work per tick in a debug build: the main thread had no time left and the moving lane fell to 6–8 frames a second. Today's practice and the voice/cello choice each added to the work per drawing until it showed. Now the app owns the capture controller unobserved, the path screen never redraws on a tick, and a full reading of the path takes about 3.5 ms.
 
 ### Today's practice
 
@@ -80,9 +96,9 @@ This is a design choice informed by [Apple’s sidebar guidance](https://develop
 ## First-release requirements
 
 - Each existing lesson appears exactly once, on the path or below it.
-- Original lesson IDs and lesson numbers stay stable: Humming 1–2, Rhythm 3–5 and Cello 1–4. The path shows a lesson's place in its level; lesson pages keep the lesson number. Saved ratings, raw media, references and earned completion are unchanged.
+- Original lesson IDs and lesson numbers stay stable: Humming 1–2 and Rhythm 3–5. The four open strings keep their exercise IDs as the cello's side of Steady note. The path shows a lesson's place in its level; lesson pages keep the lesson number. Saved ratings, raw media, references and earned completion are unchanged.
 - The path, the lesson page and the lesson bar share the same lesson-opening action.
-- A navigation area never supplies a recording pitch target. Existing voice/cello target rules stay separate from the new `LearningArea` model.
+- A navigation area never supplies a recording pitch target. Voice and cello targets stay separate.
 - Leaving practice cancels unfinished rounds/count-ins. A take already finishing saves under its original exercise and reference.
 - A melody level shows only lessons that work today. It has no inactive control and no fabricated readiness percentage.
 - Choosing an already selected lesson from the path starts a fresh ready screen; it does not reveal a stale result.

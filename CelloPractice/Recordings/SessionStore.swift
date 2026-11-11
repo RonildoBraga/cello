@@ -87,7 +87,7 @@ final class SessionStore: ObservableObject {
         let actualTarget = (melodyContext == nil ? (exercise.targetFrequency ?? targetFrequency) : nil)
             .flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
         let rating: PracticeRating?
-        if melodyContext == nil, exercise.section != nil, let actualTarget {
+        if melodyContext == nil, exercise.method != nil, let actualTarget {
             rating = await RecordingRater.rate(url: source, targetFrequency: actualTarget)
         } else {
             rating = nil
@@ -102,8 +102,8 @@ final class SessionStore: ObservableObject {
             id: UUID(), createdAt: Date(), exercise: exercise,
             duration: savedDuration,
             notes: notes, pitchSamples: validSamples, videoFilename: "recording.mov",
-            tuningTargetFrequency: exercise.usesComfortableTarget
-                ? actualTarget : nil,
+            // A hummed note has no fixed target, so the one it was sung against is kept.
+            tuningTargetFrequency: exercise.targetFrequency == nil ? actualTarget : nil,
             rating: rating, melodyContext: melodyContext, melodyRating: melodyRating
         )
         let folder = folderURL(for: session)
@@ -136,15 +136,15 @@ final class SessionStore: ObservableObject {
     }
 
     func progress(for exercise: Exercise, targetFrequency: Double) -> PracticeProgress {
-        foundationProgress.ledger.progress(for: exercise, targetFrequency: targetFrequency, sessions: sessions)
+        foundationProgress.progress(forKey: PracticeProgressLedger.key(exercise: exercise, targetFrequency: targetFrequency))
     }
 
     func melodyProgress(for context: MelodyPracticeContext) -> PracticeProgress {
-        melodyProgressFile.ledger.progress(for: context, sessions: sessions)
+        melodyProgressFile.progress(forKey: MelodyProgressLedger.key(for: context))
     }
 
     func echoProgress(for level: EchoLevel, register: MelodyRegister) -> PracticeProgress {
-        echoProgressFile.ledger.progress(for: level, register: register, sessions: sessions)
+        echoProgressFile.progress(forKey: EchoProgressLedger.key(for: level, register: register))
     }
 
     private var progressPersistenceError: String? {
@@ -158,19 +158,30 @@ final class SessionStore: ObservableObject {
         echoProgressFile.persist(sessions: sessions, errorMessage: &errorMessage)
     }
 
-    func delete(_ session: PracticeSession) {
+    func delete(_ session: PracticeSession) { delete([session]) }
+
+    /// Removes takes and their files. However many go, the takes are read once
+    /// before and once after, and the screens are told once.
+    func delete(_ doomed: [PracticeSession]) {
         // Rated recordings may be the only durable proof of an earned milestone.
         // Preserve that proof until the separate progress file is safely written.
         persistNewMilestones()
         errorMessage = progressPersistenceError
         guard !foundationProgress.needsSave, !melodyProgressFile.needsSave,
               !echoProgressFile.needsSave else { return }
-        do {
-            try FileManager.default.removeItem(at: folderURL(for: session))
-            sessions.removeAll { $0.id == session.id }
-        } catch {
-            errorMessage = "This session could not be deleted: \(error.localizedDescription)"
+        var removed: Set<UUID> = []
+        for session in doomed {
+            do {
+                try FileManager.default.removeItem(at: folderURL(for: session))
+                removed.insert(session.id)
+            } catch {
+                errorMessage = "This session could not be deleted: \(error.localizedDescription)"
+            }
         }
+        sessions.removeAll { removed.contains($0.id) }
+        foundationProgress.index(sessions)
+        melodyProgressFile.index(sessions)
+        echoProgressFile.index(sessions)
     }
 
     func export(_ session: PracticeSession) async throws -> URL {
@@ -243,6 +254,9 @@ final class SessionStore: ObservableObject {
 /// file is preserved and never overwritten; recordings can still load and save.
 private struct LedgerFile<Ledger: SessionProgressLedger> {
     private(set) var ledger: Ledger
+    /// The stars of every counted take under its achievement, so that progress is a
+    /// lookup. Screens ask for progress every time they are drawn.
+    private var stars: [String: [Int]] = [:]
     let label: String
     let url: URL
     private(set) var persistenceError: String?
@@ -270,9 +284,16 @@ private struct LedgerFile<Ledger: SessionProgressLedger> {
         persist(sessions: sessions, errorMessage: &errorMessage)
     }
 
-    /// Adds milestones earned by `sessions`, then writes if anything is unsaved.
+    /// Progress towards one achievement, from the takes as last read.
+    func progress(forKey key: String?) -> PracticeProgress { ledger.progress(forKey: key, stars: stars) }
+
+    /// Reads the takes again. Call after any change to them.
+    mutating func index(_ sessions: [PracticeSession]) { stars = Ledger.stars(in: sessions) }
+
+    /// Reads the takes, adds the milestones they earn, then writes if anything is unsaved.
     mutating func persist(sessions: [PracticeSession], errorMessage: inout String?) {
-        if ledger.update(from: sessions) { needsSave = true }
+        index(sessions)
+        if ledger.update(from: stars) { needsSave = true }
         guard needsSave, !fileIsUnreadable else { return }
         do {
             let encoder = JSONEncoder()

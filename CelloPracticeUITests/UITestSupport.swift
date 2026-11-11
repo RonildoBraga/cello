@@ -70,8 +70,7 @@ extension XCUIApplication {
         switch identifier {
         case "lesson-steadyHum", "lesson-matchHum", "lesson-pulse", "lesson-twoTaps",
              "lesson-mixedRhythm", "echoPracticeLink": return "firstSounds"
-        case _ where identifier.hasPrefix("lesson-hotCrossBuns-") || identifier.hasPrefix("lesson-odeToJoy-"): return String(identifier.split(separator: "-")[1])
-        default: return "cello"
+        default: return String(identifier.split(separator: "-")[1])
         }
     }
 }

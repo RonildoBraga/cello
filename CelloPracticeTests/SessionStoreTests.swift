@@ -1,4 +1,5 @@
 import AVFoundation
+import Combine
 import CoreGraphics
 import CoreVideo
 import Foundation
@@ -192,6 +193,36 @@ final class SessionStoreTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: progressURL), unreadable)
         XCTAssertEqual(try Data(contentsOf: metadataURL), originalMetadata)
         XCTAssertFalse(store.progress(for: .steadyHum, targetFrequency: HummingExample.frequency).completed)
+    }
+
+    @MainActor
+    func testProgressFollowsTheTakesAsTheyAreDeletedOneOrSeveralAtATime() throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let directory = root.appendingPathComponent("PracticeSessions", isDirectory: true)
+        let history = try writeSuccessfulHistory(count: 4, in: directory)
+        let store = SessionStore(directory: directory)
+        let target = HummingExample.frequency
+        func threeStarTakes() -> Int { store.sessions.filter { $0.rating?.starCount == 3 }.count }
+        XCTAssertEqual(store.progress(for: .steadyHum, targetFrequency: target).successfulAttempts, 3)
+        XCTAssertEqual(store.progress(for: .matchHum, targetFrequency: target).successfulAttempts, 0,
+                       "A take counts only for its own lesson")
+
+        // Gold stays earned, and the takes that are left are the ones read.
+        store.delete(history[0])
+        XCTAssertEqual(threeStarTakes(), 3)
+        XCTAssertTrue(store.progress(for: .steadyHum, targetFrequency: target).completed)
+
+        var changes = 0
+        let watching = store.$sessions.dropFirst().sink { _ in changes += 1 }
+        store.delete(Array(history[1...]))
+        watching.cancel()
+        XCTAssertTrue(store.sessions.isEmpty)
+        XCTAssertEqual(changes, 1, "Deleting several takes tells the screens once")
+        XCTAssertNil(store.errorMessage)
+        let kept = store.progress(for: .steadyHum, targetFrequency: target)
+        XCTAssertTrue(kept.completed && kept.passed, "Milestones outlive their takes")
+        XCTAssertEqual(SessionStore(directory: directory).sessions.count, 0)
     }
 
     @MainActor

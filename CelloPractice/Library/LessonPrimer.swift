@@ -59,7 +59,7 @@ extension PracticeLesson {
                                     [LessonPrimer.BeatCue(label: "\($0)", seconds: 0.5, onBeat: true),
                                      LessonPrimer.BeatCue(label: "&", seconds: 0.5, onBeat: false)]
                                 }))
-        case .mixedRhythm, .openC, .openG, .openD, .openA:
+        case .mixedRhythm:
             return nil
         }
     }

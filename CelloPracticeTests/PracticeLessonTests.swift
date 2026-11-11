@@ -3,23 +3,11 @@ import XCTest
 @testable import Cello
 
 final class PracticeLessonTests: XCTestCase {
-    func testLessonBookSeparatesAreasAndPreservesExistingIDs() {
-        let humming = PracticeLesson.lessons(in: .humming)
-        XCTAssertEqual(humming.map(\.id), ["steadyHum", "matchHum"])
-        XCTAssertTrue(humming.allSatisfy { $0.area == .humming })
-        XCTAssertEqual(humming.map(\.activity), [.recording(.steadyHum), .recording(.matchHum)])
-
-        let rhythm = PracticeLesson.lessons(in: .rhythm)
-        XCTAssertEqual(rhythm.map(\.id), ["pulse", "twoTaps", "mixedRhythm"])
-        XCTAssertTrue(rhythm.allSatisfy { $0.area == .rhythm })
-        XCTAssertEqual(rhythm.map(\.activity), [.rhythm(.pulse), .rhythm(.twoTaps), .rhythm(.mixedRhythm)])
-
-        let cello = PracticeLesson.lessons(in: .cello)
-        XCTAssertEqual(cello.map(\.id), ["openC", "openG", "openD", "openA"])
-        XCTAssertEqual(cello.map(\.activity), [.recording(.openC), .recording(.openG),
-                                                 .recording(.openD), .recording(.openA)])
-        XCTAssertTrue(cello.allSatisfy { $0.area == .cello })
-        XCTAssertEqual(humming.count + rhythm.count + cello.count, PracticeLesson.allCases.count)
+    func testLessonBookPreservesExistingIDsAndActivities() {
+        XCTAssertEqual(PracticeLesson.allCases.map(\.id), ["steadyHum", "matchHum", "pulse", "twoTaps", "mixedRhythm"])
+        XCTAssertEqual(PracticeLesson.allCases.map(\.activity),
+                       [.recording(.steadyHum), .recording(.matchHum), .rhythm(.pulse), .rhythm(.twoTaps), .rhythm(.mixedRhythm)])
+        XCTAssertEqual(PracticeMethod.allCases, [.voice, .cello])
     }
 
     func testEarnedCompletionSurvivesDeletedHistory() {
@@ -55,27 +43,10 @@ final class PracticeLessonTests: XCTestCase {
         for step in Level.path[0].lessons {
             guard case .lesson(let lesson) = step else { continue }
             explained += " " + (lesson.primer?.paragraphs.joined(separator: " ").lowercased() ?? "")
-            let copy = ([lesson.purpose, lesson.practicePrompt] + lesson.instructions
+            let copy = ([lesson.purpose, lesson.practicePrompt(.voice), lesson.practicePrompt(.cello)] + lesson.instructions
                         + lesson.goals.flatMap { [$0.title, $0.detail] }).joined(separator: " ").lowercased()
             for term in ["pitch", "beat", "cents", "register", "bpm", "pulse"] where copy.contains(term) {
                 XCTAssertTrue(explained.contains(term), "\(lesson.title) uses “\(term)” before a primer explains it")
-            }
-        }
-    }
-
-    func testEveryLessonRoutesToItsOwnAreaAndTypedActivityWithoutAddingRecordingTargets() {
-        XCTAssertEqual(LearningArea.allCases, [.humming, .rhythm, .cello])
-        XCTAssertEqual(PracticeSection.allCases, [.humming, .cello])
-        for area in LearningArea.allCases {
-            XCTAssertFalse(PracticeLesson.lessons(in: area).isEmpty)
-        }
-        for lesson in PracticeLesson.allCases {
-            XCTAssertTrue(PracticeLesson.lessons(in: lesson.area).contains(lesson))
-            switch lesson.activity {
-            case .recording(let exercise):
-                XCTAssertNotNil(exercise.section)
-                XCTAssertEqual(lesson.area, exercise.section == .humming ? .humming : .cello)
-            case .rhythm: XCTAssertEqual(lesson.area, .rhythm)
             }
         }
     }
@@ -94,16 +65,17 @@ final class PracticeLessonTests: XCTestCase {
         let result = LessonScoreSummary(exercise: .steadyHum, targetFrequency: target,
                                         sessions: [latest, best] + excluded, completed: false)
         XCTAssertTrue(result.hasAttempts)
-        XCTAssertEqual(result.bestStars, 2)
         XCTAssertEqual(result.latestStars, 1)
+        XCTAssertEqual(PracticeProgressLedger().progress(for: .steadyHum, targetFrequency: target,
+                                                         sessions: [latest, best] + excluded).bestStars, 2)
     }
 
     func testEarnedCompletionProvesBestButDoesNotInventLatestAfterDeletion() {
         let result = LessonScoreSummary(exercise: .steadyHum, targetFrequency: HummingExample.frequency,
                                         sessions: [], completed: true)
         XCTAssertTrue(result.hasAttempts)
-        XCTAssertEqual(result.bestStars, 3)
         XCTAssertNil(result.latestStars)
+        XCTAssertEqual(PracticeProgress(stars: [], alreadyCompleted: true).bestStars, 3)
     }
 
     @MainActor
@@ -149,6 +121,34 @@ final class PracticeLessonTests: XCTestCase {
                        "Both passed lessons still rank as two stars, so their path order breaks the tie")
     }
 
+    @MainActor
+    func testAnOpenStringTriedButNotPassedStartsTheLessonOnTheCello() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("TriedString-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let directory = root.appendingPathComponent("PracticeSessions")
+        func path() -> PathProgress {
+            PathProgress(store: SessionStore(directory: directory), rhythmStores: RhythmStores(directory: root),
+                         melodyRhythmStore: MelodyRhythmStore(directory: root), listened: "")
+        }
+        XCTAssertFalse(path()[.lesson(.steadyHum)].onCello)
+        XCTAssertEqual(path()[.lesson(.steadyHum)].status, "Not started")
+
+        // One open-string take that earned a single star: tried, not passed.
+        let take = session(at: 0, stars: 1, exercise: .openG, target: try XCTUnwrap(Exercise.openG.targetFrequency))
+        let folder = directory.appendingPathComponent(take.id.uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try SessionStore.writeMetadata(take, to: folder)
+        try Data("archived take".utf8).write(to: folder.appendingPathComponent(take.videoFilename))
+
+        for lesson in [PathLesson.lesson(.steadyHum), .lesson(.matchHum)] {
+            let summary = path()[lesson]
+            XCTAssertTrue(summary.onCello, "The path opens the lesson where it was practised")
+            XCTAssertFalse(summary.progress.passed)
+            XCTAssertEqual(summary.status, "0 of 4 strings passed")
+        }
+        XCTAssertFalse(path()[.lesson(.pulse)].onCello, "A tapping lesson has no cello side")
+    }
+
     func testUnratedHistoryDoesNotBecomeAZeroStarScore() {
         let target = HummingExample.frequency
         let legacy = PracticeSession(id: UUID(), createdAt: Date(), exercise: .steadyHum,
@@ -157,21 +157,22 @@ final class PracticeLessonTests: XCTestCase {
         let result = LessonScoreSummary(exercise: .steadyHum, targetFrequency: target,
             sessions: [legacy, session(at: 1, stars: 0, status: .insufficientSound)], completed: false)
         XCTAssertTrue(result.hasAttempts)
-        XCTAssertNil(result.bestStars)
         XCTAssertNil(result.latestStars)
+        XCTAssertNil(PracticeProgressLedger().progress(for: .steadyHum, targetFrequency: target,
+            sessions: [legacy, session(at: 1, stars: 0, status: .insufficientSound)]).bestStars)
 
         let neverStarted = LessonScoreSummary(exercise: .openC,
             targetFrequency: Exercise.openC.targetFrequency!, sessions: [legacy], completed: false)
         XCTAssertFalse(neverStarted.hasAttempts)
-        XCTAssertNil(neverStarted.bestStars)
         XCTAssertNil(neverStarted.latestStars)
     }
 
     func testARealZeroStarRatingRemainsARealScore() {
         let result = LessonScoreSummary(exercise: .steadyHum, targetFrequency: HummingExample.frequency,
                                         sessions: [session(at: 1, stars: 0)], completed: false)
-        XCTAssertEqual(result.bestStars, 0)
         XCTAssertEqual(result.latestStars, 0)
+        XCTAssertEqual(PracticeProgressLedger().progress(for: .steadyHum, targetFrequency: HummingExample.frequency,
+                                                         sessions: [session(at: 1, stars: 0)]).bestStars, 0)
     }
 
     private func session(at index: Int, stars: Int, exercise: Exercise = .steadyHum,

@@ -103,9 +103,7 @@ struct MelodyTraceData {
 
     static func noteName(for pitch: Double) -> String {
         guard pitch.isFinite, (-1_000...1_000).contains(pitch) else { return "—" }
-        let midi = Int(pitch.rounded())
-        let names = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"]
-        return "\(names[(midi % 12 + 12) % 12])\(Int(floor(Double(midi) / 12)) - 1)"
+        return NoteName.midi(Int(pitch.rounded()))
     }
 
     var accessibilitySummary: String {
@@ -133,7 +131,7 @@ struct MelodyTraceView: View {
                 Spacer(minLength: 8)
                 HStack(spacing: 10) {
                     legend("Reference", color: Palette.forest, dashed: true)
-                    legend("Your hum", color: Palette.gold)
+                    legend("Your take", color: Palette.gold)
                 }
             }
             if data.hasValidContext {

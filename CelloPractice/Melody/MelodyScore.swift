@@ -85,15 +85,15 @@ enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
 
     var hummingIntro: String {
         switch self {
-        case .hotCrossBuns: return "Hear the phrase, then record the same notes and rhythm. Start humming as the first bar reaches the line."
+        case .hotCrossBuns: return "Hear the phrase, then record the same notes and rhythm. Start as the first bar reaches the line."
         case .odeToJoy: return "Follow five notes moving up and down. Hear the phrase, then record after the count of 1–2–3–4."
         }
     }
 
     var listenIntro: String {
         switch self {
-        case .hotCrossBuns: return "Listen first, then gently hum along. Choose a register that feels easy."
-        case .odeToJoy: return "Hear the five-note opening, then gently hum along. Choose a register that feels easy."
+        case .hotCrossBuns: return "Listen first, then gently hum along."
+        case .odeToJoy: return "Hear the five-note opening, then gently hum along."
         }
     }
 
@@ -119,28 +119,16 @@ enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
 private func melodyNoteRange(_ notes: [Int]) -> String {
     guard let low = notes.min(), let high = notes.max(),
           (0...127).contains(low), (0...127).contains(high) else { return "—" }
-    let names = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"]
-    func name(_ midi: Int) -> String { "\(names[midi % 12])\(midi / 12 - 1)" }
-    return low == high ? name(low) : "\(name(low))–\(name(high))"
+    return low == high ? NoteName.midi(low) : "\(NoteName.midi(low))–\(NoteName.midi(high))"
 }
 
 enum MelodyRegister: String, CaseIterable, Identifiable, Codable, Sendable {
-    /// `higherVoice` is no longer offered. It stays so takes saved in that
-    /// register by earlier builds still open with their scores and completion.
+    /// The voice hums in `lowVoice` and the cello plays in `cello`. `higherVoice` is
+    /// no longer offered; it stays so takes saved in that register by earlier
+    /// builds still open with their scores and completion.
     case lowVoice, higherVoice, cello
 
-    /// The registers a learner can choose for reference playback.
-    static let offered: [MelodyRegister] = [.lowVoice, .cello]
-
     var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .lowVoice: return "Low voice"
-        case .higherVoice: return "Higher voice"
-        case .cello: return "Cello"
-        }
-    }
 
     var keyName: String { self == .cello ? "D major" : "G major" }
 
@@ -175,6 +163,9 @@ enum MelodySection: String, CaseIterable, Identifiable, Codable, Sendable {
         case .phrase4: return "Phrase 4"
         }
     }
+
+    /// On a chip: the phrase number, or "All" for the whole melody.
+    var chipLabel: String { self == .whole ? "All" : String(title.suffix(1)) }
 
     /// Practice order: the four phrases, then the whole melody.
     /// The four phrases, without the whole melody.

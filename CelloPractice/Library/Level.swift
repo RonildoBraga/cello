@@ -9,7 +9,6 @@ enum PathLesson: Hashable, Identifiable {
     case meetNotes(MelodyPiece)
     case hum(MelodyPiece)
     case wholeMelody(MelodyPiece)
-    case celloIntroduction
     case echo
 
     /// Also the row's accessibility identifier.
@@ -21,7 +20,6 @@ enum PathLesson: Hashable, Identifiable {
         case .meetNotes(let piece): return "lesson-\(piece.rawValue)-notes"
         case .hum(let piece): return "lesson-\(piece.rawValue)-hum"
         case .wholeMelody(let piece): return "lesson-\(piece.rawValue)-whole"
-        case .celloIntroduction: return "celloIntroductionLink"
         case .echo: return "echoPracticeLink"
         }
     }
@@ -34,7 +32,6 @@ enum PathLesson: Hashable, Identifiable {
         case .meetNotes: return "Meet the notes"
         case .hum: return "Hum it"
         case .wholeMelody: return "Whole melody"
-        case .celloIntroduction: return "Meet your cello"
         case .echo: return "Listen & Echo"
         }
     }
@@ -57,10 +54,7 @@ struct Level: Identifiable {
             Level(id: piece.rawValue, number: index + 2, title: piece.title,
                   lessons: [.listen(piece), .tap(piece), .meetNotes(piece), .hum(piece), .wholeMelody(piece)])
         }
-        // Last, because it needs an instrument; like every lesson it can be opened at any time.
-        let cello = Level(id: "cello", number: melodies.count + 2, title: "Cello · open strings",
-                          lessons: [.celloIntroduction] + PracticeLesson.lessons(in: .cello).map(PathLesson.lesson))
-        return [firstSounds] + melodies + [cello]
+        return [firstSounds] + melodies
     }()
 
     /// The first lesson on the path that has not been passed yet. It is a
@@ -119,7 +113,7 @@ struct LessonPosition {
 }
 
 /// How far a lesson has got, rolled up from its parts: one part for a lesson or
-/// the whole melody, four for a lesson practised phrase by phrase.
+/// the whole melody, four for a lesson practised phrase by phrase or string by string.
 struct LessonProgress: Equatable {
     private let parts: [PracticeProgress]
     var passedParts: Int { parts.filter(\.passed).count }
@@ -154,12 +148,10 @@ struct LessonProgress: Equatable {
 
 /// A small set of identifiers kept as one preference string. The path uses it
 /// for the things no take or round records: which melodies have been heard to
-/// the end, and which primers and introductions have been read.
+/// the end, and which primers have been read.
 enum StoredIDs {
     static let listenedMelodies = "listenedMelodies"
     static let seenPrimers = "seenPrimers"
-    /// Stored with the read primers: Meet your cello is read once, like them.
-    static let celloIntroduction = "celloIntroduction"
 
     static func contains(_ id: String, in stored: String) -> Bool {
         stored.split(separator: ",").contains(Substring(id))

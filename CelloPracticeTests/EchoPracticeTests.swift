@@ -59,7 +59,8 @@ final class EchoPracticeTests: XCTestCase {
         XCTAssertEqual(EchoLevel.twoNotes.rangeLabel(for: .higherVoice), "G3–B3")
         XCTAssertEqual(EchoLevel.threeNotes.rangeLabel(for: .lowVoice), "G2–D3")
         XCTAssertEqual(EchoLevel.threeNotes.rangeLabel(for: .higherVoice), "G3–D4")
-        XCTAssertEqual(EchoLevel.twoNotes.rangeLabel(for: .cello), "—")
+        XCTAssertEqual(EchoLevel.twoNotes.rangeLabel(for: .cello), "D3–F♯3")
+        XCTAssertEqual(EchoLevel.threeNotes.rangeLabel(for: .cello), "D3–A3")
     }
 
     func testFreshPatternSelectionNeverRepeatsThePreviousValidIndex() {
@@ -79,12 +80,13 @@ final class EchoPracticeTests: XCTestCase {
         }
     }
 
-    func testInvalidPatternOrCelloRegisterCannotCreateAnEchoTarget() {
+    func testInvalidPatternCannotCreateAnEchoTargetInAnyRegister() {
         for level in EchoLevel.allCases {
             for index in [Int.min, -1, level.patternCount, Int.max] {
                 XCTAssertThrowsError(try level.context(patternIndex: index, register: .lowVoice))
+                XCTAssertThrowsError(try level.context(patternIndex: index, register: .cello))
             }
-            XCTAssertThrowsError(try level.context(patternIndex: 0, register: .cello))
+            XCTAssertNoThrow(try level.context(patternIndex: 0, register: .cello))
         }
     }
 

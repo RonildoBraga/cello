@@ -4,7 +4,7 @@ import SwiftUI
 struct MelodyRhythmView: View {
     @ObservedObject var store: MelodyRhythmStore
     @ObservedObject var capture: CaptureController
-    var piece: MelodyPiece = .hotCrossBuns
+    let piece: MelodyPiece
     @State private var section = MelodySection.phrase1
     /// A chip was tapped to switch part: the part it shows plays once.
     @State private var hearOnArrival = false
@@ -30,10 +30,7 @@ struct MelodyRhythmView: View {
                 PartStrip(parts: Self.parts, selection: $section, leading: "Phrase",
                           short: \.chipLabel, title: Self.title,
                           progress: { store.progress(for: piece.rhythm(section: $0)) },
-                          hear: PartHearing(spoken: section == .whole ? "Hear melody" : "Hear phrase",
-                                            identifier: "melodyRhythmHearButton") { changed in
-                              if changed { hearOnArrival = true } else { controls.hear() }
-                          })
+                          hear: controls.hearing)
                     .disabled(controls.locked)
                 Text("\(Int(context.duration)) seconds · \(context.reference.tempoBPM) BPM")
                     .font(.caption).foregroundStyle(Palette.muted)
@@ -79,7 +76,11 @@ private struct MelodyRhythmRoundView<Header: View>: View {
         ScrollViewReader { scroll in
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    header(PracticeHeaderControls(locked: locked, hear: hear)).id("melodyRhythmTop")
+                    header(PracticeHeaderControls(locked: locked, hearing: PartHearing(
+                        spoken: context.reference.section == .whole ? "Hear melody" : "Hear phrase",
+                        identifier: "melodyRhythmHearButton") { changed in
+                            if changed { hearOnArrival = true } else { hear() }
+                        })).id("melodyRhythmTop")
                     if let attempt = finishedAttempt, !capture.isPlayingReference {
                         VStack(spacing: 16) {
                             MelodyRhythmResultView(attempt: attempt, errorMessage: store.errorMessage)

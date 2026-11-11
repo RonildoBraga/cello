@@ -72,7 +72,7 @@ struct MelodyRating: Codable, Equatable, Sendable {
               let frequency = note.expectedFrequency, let onset = note.observedOnset else { return nil }
         let position = noteResults.filter { $0.expectedFrequency != nil }.firstIndex(of: note) ?? 0
         let name = "\(position == 0 ? "The first note" : "Note \(position + 1)") "
-            + "(\(TunerReading(frequency: frequency, targetFrequency: nil).noteName))"
+            + "(\(NoteName.frequency(frequency)))"
         let offset = onset - note.expectedStart
         // The same allowance the rating uses for a note's start.
         guard abs(offset) > min(0.20, note.expectedDuration * 0.35) else {
@@ -88,16 +88,16 @@ struct MelodyRating: Codable, Equatable, Sendable {
     var feedback: String {
         switch status {
         case .insufficientSound:
-            return "Hum the whole phrase gently, keeping the longer notes going."
+            return "Go through the whole phrase gently, keeping the longer notes going."
         case .unclear:
-            return "The sound was not clear enough to score. Try a gentle hum in a quieter spot."
+            return "The sound was not clear enough to score. Try again gently, in a quieter spot."
         case .rated:
-            if octaveMismatch { return "Your hum was in a different octave. Choose a comfortable voice register and match its first note." }
+            if octaveMismatch { return "That was in a different octave. Hear the reference again and match its first note." }
             if !notes { return "Listen to this phrase again and follow each note as it changes." }
             if !timing {
                 return timingAdvice ?? "Start as the first bar reaches the line, then follow the note lengths. Separate the quick repeated notes gently."
             }
-            if !clarity { return "Keep a gentle, clear hum going through each note." }
+            if !clarity { return "Keep a gentle, clear sound going through each note." }
             return "All three goals reached. Try this phrase again, then move to the next one."
         }
     }

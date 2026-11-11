@@ -28,7 +28,7 @@ final class OdeToJoyPracticeTests: XCTestCase {
     }
 
     func testAllFiveRecordedPitchTargetsMatchEachVoiceAndCelloRegister() throws {
-        for register in MelodyRegister.offered {
+        for register in PracticeMethod.allCases.map(\.register) {
             var heardNotes: Set<Int> = []
             for section in [MelodySection.phrase1, .phrase3] {
                 let context = try MelodyPracticeContext.odeToJoy(register: register, section: section)

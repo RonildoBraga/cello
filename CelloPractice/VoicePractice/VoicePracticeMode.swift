@@ -32,13 +32,15 @@ enum VoicePracticeMode: Equatable {
         }
     }
 
-    private var section: PracticeSection { exercise.section ?? .humming }
+    /// Voice or cello, read from what is recorded.
+    private var method: PracticeMethod { PracticeMethod(exercise: exercise, melody: melodyContext) }
 
     var targetFrequency: Double {
         if let context = melodyContext {
             return context.expectedEvents.compactMap { context.frequency(for: $0) }.first ?? context.tuningA4Hz
         }
-        return section.effectiveTarget(for: exercise)
+        // An open string is its own target; a hummed note matches the human example.
+        return exercise.targetFrequency ?? HummingExample.frequency
     }
 
     /// The target sounding at a moment in the take; nil during a melody's silence.
@@ -61,7 +63,8 @@ enum VoicePracticeMode: Equatable {
     /// Humming takes stop by themselves; cello takes run until Stop.
     var isTimed: Bool { melodyContext != nil || exercise == .steadyHum || exercise == .matchHum }
     var duration: TimeInterval { melodyContext?.duration ?? 3 }
-    var meterRange: Double { exercise.usesComfortableTarget ? 200 : 50 }
+    /// A voice finding its note needs a wider meter than a string being tuned.
+    var meterRange: Double { exercise.targetFrequency == nil ? 200 : 50 }
 
     // MARK: The lane
 
@@ -74,7 +77,7 @@ enum VoicePracticeMode: Equatable {
         guard let context = melodyContext else {
             guard isTimed else { return [] }
             return [LaneMark(start: 0, length: duration,
-                             label: TunerReading(frequency: targetFrequency, targetFrequency: nil).noteName)]
+                             label: NoteName.frequency(targetFrequency))]
         }
         let notes = context.expectedEvents.compactMap(\.midiNote)
         let low = notes.min() ?? 0
@@ -101,10 +104,7 @@ enum VoicePracticeMode: Equatable {
     /// Echo unlocks Record only after its pattern has been heard to the end.
     var requiresHearFirst: Bool { isEcho }
     /// Video helps review posture and bowing; a hummed note needs only the microphone.
-    var recordsVideo: Bool {
-        if case .note(let exercise) = self { return exercise.section == .cello }
-        return false
-    }
+    var recordsVideo: Bool { method == .cello }
 
     @MainActor
     func progress(in store: SessionStore) -> PracticeProgress {
@@ -119,7 +119,7 @@ enum VoicePracticeMode: Equatable {
     func playReference(on capture: CaptureController) {
         // Hearing a reference needs playback only, without camera or microphone setup.
         if let context = melodyContext { capture.playMelodyReference(context) }
-        else if section == .humming { capture.playHummingExample() }
+        else if method == .voice { capture.playHummingExample() }
         else { capture.playCelloReference(frequency: targetFrequency) }
     }
 
@@ -129,7 +129,7 @@ enum VoicePracticeMode: Equatable {
     var referenceSpoken: String? {
         switch self {
         case .note:
-            let note = TunerReading(frequency: targetFrequency, targetFrequency: nil).noteName
+            let note = NoteName.frequency(targetFrequency)
             return String(format: "Target %@ · %.1f Hz", note, targetFrequency)
         case .phrase(let context) where context.noteDrillPiece != nil:
             return "Reference \(context.noteNames.joined(separator: " then "))"
@@ -145,7 +145,7 @@ enum VoicePracticeMode: Equatable {
 
     var hearLabel: String {
         switch self {
-        case .note: return section == .humming ? "Hear hum" : "Hear string"
+        case .note: return method == .voice ? "Hear hum" : "Hear string"
         case .phrase(let context) where context.noteDrillPiece != nil:
             return context.expectedEvents.count == 1 ? "Hear note" : "Hear notes"
         case .phrase(let context): return context.section == .whole ? "Hear melody" : "Hear phrase"
@@ -156,19 +156,19 @@ enum VoicePracticeMode: Equatable {
     var idleLabel: String { isEcho ? "READY" : "LIVE TUNER" }
     var idleTitle: String { isEcho ? "Your turn" : "Ready" }
     /// Shown while recording before any pitch is heard.
-    var recordingTitle: String { section == .humming ? "Hum" : "Play" }
+    var recordingTitle: String { method.verb.capitalized }
 
     func idleMessage(referenceHeard: Bool) -> String {
         switch self {
         case .note: return "Record counts 1–2–3–4 first"
-        case .phrase(let context): return "1–2–3–4, then hum for \(Int(context.duration)) seconds"
-        case .echo: return referenceHeard ? "Tap Record, then hum after 1–2–3–4." : "Tap the pattern above to hear it first."
+        case .phrase(let context): return "1–2–3–4, then \(method.verb) for \(Int(context.duration)) seconds"
+        case .echo: return referenceHeard ? "Tap Record, then \(method.verb) after 1–2–3–4." : "Tap the pattern above to hear it first."
         }
     }
 
     var listenMessage: String {
         switch self {
-        case .note: return section == .humming ? "Listen to the hum" : "Listen to the string note"
+        case .note: return method == .voice ? "Listen to the hum" : "Listen to the string note"
         case .phrase(let context) where context.noteDrillPiece != nil:
             return context.expectedEvents.count == 1 ? "Listen to the note" : "Listen to the two notes"
         case .phrase(let context): return context.section == .whole ? "Listen to the melody" : "Listen to the phrase"
@@ -176,12 +176,12 @@ enum VoicePracticeMode: Equatable {
         }
     }
 
-    private var echoCountdownMessage: String { "Start humming when the countdown ends." }
+    private var echoCountdownMessage: String { "Start \(method == .cello ? "playing" : "humming") when the countdown ends." }
     var preparingMessage: String {
         isEcho ? echoCountdownMessage : recordsVideo ? "Preparing camera & microphone…" : "Preparing microphone…"
     }
     var countInMessage: String {
-        isEcho ? echoCountdownMessage : isTimed ? "Get ready to hum" : "Get ready to play"
+        isEcho ? echoCountdownMessage : "Get ready to \(method.verb)"
     }
     var startingMessage: String { isEcho ? echoCountdownMessage : "Starting recording…" }
     var reviewingMessage: String {
@@ -190,18 +190,18 @@ enum VoicePracticeMode: Equatable {
 
     /// Guidance during a take. Nil means the generic above/below-target wording applies.
     func recordingMessage(target: Double?, reading: TunerReading) -> String? {
-        let note = target.map { TunerReading(frequency: $0, targetFrequency: nil).noteName }
+        let note = target.map(NoteName.frequency)
         switch self {
         case .note:
             return reading.frequency == nil ? (isTimed ? "Hum one gentle note" : "Play one steady note") : nil
         case .phrase(let context):
             let hint = context.noteDrillPiece == nil ? " · follow the phrase" : ""
-            return note.map { "Hum \($0)\(hint)" } ?? "Rest"
+            return note.map { "\(method.verb.capitalized) \($0)\(hint)" } ?? "Rest"
         case .echo:
             guard let note else { return "Pattern finished" }
-            guard let cents = reading.cents else { return "Hum \(note) · aim for the centre" }
+            guard let cents = reading.cents else { return "\(method.verb.capitalized) \(note) · aim for the centre" }
             if abs(cents) <= 10 { return "Close to \(note)" }
-            return cents < 0 ? "Below \(note) · hum higher" : "Above \(note) · hum lower"
+            return cents < 0 ? "Below \(note) · \(method.verb) higher" : "Above \(note) · \(method.verb) lower"
         }
     }
 

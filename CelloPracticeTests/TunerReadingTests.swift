@@ -24,31 +24,20 @@ final class TunerReadingTests: XCTestCase {
         }
     }
 
-    func testHummingUsesTheHumanExampleForEverySectionInput() {
-        XCTAssertEqual(PracticeSection.humming.exercises, [.steadyHum, .matchHum])
-        for exercise in Exercise.allCases {
-            let selected = PracticeSection.humming.normalizedExercise(exercise)
-            XCTAssertEqual(selected.section, .humming)
-            XCTAssertEqual(PracticeSection.humming.effectiveTarget(for: exercise), HummingExample.frequency)
-            let reading = TunerReading(frequency: HummingExample.frequency,
-                                       targetFrequency: PracticeSection.humming.effectiveTarget(for: exercise))
-            XCTAssertEqual(reading.cents, 0)
+    func testAHummedNoteMatchesTheHumanExampleAndAnOpenStringIsItsOwnTarget() throws {
+        for exercise in [Exercise.steadyHum, .matchHum] {
+            XCTAssertEqual(exercise.method, .voice)
+            XCTAssertNil(exercise.targetFrequency, "A hummed note has no fixed target")
+            let target = VoicePracticeMode.note(exercise).targetFrequency
+            XCTAssertEqual(target, HummingExample.frequency)
+            XCTAssertEqual(TunerReading(frequency: HummingExample.frequency, targetFrequency: target).cents, 0)
         }
-    }
-
-    func testCelloKeepsStringTargetsAndRejectsHummingChoices() throws {
-        let section = PracticeSection.cello
-        XCTAssertEqual(section.exercises, [.openC, .openG, .openD, .openA])
-        for exercise in section.exercises {
-            XCTAssertEqual(section.normalizedExercise(exercise), exercise)
-            XCTAssertEqual(section.effectiveTarget(for: exercise), try XCTUnwrap(exercise.targetFrequency))
-            XCTAssertNotEqual(section.effectiveTarget(for: exercise), HummingExample.frequency)
+        for exercise in PracticeMethod.openStrings {
+            XCTAssertEqual(exercise.method, .cello)
+            XCTAssertEqual(VoicePracticeMode.note(exercise).targetFrequency, try XCTUnwrap(exercise.targetFrequency))
+            XCTAssertNotEqual(exercise.targetFrequency, HummingExample.frequency)
         }
-        for exercise in [Exercise.steadyHum, .matchHum, .listen] {
-            XCTAssertEqual(section.normalizedExercise(exercise), .openG)
-            XCTAssertEqual(section.effectiveTarget(for: exercise), try XCTUnwrap(Exercise.openG.targetFrequency))
-        }
-        XCTAssertNil(Exercise.listen.section)
+        XCTAssertNil(Exercise.listen.method, "A free recording is neither voice nor cello")
     }
 
     func testHistoricalVoiceTargetIsNotReplacedByTheNewSectionReference() throws {
@@ -59,7 +48,7 @@ final class TunerReadingTests: XCTestCase {
         decoder.dateDecodingStrategy = .iso8601
         let historical = try decoder.decode(PracticeSession.self, from: Data(json.utf8))
         XCTAssertEqual(historical.effectiveTargetFrequency, 103.82617439498628)
-        XCTAssertNotEqual(historical.effectiveTargetFrequency, PracticeSection.humming.effectiveTarget(for: .steadyHum))
+        XCTAssertNotEqual(historical.effectiveTargetFrequency, VoicePracticeMode.note(.steadyHum).targetFrequency)
     }
 
     func testReadingWithoutTargetHasNoTuningJudgment() {

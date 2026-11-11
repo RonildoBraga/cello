@@ -9,16 +9,13 @@ enum LessonActivity: Equatable {
 /// These IDs also identify the existing lesson rows; recording JSON still uses Exercise.
 enum PracticeLesson: String, CaseIterable, Identifiable {
     case steadyHum, matchHum, pulse, twoTaps, mixedRhythm
-    case openC, openG, openD, openA
 
     var id: String { rawValue }
 
-    var area: LearningArea {
-        switch self {
-        case .steadyHum, .matchHum: return .humming
-        case .pulse, .twoTaps, .mixedRhythm: return .rhythm
-        case .openC, .openG, .openD, .openA: return .cello
-        }
+    /// A recorded lesson can be practised by voice or on the cello; a tapping lesson uses the screen.
+    var isRecorded: Bool {
+        if case .recording = activity { return true }
+        return false
     }
 
     var activity: LessonActivity {
@@ -28,20 +25,14 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
         case .pulse: return .rhythm(.pulse)
         case .twoTaps: return .rhythm(.twoTaps)
         case .mixedRhythm: return .rhythm(.mixedRhythm)
-        case .openC: return .recording(.openC)
-        case .openG: return .recording(.openG)
-        case .openD: return .recording(.openD)
-        case .openA: return .recording(.openA)
         }
     }
 
-    static func lessons(in area: LearningArea) -> [PracticeLesson] {
-        allCases.filter { $0.area == area }
-    }
-
+    /// Steady note is one lesson for voice and cello; its recordings keep the
+    /// names of what was recorded (Steady hum, Open G string).
     var title: String {
         switch activity {
-        case .recording(let exercise): return exercise.title
+        case .recording(let exercise): return self == .steadyHum ? "Steady note" : exercise.title
         case .rhythm(let exercise): return exercise.title
         }
     }
@@ -55,24 +46,24 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
 
     var purpose: String {
         switch self {
-        case .steadyHum: return "Hold one gentle note and let it settle."
-        case .matchHum: return "Listen to a note, remember it, then hum it back."
+        case .steadyHum: return "Hold one gentle note and let it settle, with your voice or on an open string."
+        case .matchHum: return "Listen to a note, remember it, then hum or play it back."
         case .pulse: return "Find an even beat with your hands."
         case .twoTaps: return "Keep the slow beat and add an even tap between beats."
         case .mixedRhythm: return "Switch between one tap and two taps while the beat stays steady."
-        case .openC, .openG, .openD, .openA: return "Play one open string with an even, steady sound."
         }
     }
 
     /// One plain line under the title of the practice screen.
-    var practicePrompt: String {
+    func practicePrompt(_ method: PracticeMethod) -> String {
         switch self {
-        case .steadyHum: return "Hum one note for three seconds."
-        case .matchHum: return "Listen, then hum the same note."
+        case .steadyHum: return method == .cello ? "Play one open string steadily, then tap Stop."
+            : "Hum one note for three seconds."
+        case .matchHum: return method == .cello ? "Listen to an open string, then play the same one."
+            : "Listen, then hum the same note."
         case .pulse: return "Tap an even beat."
         case .twoTaps: return "Count 1 & 2 & and tap on each."
         case .mixedRhythm: return "Count 1, 2 &, 3, 4 & and tap on each."
-        case .openC, .openG, .openD, .openA: return "Play one steady note, then tap Stop."
         }
     }
 
@@ -82,13 +73,15 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
             return [
                 "Tap the note at the top to hear the human voice you’ll match.",
                 "Keep your lips softly together and your jaw relaxed. Take an easy breath.",
-                "Tap Record, count 1–2–3–4, then hum gently for three seconds. Aim towards the centre of the bar; pause between tries."
+                "Tap Record, count 1–2–3–4, then hum gently for three seconds. Aim towards the centre of the bar; pause between tries.",
+                "With a cello, choose Cello on the practice screen and play each open string instead."
             ]
         case .matchHum:
             return [
                 "Tap the note at the top whenever you want to hear the human example.",
                 "Tap Record, count 1–2–3–4, then hum the same note for three seconds. Record does not play the example.",
-                "Keep your lips softly together and your voice gentle. The bar follows the same note you heard."
+                "Keep your lips softly together and your voice gentle. The bar follows the same note you heard.",
+                "With a cello, choose Cello on the practice screen: hear an open string, then play the same one."
             ]
         case .pulse:
             return [
@@ -107,20 +100,6 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
                 "Tap Start and count 1–2–3–4 with the app; your first tap is on the next 1. Keep the same slow beat as Lesson 4.",
                 "Tap once on 1, twice on 2-and, once on 3, twice on 4-and. Repeat with 5, 6-and, 7, 8-and. The vibration marks every number; & means “and”.",
                 "Leave space after the odd numbers. Add the halfway tap only after the even numbers. This makes 12 taps across eight beats."
-            ]
-        case .openC, .openG, .openD, .openA:
-            let string: String
-            switch self {
-            case .openC: string = "C"
-            case .openG: string = "G"
-            case .openD: string = "D"
-            case .openA: string = "A"
-            default: preconditionFailure("Only an open-string lesson has string instructions")
-            }
-            return [
-                "Settle your cello and bow using the position your teacher shows you.",
-                "Play the \(string) string alone, without pressing it with a finger. Tap the note at the top to hear its reference.",
-                "Tap Record, count 1–2–3–4, then play an even note. Tap Stop to finish."
             ]
         }
     }
@@ -144,11 +123,12 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
     }
 }
 
-/// Only saved ratings for this exact lesson, reference and scoring version are scores.
-/// Raw tuning measurements and legacy recordings never become star ratings here.
+/// A foundation lesson's saved takes: whether there are any, and the latest score.
+/// Only saved ratings for this exact lesson, reference and scoring version are scores;
+/// raw tuning measurements and legacy recordings never become star ratings here. The
+/// best score is not read here: it comes from the lesson's progress, which outlives its takes.
 struct LessonScoreSummary {
     let hasAttempts: Bool
-    let bestStars: Int?
     let latestStars: Int?
 
     init(exercise: Exercise, targetFrequency: Double, sessions: [PracticeSession], completed: Bool) {
@@ -164,9 +144,8 @@ struct LessonScoreSummary {
             if $0.createdAt != $1.createdAt { return $0.createdAt > $1.createdAt }
             return $0.id.uuidString > $1.id.uuidString
         }.compactMap { $0.rating?.starCount }
-        // The persisted milestone proves three-star takes were earned, even if
-        // their recordings were later deleted. It does not prove a latest score.
-        bestStars = completed ? 3 : scores.max()
+        // An earned milestone proves the lesson was practised even if its recordings
+        // were later deleted. It does not prove a latest score.
         latestStars = scores.first
     }
 }

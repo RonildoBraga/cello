@@ -30,13 +30,12 @@ final class CelloIntroUITests: XCTestCase {
         XCTAssertTrue(browse.isHittable && browse.isEnabled)
         screenshot("Meet your cello · next lessons before playing")
         browse.tap()
-        XCTAssertTrue(app.buttons["level-cello"].waitForExistence(timeout: 5), "The lessons are on the path")
+        // The introduction leads back to the four open strings of the lesson it was opened from.
+        XCTAssertTrue(app.staticTexts["practiceLessonTitle"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["previewTargetButton"].label.hasPrefix("Open C string"))
+        for string in ["G", "D", "A"] { XCTAssertTrue(app.buttons["part-Open \(string) string"].exists) }
         XCTAssertEqual(celloLessonSummary(in: app), summary,
                        "Reading an introduction must not award a playing achievement")
-        for lesson in ["openC", "openG", "openD", "openA"] {
-            XCTAssertTrue(app.pathRow("lesson-\(lesson)").isEnabled)
-        }
-        XCTAssertFalse(app.buttons["practiceRecordButton"].exists, "Browsing lessons must not start capture")
         assertNoWrittenInput(in: app)
         assertNoPermissionAlerts(in: app)
     }
@@ -122,13 +121,27 @@ final class CelloIntroUITests: XCTestCase {
                        "Listening and cancellation must not create learner recordings")
     }
 
-    /// What the path says about the four playing lessons: status and best score.
-    private func celloLessonSummary(in app: XCUIApplication) -> [String] {
-        ["openC", "openG", "openD", "openA"].map { app.pathRow("lesson-\($0)").label }
+    /// What the path says about the lesson the open strings belong to: status and best score.
+    private func celloLessonSummary(in app: XCUIApplication) -> String {
+        app.pathRow("lesson-steadyHum").label
     }
 
+    /// The introduction is opened from the cello's side of Steady note.
     private func openIntroduction(in app: XCUIApplication) {
-        app.pathLesson("celloIntroductionLink").tap()
+        app.pathLesson("lesson-steadyHum").tap()
+        let start = app.buttons["startLessonButton"]
+        XCTAssertTrue(start.waitForExistence(timeout: 5))
+        start.tap()
+        let cello = app.segmentedControls["practiceMethodPicker"].buttons["Cello"]
+        XCTAssertTrue(cello.waitForExistence(timeout: 5))
+        // The method stays as chosen for the rest of a launch, so a second visit is already on the cello.
+        if !cello.isSelected {
+            XCTAssertFalse(app.buttons["celloIntroductionLink"].exists, "The voice has no instrument to meet")
+            cello.tap()
+        }
+        let link = app.buttons["celloIntroductionLink"]
+        XCTAssertTrue(link.waitForExistence(timeout: 5))
+        link.tap()
         XCTAssertTrue(app.navigationBars["Meet your cello"].waitForExistence(timeout: 5))
     }
 

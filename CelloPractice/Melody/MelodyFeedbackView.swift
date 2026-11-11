@@ -12,8 +12,8 @@ struct MelodyFeedbackView: View {
         ], feedback: isEcho ? rating.echoFeedback : rating.feedback, starRules: [
             isEcho ? "Notes · Repeat the pattern’s pitches in the same voice register." : "Notes · Match the phrase’s notes in their original register.",
             isEcho ? "Timing · Match the pattern’s note starts and lengths, including repeated notes." : "Timing · Begin each note near its place in the phrase, including repeated notes.",
-            "Clarity · Give each note enough clear humming sound to hear its pitch."
-        ], unscoredLabel: rating.status == .insufficientSound ? "Not enough humming to rate" : "Pitch wasn’t clear enough to rate",
+            "Clarity · Give each note enough clear sound to hear its pitch."
+        ], unscoredLabel: rating.status == .insufficientSound ? "Not enough sound to rate" : "Pitch wasn’t clear enough to rate",
                            identifiers: PracticeResultIdentifiers(stars: "melodyRatingStars",
                                                                   unscored: "melodyRatingUnclear",
                                                                   feedback: "melodyFeedback"))

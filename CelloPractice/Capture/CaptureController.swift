@@ -138,6 +138,12 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     func claim(_ screen: UUID) { owner = screen }
     func release(_ screen: UUID) { if owner == screen { stop() } }
 
+    /// Waits for the screen being left to stop its sound, so the next one can play.
+    func waitUntilQuiet() async {
+        try? await Task.sleep(for: .milliseconds(250))
+        for _ in 0..<30 where isPlayingReference { try? await Task.sleep(for: .milliseconds(50)) }
+    }
+
     /// Finishes an active take before releasing the camera and microphone.
     func stop() {
         publish {
