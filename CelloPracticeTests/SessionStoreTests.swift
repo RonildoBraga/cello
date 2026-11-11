@@ -206,6 +206,8 @@ final class SessionStoreTests: XCTestCase {
 
         // Block only the milestone write, after the store has loaded normally.
         let progressURL = root.appendingPathComponent("PracticeProgress.json")
+        // The first load has already saved the passes; block the file from here on.
+        try? FileManager.default.removeItem(at: progressURL)
         try FileManager.default.createDirectory(at: progressURL, withIntermediateDirectories: true)
         let source = try await makeHummingMovie(in: root.appendingPathComponent("PendingTakes", isDirectory: true))
         let saved = await store.saveRecording(from: source, samples: [], exercise: .steadyHum,
@@ -650,6 +652,8 @@ final class SessionStoreTests: XCTestCase {
         let history = try writeMelodyHistory(count: 2, context: context, in: directory)
         let store = SessionStore(directory: directory)
         let progressURL = root.appendingPathComponent("MelodyProgress.json")
+        // The first load has already saved the passes; block the file from here on.
+        try? FileManager.default.removeItem(at: progressURL)
         try FileManager.default.createDirectory(at: progressURL, withIntermediateDirectories: true)
         let source = try await makeAudioMovie(in: root.appendingPathComponent("PendingTakes", isDirectory: true),
             audioData: SyntheticMelodyReference.wavData(context: context), duration: context.duration)

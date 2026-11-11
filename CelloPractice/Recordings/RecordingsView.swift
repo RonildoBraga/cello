@@ -83,7 +83,7 @@ struct RecordingsView: View {
                         editMode = .inactive
                     }
                 } message: {
-                    Text("This frees their space and cannot be undone. Gold results are kept; a lesson that is passed but not yet gold will need a new take.")
+                    Text("This frees their space and cannot be undone. Passed and gold results are kept.")
                 }
                 .onAppear { store.refreshPendingRecordings() }
         }

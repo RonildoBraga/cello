@@ -87,9 +87,9 @@ final class EchoSessionStoreTests: XCTestCase {
         let history = try writeHistory(count: 2, in: directory)
         let store = SessionStore(directory: directory)
         XCTAssertEqual(store.echoProgress(for: .twoNotes, register: .lowVoice).successfulAttempts, 2)
-        XCTAssertFalse(FileManager.default.fileExists(atPath: echoFile(root).path))
 
-        // Block this ledger only, after a normal initial load.
+        // Block this ledger only, after a normal initial load has saved its passes.
+        try FileManager.default.removeItem(at: echoFile(root))
         try FileManager.default.createDirectory(at: echoFile(root), withIntermediateDirectories: true)
         try Data("retain this blocker".utf8).write(to: echoFile(root).appendingPathComponent("blocker"))
         let context = try EchoLevel.twoNotes.context(patternIndex: 2, register: .lowVoice)

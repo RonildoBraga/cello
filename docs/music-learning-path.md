@@ -60,7 +60,7 @@ A `NoteDrill` is a one- or two-event `MelodyPracticeContext` with its own piece 
 
 Progress has two tiers ([issue #50](https://github.com/RonildoBraga/cello/issues/50)), both defined once in `CompletionRule` and both computed from attempts that are already saved:
 
-- **Passed** moves the path on: one scored attempt with two stars or more. It is read from the saved takes and rounds, so deleting the only passing take un-passes it.
+- **Passed** moves the path on: one scored attempt with two stars or more. Like gold it is an earned milestone, kept in the progress files, so deleting recordings to free space keeps it.
 - **Gold** is the earlier completion rule, unchanged: three 3-star attempts among five consecutive scored attempts. It is kept in the existing ledgers, survives later takes and always counts as passed.
 
 A lesson or the whole melody is one part. Tap it and Hum it roll up four phrases: the lesson shows "2 of 4 phrases passed", is passed when all four are, and is gold when all four are gold. Listen is passed once the whole melody has played to its end. A level shows how many of its lessons are passed; when the last one passes, the path shows a completion card once and points at the next lesson.

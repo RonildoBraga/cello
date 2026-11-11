@@ -22,7 +22,8 @@ final class PracticeProgressTests: XCTestCase {
         let pattern = [true, true, false, false, false, false, false, true]
         let sessions = pattern.enumerated().map { session(at: $0.offset, success: $0.element) }
         var ledger = PracticeProgressLedger()
-        XCTAssertFalse(ledger.update(from: sessions))
+        ledger.update(from: sessions)
+        XCTAssertTrue(ledger.completedKeys.isEmpty, "A pass is kept, but it is not gold")
         let progress = ledger.progress(for: .steadyHum, targetFrequency: HummingExample.frequency,
                                        sessions: sessions)
         XCTAssertEqual(progress.successfulAttempts, 1)
@@ -65,6 +66,25 @@ final class PracticeProgressTests: XCTestCase {
             XCTAssertTrue(result.completed)
             XCTAssertEqual(result.successfulAttempts, 3)
         }
+    }
+
+    func testAPassSurvivesDeletedHistoryAndOldFilesStillRead() throws {
+        var ledger = PracticeProgressLedger()
+        // Two of three stars: a pass, not gold.
+        XCTAssertTrue(ledger.update(from: [session(at: 0, success: false)]))
+        XCTAssertFalse(ledger.update(from: [session(at: 0, success: false)]), "Nothing new to save")
+        let restored = try JSONDecoder().decode(PracticeProgressLedger.self, from: JSONEncoder().encode(ledger))
+        let kept = restored.progress(for: .steadyHum, targetFrequency: HummingExample.frequency, sessions: [])
+        XCTAssertTrue(kept.passed)
+        XCTAssertFalse(kept.completed)
+        XCTAssertEqual(kept.bestStars, 2)
+        XCTAssertEqual(kept.successfulAttempts, 0)
+
+        // A file written before passes were kept has no such field.
+        let old = try JSONDecoder().decode(PracticeProgressLedger.self,
+                                           from: Data(#"{"schemaVersion":1,"completedKeys":[]}"#.utf8))
+        XCTAssertNil(old.passedKeys)
+        XCTAssertFalse(old.progress(for: .steadyHum, targetFrequency: HummingExample.frequency, sessions: []).passed)
     }
 
     func testRatingMustAgreeWithTheSavedReference() {
