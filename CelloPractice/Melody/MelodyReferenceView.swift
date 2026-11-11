@@ -36,7 +36,6 @@ struct MelodyReferenceView: View {
                               short: \.chipLabel, title: \.title,
                               hear: PartHearing(spoken: section == .whole ? "Hear melody" : "Hear phrase",
                                                 identifier: "melodyHearChip") { _ in hearRequest += 1 })
-                        .disabled(capture.isPlayingReference)
                     MelodyNotesView(context: context,
                                     elapsed: capture.isPlayingReference ? capture.referenceElapsed : nil)
                     Text(piece.notesHint).font(.caption).foregroundStyle(Palette.muted)

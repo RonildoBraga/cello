@@ -185,6 +185,19 @@ final class MelodyRatingTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(first.observedFrequency) / XCTUnwrap(first.expectedFrequency), 2, accuracy: 0.01)
     }
 
+    func testAFadingNotesOvertoneIsNotANewNote() throws {
+        // A real take: G2 held, its octave read for one 50 ms frame as the hum faded, silence, then B2.
+        let held = [Double?](repeating: 98, count: 37)
+        let take = held + [198, nil, nil, nil] + [Double?](repeating: 123.5, count: 38)
+        XCTAssertEqual(MelodyRecordingRater.octaveSlips(in: take), [37])
+        // The same misreading at the start of a note, for three frames.
+        XCTAssertEqual(MelodyRecordingRater.octaveSlips(in: [196, 197, 196] + held), [0, 1, 2])
+        // A note that really is an octave away, held, is left alone; so is an ordinary step.
+        XCTAssertTrue(MelodyRecordingRater.octaveSlips(in: held + [Double?](repeating: 196, count: 6)).isEmpty)
+        XCTAssertTrue(MelodyRecordingRater.octaveSlips(in: held + [123.5, 123.5] + held).isEmpty)
+        XCTAssertTrue(MelodyRecordingRater.octaveSlips(in: [nil, 98, nil]).isEmpty)
+    }
+
     func testSilenceAndUnpitchedNoiseStayUnscored() throws {
         let context = try snapshot()
         let count = Int(context.duration * sampleRate)

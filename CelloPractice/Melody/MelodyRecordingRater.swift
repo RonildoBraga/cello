@@ -52,6 +52,7 @@ enum MelodyRecordingRater {
                 RecordingAudio.octaveIsAmbiguous(sound, sampleRate: sampleRate, frequency: $0.frequency)
             } ?? false)
         }
+        let slips = octaveSlips(in: frames.map { $0.estimate?.frequency })
         var frameIndex = 0
         let cells: [Cell] = levels.enumerated().map { index, rms in
             let time = (Double(index * cellSize) + Double(cellSize) / 2) / sampleRate
@@ -63,7 +64,7 @@ enum MelodyRecordingRater {
                 ? frame.estimate : nil
             return Cell(time: time, active: active, frequency: estimate?.frequency,
                         confidence: estimate?.confidence ?? 0, rms: rms,
-                        ambiguous: estimate != nil && frame.ambiguous)
+                        ambiguous: estimate != nil && (frame.ambiguous || slips.contains(frameIndex)))
         }
         let cellDuration = Double(cellSize) / sampleRate
         let activeDuration = Double(cells.filter(\.active).count) * cellDuration
@@ -162,6 +163,37 @@ enum MelodyRecordingRater {
     private struct Cell {
         let time: Double; let active: Bool; let frequency: Double?
         let confidence: Double; let rms: Double; let ambiguous: Bool
+    }
+
+    /// The frames that read an octave away from the sound next to them for 150 ms or
+    /// less. A voice cannot leap an octave and back that fast: as a hum fades, its
+    /// first overtone can outlast it, and the detector follows the overtone. Such
+    /// frames are ambiguous, so they are neither a new note nor a point on the chart.
+    static func octaveSlips(in frequencies: [Double?]) -> Set<Int> {
+        // Runs of neighbouring frames that stay within a few semitones of each other.
+        var runs: [Range<Int>] = []
+        for (index, frequency) in frequencies.enumerated() {
+            guard let frequency else { continue }
+            if let last = runs.last, last.upperBound == index, let previous = frequencies[index - 1],
+               abs(1_200 * log2(frequency / previous)) < 300 {
+                runs[runs.count - 1] = last.lowerBound..<(index + 1)
+            } else { runs.append(index..<(index + 1)) }
+        }
+        func isOctave(_ first: Int, _ second: Int) -> Bool {
+            guard let one = frequencies[first], let other = frequencies[second] else { return false }
+            return abs(abs(1_200 * log2(one / other)) - 1_200) <= 120
+        }
+        var slips = Set<Int>()
+        for (index, run) in runs.enumerated() where run.count <= 3 {
+            let before = index > 0 ? runs[index - 1] : nil
+            let after = index + 1 < runs.count ? runs[index + 1] : nil
+            let followsLongerRun = before.map { $0.count > run.count && run.lowerBound - $0.upperBound <= 3
+                && isOctave(run.lowerBound, $0.upperBound - 1) } ?? false
+            let precedesLongerRun = after.map { $0.count > run.count && $0.lowerBound - run.upperBound <= 3
+                && isOctave(run.upperBound - 1, $0.lowerBound) } ?? false
+            if followsLongerRun || precedesLongerRun { slips.formUnion(run) }
+        }
+        return slips
     }
 
     private static func observedBoundaries(cells: [Cell], attackWindowDuration: Double) -> [Double] {
