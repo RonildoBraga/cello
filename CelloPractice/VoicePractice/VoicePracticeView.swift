@@ -161,8 +161,6 @@ struct VoicePracticeView<Header: View>: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     header(PracticeHeaderControls(locked: controlsLocked || restSeconds > 0, hear: previewReference))
-                    // Echo's pattern is secret, so it is heard from a button, not from a named chip.
-                    if mode.isEcho { hearPattern }
                     if let session = latestSession, hasResult, showsIdleContent {
                         VStack(spacing: 16) {
                             if let rating = session.melodyRating {
@@ -219,18 +217,6 @@ struct VoicePracticeView<Header: View>: View {
         PracticeProgressView(progress: mode.progress(in: store))
     }
 
-    private var hearPattern: some View {
-        HStack(spacing: 12) {
-            Label("Recorded hum", systemImage: "waveform").font(.subheadline).foregroundStyle(Palette.muted)
-            Spacer(minLength: 0)
-            Button { previewReference() } label: {
-                Label(mode.hearLabel, systemImage: "speaker.wave.2")
-            }.buttonStyle(SecondaryActionButtonStyle())
-                .disabled(controlsLocked || restSeconds > 0)
-                .accessibilityIdentifier("previewTargetButton")
-        }
-    }
-
     private var recordingControls: some View {
         Group {
             if restSeconds > 0 {
@@ -258,7 +244,7 @@ struct VoicePracticeView<Header: View>: View {
                 }
             }.buttonStyle(PrimaryActionButtonStyle(color: capture.isRecording ? .red : Palette.forest))
                 .disabled(saving || needsReference || (restSeconds > 0 && !isBusy && !capture.isRecording))
-                .accessibilityHint(needsReference ? "Tap Hear pattern and listen to the end first."
+                .accessibilityHint(needsReference ? "Tap the pattern and listen to the end first."
                                    : restSeconds > 0 ? "Available after a short rest." : "")
                 .accessibilityIdentifier("practiceRecordButton")
         }

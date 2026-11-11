@@ -567,8 +567,7 @@ final class LearningUITests: XCTestCase {
         XCTAssertFalse(app.buttons["practiceRecordButton"].exists, "Melody recording is a separate delivery")
         XCTAssertFalse(app.buttons["previewTargetButton"].exists)
         XCTAssertFalse(app.buttons["Turn off camera and microphone"].exists)
-        XCTAssertTrue(app.staticTexts["Recorded hum"].exists)
-        XCTAssertTrue(key.label.contains("G major") && key.label.contains("G2–B2"))
+        XCTAssertTrue(key.label.contains("Recorded hum") && key.label.contains("G major") && key.label.contains("G2–B2"))
         assertNoPermissionAlerts(in: app)
         assertNoWrittenInput(in: app)
 

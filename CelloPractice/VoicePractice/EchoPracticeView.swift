@@ -13,6 +13,9 @@ struct EchoPracticeView: View {
 
     private var context: MelodyPracticeContext { pattern.context }
 
+    /// A chip was tapped to switch pattern length: the new pattern plays once.
+    @State private var hearOnArrival = false
+
     private var levelSelection: Binding<EchoLevel> {
         Binding(get: { level }, set: { next in
             guard next != level else { return }
@@ -22,17 +25,23 @@ struct EchoPracticeView: View {
     }
 
     var body: some View {
-        VoicePracticeView(store: store, capture: capture, mode: .echo(context, level: level)) { controls in
-            let locked = controls.locked
+        let mode = VoicePracticeMode.echo(context, level: level)
+        let parts = LessonParts(EchoLevel.allCases, current: level, noun: "Part", title: \.title,
+                                passed: store.echoProgress(for: level, register: register).passed) {
+            levelSelection.wrappedValue = $0
+        }
+        VoicePracticeView(store: store, capture: capture, mode: mode, parts: parts,
+                          hearOnArrival: $hearOnArrival) { controls in
             VStack(alignment: .leading, spacing: 16) {
-                LessonHeader(subtitle: "Hear the pattern, then hum it back. Follow the tuning bar as you record.",
+                LessonHeader(subtitle: "Tap the pattern to hear it, then hum it back. Follow the tuning bar as you record.",
                            collapsesSubtitle: store.echoProgress(for: level, register: register).successfulAttempts > 0)
-                Picker("Pattern length", selection: levelSelection) {
-                    ForEach(EchoLevel.allCases) { level in
-                        Text(level.title).tag(level)
-                    }
-                }.pickerStyle(.segmented).disabled(locked)
-                    .accessibilityIdentifier("echoLevelPicker")
+                // The pattern's notes stay secret, so its chip is named by its length.
+                PartStrip(parts: EchoLevel.allCases, selection: levelSelection, short: \.title, title: \.title,
+                          progress: { store.echoProgress(for: $0, register: register) },
+                          hear: PartHearing(spoken: mode.hearSpoken, identifier: "previewTargetButton") { changed in
+                              if changed { hearOnArrival = true } else { controls.hear() }
+                          })
+                    .disabled(controls.locked)
                 HStack {
                     Text("\(Int(context.duration)) seconds · \(context.tempoBPM) BPM")
                         .font(.caption).foregroundStyle(Palette.muted)
@@ -40,17 +49,8 @@ struct EchoPracticeView: View {
                     Spacer()
                     Button(action: newPattern) {
                         Label("New pattern", systemImage: "shuffle")
-                    }.buttonStyle(SecondaryActionButtonStyle()).disabled(locked)
+                    }.buttonStyle(SecondaryActionButtonStyle()).disabled(controls.locked)
                         .accessibilityIdentifier("echoNewPatternButton")
-                }
-                if level == .twoNotes,
-                   store.echoProgress(for: .twoNotes, register: register).completed {
-                    Button {
-                        levelSelection.wrappedValue = .threeNotes
-                    } label: {
-                        Label("Try three notes", systemImage: "arrow.right")
-                    }.buttonStyle(SecondaryActionButtonStyle()).disabled(locked)
-                        .accessibilityIdentifier("echoNextLevelButton")
                 }
             }.id("practiceTop")
         }.id("\(level.pieceID)|\(register.rawValue)|\(pattern.index)")

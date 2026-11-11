@@ -162,7 +162,7 @@ enum VoicePracticeMode: Equatable {
         switch self {
         case .note: return "Record counts 1–2–3–4 first"
         case .phrase(let context): return "1–2–3–4, then hum for \(Int(context.duration)) seconds"
-        case .echo: return referenceHeard ? "Tap Record, then hum after 1–2–3–4." : "Tap Hear pattern first."
+        case .echo: return referenceHeard ? "Tap Record, then hum after 1–2–3–4." : "Tap the pattern above to hear it first."
         }
     }
 

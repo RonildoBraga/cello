@@ -38,7 +38,7 @@ The lesson bar is the only control for moving on. A lesson with several parts (t
 
 A lesson's parts are shown side by side as chips (`PartStrip`): the one on show is filled, passed parts carry a tick and gold parts a star, and a tap switches. They replaced a drop-down menu, which hid the other parts and their progress behind a tap and looked like a setting. On Meet the notes the chips are the note names, so the separate note tile and the "3 seconds" label were removed.
 
-A chip is also how a part is heard. Tapping a chip switches to it and plays it; the chip on show carries a speaker and plays again when tapped. The separate "Recorded hum · Hear note" row is gone from every lesson with chips, and a lesson with one thing to hum (Steady hum, Listen & match, an open string, Whole melody) shows one chip. Listen & Echo keeps a Hear pattern button, because its pattern is not named. Moving with the lesson bar does not play anything, and neither does opening a lesson.
+A chip is also how a part is heard. Tapping a chip switches to it and plays it; the chip on show carries a speaker and plays again when tapped. The separate "Recorded hum · Hear note" row is gone from every lesson with chips, and a lesson with one thing to hum (Steady hum, Listen & match, an open string, Whole melody) shows one chip. On Listen & Echo the chips are the pattern lengths (Two notes, Three notes): the notes stay secret, and the chip plays the pattern. Moving with the lesson bar does not play anything, and neither does opening a lesson.
 
 ### Moving on
 

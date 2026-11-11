@@ -41,14 +41,6 @@ struct MelodyReferenceView: View {
                                     elapsed: capture.isPlayingReference ? capture.referenceElapsed : nil)
                     Text(piece.notesHint).font(.caption).foregroundStyle(Palette.muted)
                 }.card()
-                VStack(alignment: .leading, spacing: 7) {
-                    Label(register == .cello ? "Recorded cello" : "Recorded hum", systemImage: "waveform")
-                        .font(.subheadline.weight(.semibold)).foregroundStyle(Palette.forest)
-                    Text(register == .cello
-                         ? "Recorded bowed cello notes, tuned and arranged into the melody."
-                         : "A recorded human hum, with pitch and timing edited into the melody. Open Hum it to record and earn stars.")
-                        .font(.footnote).foregroundStyle(Palette.muted)
-                }
                 if hasRequestedPlayback, !capture.isPlayingReference, let message = capture.message {
                     Text(message).font(.footnote).foregroundStyle(Palette.muted)
                         .accessibilityIdentifier("melodyPlaybackMessage")
