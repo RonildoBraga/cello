@@ -15,6 +15,7 @@ Music (the path)
   Level 1 · First sounds      Steady note → Listen & match → Pulse → Two taps per beat → Mixed rhythm → Listen & Echo
   Level 2 · Hot Cross Buns    Listen → Tap it → Meet the notes → Hum it → Whole melody
   Level 3 · Ode to Joy        Listen → Tap it → Meet the notes → Hum it → Whole melody
+  Level 4 · Twinkle, Twinkle  Listen → Tap it → Meet the notes → Hum it → Whole melody
 About → long-term goal, who built it, sound sources and licences, lesson references
 Recordings → existing local audio/video history
 ```
@@ -72,7 +73,7 @@ The content is `PracticeLesson.primer`; the screen is `PrimerView`. Reading a pr
 
 ### Meet the notes
 
-Each melody level introduces its notes before asking for whole phrases ([issue #51](https://github.com/RonildoBraga/cello/issues/51)): three for Hot Cross Buns (G2, A2, B2), five for Ode to Joy (G2 to D3). For each note the learner hears the recorded hum and hums it back for three seconds with the live tuning bar. Two pairs follow, the lowest then the highest note and the reverse, to hear and feel "higher" and "lower". Last come the notes the melody repeats quickly, each on its own (`NoteDrill.quickRepeats`): for Hot Cross Buns, eight quick G's and eight quick A's. Ode to Joy has none.
+Each melody level introduces its notes before asking for whole phrases ([issue #51](https://github.com/RonildoBraga/cello/issues/51)): three for Hot Cross Buns (G2, A2, B2), five for Ode to Joy (G2 to D3), six for Twinkle, Twinkle (G2 to E3). For each note the learner hears the recorded hum and hums it back for three seconds with the live tuning bar. Two pairs follow, to hear and feel "higher" and "lower": the melody's jump and its reverse, or, for a melody that moves only by step, its lowest then its highest note and the reverse. A jump is two notes in a row more than a whole tone apart. Twinkle's is G2 to D3; Hot Cross Buns' only jump is between its lowest and highest notes, and Ode to Joy has none. Last come the notes the melody repeats quickly, each on its own (`NoteDrill.quickRepeats`): for Hot Cross Buns, eight quick G's and eight quick A's. Ode to Joy has none.
 
 The quick notes are there because of what the takes showed. Hot Cross Buns' third phrase is four quick G's then four quick A's, and it asked for three new things at once: twice the speed, starting the same note afresh, and a change of note halfway. A learner who had passed phrases 1 and 2 scored nothing on it three times, although the first of those takes had every note within 0.07 s of its place. A closed-lip hum has nothing to restart a note with, the learner left long gaps to compensate, and the gaps cost the Timing and Clarity stars. So the repeat is now practised alone first, and wherever a take repeats a note quickly the screen says how (`VoicePracticeMode.quickNotesHint`): sing "doo", and keep each note going until the next one starts. Eight notes, not four, because each goal lets one note in five miss: eight leaves room for one slip.
 
@@ -135,6 +136,12 @@ Melody rhythm uses that same immutable reference timeline with a separate rhythm
 [Issue #14](https://github.com/RonildoBraga/cello/issues/14) adds our independently encoded five-note opening excerpt while the learner waits for a cello. It introduces upward and downward lessons across five notes and a dotted-quarter/eighth-note ending. Four bar-sized practice selections build to the sixteen-beat opening; these are practice divisions, not a claim to contain the complete symphonic theme. Both melodies use the same Humming, Rhythm and manual reference pages, charts, fixed grading versions and progress rules.
 
 `MelodyPiece` selects the built-in score before recording. The existing frozen context format is unchanged; each piece keeps a distinct ID and achievements. Hot Cross Buns factory output remains identical, preserving its prior progress keys and ratings. References reuse the existing licensed recorded sources. See [score and recording provenance](ode-to-joy-reference.md). Cello technique and acoustic validation remain in #6.
+
+## Third melody: Twinkle, Twinkle opening
+
+Level 4 is the first two lines of *Twinkle, Twinkle, Little Star*. Each level so far has carried one new idea: three notes stepping down, then five notes stepping up and down. This one adds the first jump, five notes up in one go, which is also the move the Bach Prelude is built from: on the cello it crosses from the open D string to the open A string. Everything else is kept easy on purpose. The rhythm is one beat a note with a held note ending each line, and each register gains a single new note (E3 hummed, B3 on the cello).
+
+It is a third `MelodyPiece` and nothing more: the level, its five lessons, the examples, the charts, the grading and the progress rules come from what the first two melodies use. Two things became general so that a new melody is data. A selection's tapping hint now follows the lengths of its notes (`MelodyPiece.rhythmHint`), so tunes that share a rhythm share its wording; and Meet the notes practises a melody's jump when it has one (`NoteDrill.drills`). The saved formats and grading versions are unchanged. See [score and provenance](twinkle-reference.md).
 
 ## Cello orientation
 

@@ -3,8 +3,9 @@ import XCTest
 
 final class LevelTests: XCTestCase {
     func testPathIsFirstSoundsThenOneLevelPerMelodyWithNoSeparateCelloLevel() {
-        XCTAssertEqual(Level.path.map(\.id), ["firstSounds", "hotCrossBuns", "odeToJoy"])
-        XCTAssertEqual(Level.path.map(\.number), [1, 2, 3])
+        XCTAssertEqual(Level.path.map(\.id), ["firstSounds", "hotCrossBuns", "odeToJoy", "twinkle"])
+        XCTAssertEqual(Level.path.map(\.number), [1, 2, 3, 4])
+        XCTAssertEqual(Level.path.map(\.title), ["First sounds", "Hot Cross Buns", "Ode to Joy", "Twinkle, Twinkle"])
         XCTAssertEqual(Level.path[0].lessons, [.lesson(.steadyHum), .lesson(.matchHum), .lesson(.pulse),
                                              .lesson(.twoTaps), .lesson(.mixedRhythm), .echo])
     }
@@ -120,7 +121,8 @@ final class LevelTests: XCTestCase {
         XCTAssertEqual(last?.onwardSpoken, "Next level, Hot Cross Buns")
         XCTAssertEqual(first?.onwardSpoken, "Next lesson, Listen & match")
         XCTAssertNil(first?.nextLevel)
-        let veryLast = Level.position(of: .wholeMelody(.odeToJoy))
+        XCTAssertEqual(Level.position(of: .wholeMelody(.odeToJoy))?.onwardSpoken, "Next level, Twinkle, Twinkle")
+        let veryLast = Level.position(of: .wholeMelody(.twinkle))
         XCTAssertNil(veryLast?.onward, "The path ends at the last lesson of the last level")
 
         let notes = Level.position(of: .meetNotes(.odeToJoy))

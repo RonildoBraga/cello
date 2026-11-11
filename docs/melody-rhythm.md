@@ -46,3 +46,7 @@ Unit tests cover score-derived tap positions, half-beat notes, rests/gaps, phras
 ## Ode to Joy opening
 
 The second piece reuses these rounds and fixed version-one rules. Its first three selections have four one-beat notes. The last has lengths `1.5, 0.5, 2` beats, so its starts are at `0, 1.5, 2` seconds at 60 BPM: tap on 1, the “and” after 2, and 3, then count through 4. The full opening has fifteen note starts in sixteen beats. Progress uses its own piece ID; Hot Cross Buns achievements stay separate. See [the opening arrangement](ode-to-joy-reference.md).
+
+## Twinkle, Twinkle opening
+
+The third piece adds no new rhythm. Selections 1 and 3 have four one-beat notes; selections 2 and 4 have two one-beat notes and a two-beat note, the pattern of Hot Cross Buns' first phrase. The hint shown before Start is chosen from the lengths of a selection's notes, so each of these reads as it does in the earlier pieces. The opening has fourteen note starts in sixteen beats. See [the opening arrangement](twinkle-reference.md).

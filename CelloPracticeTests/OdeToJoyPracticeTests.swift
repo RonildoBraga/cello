@@ -5,47 +5,57 @@ import XCTest
 @testable import Cello
 
 final class OdeToJoyPracticeTests: XCTestCase {
-    func testRecordedHumanPhrasesAndWholeOpeningEarnThreeIndependentStars() throws {
-        for register in [MelodyRegister.lowVoice] {
-            for section in MelodySection.allCases {
-                let context = try MelodyPracticeContext.odeToJoy(
-                    register: register, section: section, gradingVersion: MelodyRating.currentVersion)
-                let data = try RecordedReference.wavData(context: context)
-                let player = try AVAudioPlayer(data: data)
-                XCTAssertEqual(player.numberOfChannels, 1)
-                XCTAssertEqual(player.duration, context.duration, accuracy: 1 / Double(RecordedReference.sampleRate))
-                let sound = pcm(data)
-                XCTAssertEqual(sound.first, 0)
-                XCTAssertEqual(sound.last, 0)
-                XCTAssertLessThan(sound.map(abs).max() ?? 1, 0.90)
-                let rating = rate(sound, for: context)
-                XCTAssertEqual(rating.status, .rated, "\(register.rawValue), \(section.rawValue)")
-                XCTAssertEqual(rating.starCount, 3,
-                    "\(register.rawValue), \(section.rawValue): notes \(String(describing: rating.matchedNoteFraction)), timing \(String(describing: rating.timedNoteFraction)), clarity \(String(describing: rating.clearNoteFraction))")
-                XCTAssertEqual(rating.noteResults.count, context.expectedEvents.count)
+    func testRecordedPhrasesAndWholeOpeningEarnThreeIndependentStarsHummedAndOnTheCello() throws {
+        // Twinkle's jump of five notes is scored by the same rater as the steps of Ode to Joy.
+        for piece in [MelodyPiece.odeToJoy, .twinkle] {
+            for register in PracticeMethod.allCases.map(\.register) {
+                for section in MelodySection.allCases {
+                    let context = try MelodyPracticeContext.melody(
+                        piece: piece, register: register, section: section, gradingVersion: MelodyRating.currentVersion)
+                    let data = try RecordedReference.wavData(context: context)
+                    let player = try AVAudioPlayer(data: data)
+                    XCTAssertEqual(player.numberOfChannels, 1)
+                    XCTAssertEqual(player.duration, context.duration, accuracy: 1 / Double(RecordedReference.sampleRate))
+                    let sound = pcm(data)
+                    XCTAssertEqual(sound.first, 0)
+                    XCTAssertEqual(sound.last, 0)
+                    XCTAssertLessThan(sound.map(abs).max() ?? 1, 0.90)
+                    let rating = rate(sound, for: context)
+                    let take = "\(piece.title), \(register.rawValue), \(section.rawValue)"
+                    XCTAssertEqual(rating.status, .rated, take)
+                    XCTAssertEqual(rating.starCount, 3,
+                        "\(take): notes \(String(describing: rating.matchedNoteFraction)), timing \(String(describing: rating.timedNoteFraction)), clarity \(String(describing: rating.clearNoteFraction))")
+                    XCTAssertEqual(rating.noteResults.count, context.expectedEvents.count)
+                }
             }
         }
     }
 
-    func testAllFiveRecordedPitchTargetsMatchEachVoiceAndCelloRegister() throws {
-        for register in PracticeMethod.allCases.map(\.register) {
-            var heardNotes: Set<Int> = []
-            for section in [MelodySection.phrase1, .phrase3] {
-                let context = try MelodyPracticeContext.odeToJoy(register: register, section: section)
-                let sound = pcm(try RecordedReference.wavData(context: context))
-                for event in context.expectedEvents {
-                    heardNotes.insert(try XCTUnwrap(event.midiNote))
-                    let measured = measuredFrequencies(sound, times: [0.25, 0.40, 0.55, 0.70].map {
-                        event.onsetBeat + $0
-                    })
-                    XCTAssertGreaterThanOrEqual(measured.count, 3)
-                    let actual = try XCTUnwrap(median(measured))
-                    let expected = try XCTUnwrap(context.frequency(for: event))
-                    XCTAssertLessThan(abs(1_200 * log2(actual / expected)), 25,
-                                      "\(register.rawValue), MIDI \(event.midiNote ?? -1)")
+    func testEveryRecordedPitchTargetMatchesInTheVoiceAndCelloRegisters() throws {
+        // Twinkle reaches one note higher than Ode to Joy in each register: E3 hummed, B3 on the cello.
+        let pieces: [(MelodyPiece, [MelodySection], [Int])] = [
+            (.odeToJoy, [.phrase1, .phrase3], [50, 52, 54, 55, 57]),
+            (.twinkle, MelodySection.phrases, [50, 52, 54, 55, 57, 59])]
+        for (piece, sections, notes) in pieces {
+            for register in PracticeMethod.allCases.map(\.register) {
+                var heardNotes: Set<Int> = []
+                for section in sections {
+                    let context = try MelodyPracticeContext.melody(piece: piece, register: register, section: section)
+                    let sound = pcm(try RecordedReference.wavData(context: context))
+                    for event in context.expectedEvents {
+                        heardNotes.insert(try XCTUnwrap(event.midiNote))
+                        let measured = measuredFrequencies(sound, times: [0.25, 0.40, 0.55, 0.70].map {
+                            event.onsetBeat + $0
+                        })
+                        XCTAssertGreaterThanOrEqual(measured.count, 3)
+                        let actual = try XCTUnwrap(median(measured))
+                        let expected = try XCTUnwrap(context.frequency(for: event))
+                        XCTAssertLessThan(abs(1_200 * log2(actual / expected)), 25,
+                                          "\(piece.title), \(register.rawValue), MIDI \(event.midiNote ?? -1)")
+                    }
                 }
+                XCTAssertEqual(heardNotes, Set(notes.map { $0 + register.transpositionSemitones }))
             }
-            XCTAssertEqual(heardNotes, Set([50, 52, 54, 55, 57].map { $0 + register.transpositionSemitones }))
         }
     }
 
