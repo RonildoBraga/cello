@@ -89,7 +89,8 @@ struct PracticeSession: Identifiable, Codable {
         guard let context = melodyContext else { return exercise.title }
         if let echo = EchoLevel.selection(for: context) { return "Listen & Echo · \(echo.level.title)" }
         if let piece = context.noteDrillPiece {
-            return "\(piece.title) · Meet the notes · \(context.noteNames.joined(separator: ", "))"
+            let notes = context.repeatedNote.map { "\($0.name) ×\($0.count)" } ?? context.noteNames.joined(separator: ", ")
+            return "\(piece.title) · Meet the notes · \(notes)"
         }
         return "\(context.displayPieceTitle) · \(context.section.title)"
     }

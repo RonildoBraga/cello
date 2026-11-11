@@ -15,6 +15,10 @@ Saved takes showed the pitch was mostly right while the second note of a pattern
 
 The rating rules below are unchanged.
 
+## Advice that names the note
+
+When the Notes goal is missed, the advice names the first note that was off and which way to move it ("Note 5 (A2) was a little too low. Aim higher on that note."), or says that it wavered when it was near enough on the whole (`MelodyRating.notesAdvice`). It used to say only "Listen to this phrase again", which hid the commonest pitch mistake in the saved takes: a step up that fell short. The advice is worked out when shown, from the per-note results a rating already stores; the rating itself is unchanged.
+
 ## The live tuner after a take
 
 After a take the live tuner sits inside the take's chart card, under the chart: look at the take, then try the correction at once. It compares the voice with one note. A take with several different notes (a pair in Meet the notes, a phrase, the whole melody) shows them as "Tune to" chips, in the order they first sound; the first is chosen to begin with. If the microphone has been turned off, the row offers to turn it on. Before and during a take there is nothing to choose: the tuner follows the score by itself. Listen & Echo has no tuner after a take.

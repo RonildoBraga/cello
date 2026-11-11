@@ -132,6 +132,7 @@ enum VoicePracticeMode: Equatable {
             let note = NoteName.frequency(targetFrequency)
             return String(format: "Target %@ · %.1f Hz", note, targetFrequency)
         case .phrase(let context) where context.noteDrillPiece != nil:
+            if let repeated = context.repeatedNote { return "Reference \(repeated.name), \(repeated.count) quick notes" }
             return "Reference \(context.noteNames.joined(separator: " then "))"
         case .phrase(let context):
             let range = MelodyPiece(rawValue: context.pieceID)?.rangeLabel(for: context.register) ?? context.rangeLabel
@@ -170,10 +171,20 @@ enum VoicePracticeMode: Equatable {
         switch self {
         case .note: return method == .voice ? "Listen to the hum" : "Listen to the string note"
         case .phrase(let context) where context.noteDrillPiece != nil:
+            if context.repeatedNote != nil { return "Listen to the quick notes" }
             return context.expectedEvents.count == 1 ? "Listen to the note" : "Listen to the two notes"
         case .phrase(let context): return context.section == .whole ? "Listen to the melody" : "Listen to the phrase"
         case .echo: return "Remember the notes and their rhythm."
         }
+    }
+
+    /// Shown with a take that repeats a note quickly. A closed-lip hum has nothing
+    /// to restart a note with, and gaps between the notes cost their timing and clarity.
+    var quickNotesHint: String? {
+        guard !isEcho, melodyContext?.repeatsQuickNotes == true else { return nil }
+        return method == .voice
+            ? "Quick notes: sing “doo-doo-doo-doo” instead of humming, and keep each note going until the next one starts."
+            : "Quick notes: play each one separately, and let it sound until the next one starts."
     }
 
     private var echoCountdownMessage: String { "Start \(method == .cello ? "playing" : "humming") when the countdown ends." }

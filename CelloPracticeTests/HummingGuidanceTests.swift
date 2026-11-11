@@ -62,10 +62,35 @@ final class HummingGuidanceTests: XCTestCase {
         XCTAssertEqual(cutShort.timingAdvice, "The first note (A2) stopped too soon. Hold it until its bar has passed the line.")
     }
 
+    func testFeedbackNamesTheNoteThatWasOffPitchAndWhichWayToMoveIt() {
+        func missed(_ index: Int, expected: Double, observed: Double?) -> MelodyNoteResult {
+            MelodyNoteResult(expectedIndex: index, expectedStart: Double(index), expectedDuration: 0.5,
+                             expectedFrequency: expected, observedFrequency: observed, observedOnset: Double(index),
+                             matched: false, timed: true, clear: true, octaveMismatch: false)
+        }
+        func feedback(_ notes: [MelodyNoteResult]) -> String {
+            MelodyRating(status: .rated, notes: false, timing: true, clarity: true, noteResults: notes).feedback
+        }
+        let good = note(0, start: 0, onset: 0, frequency: 98, timed: true)
+        // From a real take: the step up to A2 (110 Hz) landed about a semitone short.
+        XCTAssertEqual(feedback([good, missed(1, expected: 110, observed: 103.6)]),
+                       "Note 2 (A2) was a little too low. Aim higher on that note.")
+        XCTAssertEqual(feedback([good, missed(1, expected: 110, observed: 120.4)]),
+                       "Note 2 (A2) was too high. Aim lower on that note.")
+        XCTAssertEqual(feedback([missed(0, expected: 98, observed: 89.6), good]),
+                       "The first note (G2) was too low. Hear the start again and begin on its pitch.")
+        XCTAssertEqual(feedback([good, missed(1, expected: 110, observed: 107)]),
+                       "Note 2 (A2) wavered. Find it, then keep it steady.")
+        // A note that was not heard clearly enough to measure keeps the general advice.
+        XCTAssertEqual(feedback([good, missed(1, expected: 110, observed: nil)]),
+                       "Listen to this phrase again and follow each note as it changes.")
+    }
+
     func testWithoutAMeasuredStartTheGeneralAdviceStays() {
         let unheard = rating([note(0, start: 0, onset: 0, timed: true), note(1, start: 2, onset: nil, timed: false)])
         XCTAssertNil(unheard.timingAdvice)
         XCTAssertTrue(unheard.feedback.hasPrefix("Start as the first bar reaches the line"))
+        XCTAssertTrue(unheard.feedback.hasSuffix("keep it going until the next."))
         let onTime = MelodyRating(status: .rated, notes: true, timing: true, clarity: true)
         XCTAssertTrue(onTime.feedback.hasPrefix("All three goals reached"))
     }

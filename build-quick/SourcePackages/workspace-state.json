@@ -1,0 +1,27 @@
+{
+  "object" : {
+    "artifacts" : [
+
+    ],
+    "dependencies" : [
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "cellopitch",
+          "kind" : "fileSystem",
+          "location" : "/Users/ronildo/Developer/cello-today/Packages/CelloPitch",
+          "name" : "CelloPitch"
+        },
+        "state" : {
+          "name" : "fileSystem",
+          "path" : "/Users/ronildo/Developer/cello-today/Packages/CelloPitch"
+        },
+        "subpath" : "cellopitch"
+      }
+    ],
+    "prebuilts" : [
+
+    ]
+  },
+  "version" : 7
+}

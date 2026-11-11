@@ -15,10 +15,41 @@ final class NoteDrillTests: XCTestCase {
 
     func testTwoPairsFollowTheNotesGoingHigherThenLower() {
         let drills = NoteDrill.drills(for: .hotCrossBuns)
-        XCTAssertEqual(drills.count, 5)
-        XCTAssertEqual(drills.suffix(2).map(\.title), ["G2 then B2 · going higher", "B2 then G2 · going lower"])
+        XCTAssertEqual(drills[3...4].map(\.title), ["G2 then B2 · going higher", "B2 then G2 · going lower"])
         XCTAssertEqual(NoteDrill.drills(for: .odeToJoy).suffix(2).map(\.midiNotes), [[43, 50], [50, 43]])
         XCTAssertEqual(Set(drills.map(\.id)).count, drills.count)
+    }
+
+    func testAMelodysQuickRepeatedNotesAreMetOnTheirOwnBeforeThePhraseThatNeedsThem() {
+        // Hot Cross Buns' third phrase is four quick G's then four quick A's.
+        let drills = NoteDrill.drills(for: .hotCrossBuns)
+        XCTAssertEqual(drills.count, 7)
+        let quick = Array(drills.suffix(2))
+        XCTAssertEqual(quick, NoteDrill.quickRepeats(for: .hotCrossBuns))
+        XCTAssertEqual(quick.map(\.title), ["G2 · 8 quick notes", "A2 · 8 quick notes"])
+        XCTAssertEqual(quick.map(\.chipLabel), ["G2 ×8", "A2 ×8"])
+        for drill in quick {
+            let events = drill.context.expectedEvents
+            XCTAssertEqual(events.map(\.onsetBeat), [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5], "The speed the melody asks for")
+            XCTAssertTrue(events.allSatisfy { $0.durationBeats == 0.5 && $0.midiNote == drill.midiNotes[0] })
+            XCTAssertEqual(drill.context.duration, 4)
+            XCTAssertTrue(drill.context.repeatsQuickNotes)
+        }
+        XCTAssertEqual(NoteDrill.quickRepeats(for: .hotCrossBuns, register: .cello).map(\.chipLabel), ["D3 ×8", "E3 ×8"])
+        XCTAssertTrue(NoteDrill.quickRepeats(for: .odeToJoy).isEmpty, "Ode to Joy repeats no note quickly")
+        XCTAssertEqual(NoteDrill.notes(for: .hotCrossBuns).count, 3, "The lesson still passes on its three notes")
+
+        // The advice goes wherever a note is repeated quickly, and nowhere else.
+        let phrase = { VoicePracticeMode.phrase(MelodyPiece.hotCrossBuns.humming(register: $0, section: $1)) }
+        XCTAssertTrue(try XCTUnwrap(phrase(.lowVoice, .phrase3).quickNotesHint).contains("doo-doo-doo-doo"))
+        XCTAssertTrue(try XCTUnwrap(phrase(.cello, .phrase3).quickNotesHint).contains("play each one separately"))
+        XCTAssertNotNil(phrase(.lowVoice, .whole).quickNotesHint)
+        XCTAssertNotNil(VoicePracticeMode.phrase(quick[0].context).quickNotesHint)
+        XCTAssertNil(phrase(.lowVoice, .phrase1).quickNotesHint)
+        XCTAssertNil(VoicePracticeMode.phrase(drills[3].context).quickNotesHint)
+        XCTAssertNil(VoicePracticeMode.note(.steadyHum).quickNotesHint)
+        XCTAssertNil(VoicePracticeMode.echo(EchoLevel.twoNotes.pattern(0, register: .lowVoice), level: .twoNotes).quickNotesHint,
+                     "An echo pattern repeats notes slowly")
     }
 
     func testEveryDrillIsAValidFrozenContextOfItsOwn() throws {
@@ -62,6 +93,9 @@ final class NoteDrillTests: XCTestCase {
         let pair = VoicePracticeMode.phrase(NoteDrill.drills(for: .hotCrossBuns)[3].context)
         XCTAssertEqual(pair.hearLabel, "Hear notes")
         XCTAssertEqual(pair.hearSpoken, "Hear notes, Reference G2 then B2")
+        let quick = VoicePracticeMode.phrase(NoteDrill.quickRepeats(for: .hotCrossBuns)[0].context)
+        XCTAssertEqual(quick.hearSpoken, "Hear notes, Reference G2, 8 quick notes")
+        XCTAssertEqual(quick.listenMessage, "Listen to the quick notes")
         XCTAssertEqual(VoicePracticeMode.phrase(MelodyPiece.hotCrossBuns.humming(register: .lowVoice, section: .phrase1)).hearLabel,
                        "Hear phrase")
     }

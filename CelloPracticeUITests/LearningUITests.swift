@@ -721,6 +721,17 @@ final class LearningUITests: XCTestCase {
         waitForRecord(in: app, timeout: 10)
         XCTAssertFalse(app.staticTexts["melodyRatingStars"].exists, "Hearing a note is not a take")
 
+        // A note the melody repeats quickly is met on its own, with advice on how to start it afresh.
+        XCTAssertFalse(app.staticTexts["quickNotesHint"].exists, "A held note needs no such advice")
+        XCTAssertTrue(app.buttons["part-A2 · 8 quick notes"].exists)
+        app.buttons["part-G2 · 8 quick notes"].tap()
+        let quick = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Cancel"), object: record)
+        XCTAssertEqual(XCTWaiter.wait(for: [quick], timeout: 4), .completed, "Choosing the quick notes plays them")
+        XCTAssertTrue(hear.label.hasPrefix("G2 · 8 quick notes"))
+        XCTAssertTrue(app.staticTexts["quickNotesHint"].label.contains("doo-doo-doo-doo"))
+        waitForRecord(in: app, timeout: 10)
+        screenshot("Hot Cross Buns · eight quick notes")
+
         // The same lesson on the cello: the same notes in the cello's key, with its own chips.
         let method = app.segmentedControls["practiceMethodPicker"]
         XCTAssertTrue(method.buttons["Voice"].isSelected)
