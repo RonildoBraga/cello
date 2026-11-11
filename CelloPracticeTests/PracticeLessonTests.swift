@@ -65,16 +65,17 @@ final class PracticeLessonTests: XCTestCase {
         let result = LessonScoreSummary(exercise: .steadyHum, targetFrequency: target,
                                         sessions: [latest, best] + excluded, completed: false)
         XCTAssertTrue(result.hasAttempts)
-        XCTAssertEqual(result.bestStars, 2)
         XCTAssertEqual(result.latestStars, 1)
+        XCTAssertEqual(PracticeProgressLedger().progress(for: .steadyHum, targetFrequency: target,
+                                                         sessions: [latest, best] + excluded).bestStars, 2)
     }
 
     func testEarnedCompletionProvesBestButDoesNotInventLatestAfterDeletion() {
         let result = LessonScoreSummary(exercise: .steadyHum, targetFrequency: HummingExample.frequency,
                                         sessions: [], completed: true)
         XCTAssertTrue(result.hasAttempts)
-        XCTAssertEqual(result.bestStars, 3)
         XCTAssertNil(result.latestStars)
+        XCTAssertEqual(PracticeProgress(stars: [], alreadyCompleted: true).bestStars, 3)
     }
 
     @MainActor
@@ -128,21 +129,22 @@ final class PracticeLessonTests: XCTestCase {
         let result = LessonScoreSummary(exercise: .steadyHum, targetFrequency: target,
             sessions: [legacy, session(at: 1, stars: 0, status: .insufficientSound)], completed: false)
         XCTAssertTrue(result.hasAttempts)
-        XCTAssertNil(result.bestStars)
         XCTAssertNil(result.latestStars)
+        XCTAssertNil(PracticeProgressLedger().progress(for: .steadyHum, targetFrequency: target,
+            sessions: [legacy, session(at: 1, stars: 0, status: .insufficientSound)]).bestStars)
 
         let neverStarted = LessonScoreSummary(exercise: .openC,
             targetFrequency: Exercise.openC.targetFrequency!, sessions: [legacy], completed: false)
         XCTAssertFalse(neverStarted.hasAttempts)
-        XCTAssertNil(neverStarted.bestStars)
         XCTAssertNil(neverStarted.latestStars)
     }
 
     func testARealZeroStarRatingRemainsARealScore() {
         let result = LessonScoreSummary(exercise: .steadyHum, targetFrequency: HummingExample.frequency,
                                         sessions: [session(at: 1, stars: 0)], completed: false)
-        XCTAssertEqual(result.bestStars, 0)
         XCTAssertEqual(result.latestStars, 0)
+        XCTAssertEqual(PracticeProgressLedger().progress(for: .steadyHum, targetFrequency: HummingExample.frequency,
+                                                         sessions: [session(at: 1, stars: 0)]).bestStars, 0)
     }
 
     private func session(at index: Int, stars: Int, exercise: Exercise = .steadyHum,

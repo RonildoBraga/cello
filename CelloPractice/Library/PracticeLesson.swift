@@ -123,11 +123,12 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
     }
 }
 
-/// Only saved ratings for this exact lesson, reference and scoring version are scores.
-/// Raw tuning measurements and legacy recordings never become star ratings here.
+/// A foundation lesson's saved takes: whether there are any, and the latest score.
+/// Only saved ratings for this exact lesson, reference and scoring version are scores;
+/// raw tuning measurements and legacy recordings never become star ratings here. The
+/// best score is not read here: it comes from the lesson's progress, which outlives its takes.
 struct LessonScoreSummary {
     let hasAttempts: Bool
-    let bestStars: Int?
     let latestStars: Int?
 
     init(exercise: Exercise, targetFrequency: Double, sessions: [PracticeSession], completed: Bool) {
@@ -143,9 +144,8 @@ struct LessonScoreSummary {
             if $0.createdAt != $1.createdAt { return $0.createdAt > $1.createdAt }
             return $0.id.uuidString > $1.id.uuidString
         }.compactMap { $0.rating?.starCount }
-        // The persisted milestone proves three-star takes were earned, even if
-        // their recordings were later deleted. It does not prove a latest score.
-        bestStars = completed ? 3 : scores.max()
+        // An earned milestone proves the lesson was practised even if its recordings
+        // were later deleted. It does not prove a latest score.
         latestStars = scores.first
     }
 }
