@@ -82,12 +82,12 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
             return [
                 "Tap Hear hum to listen to the human voice you’ll match.",
                 "Keep your lips softly together and your jaw relaxed. Take an easy breath.",
-                "Tap Record, follow 3–2–1, then hum gently for three seconds. Aim towards the centre of the bar; pause between tries."
+                "Tap Record, count 1–2–3–4, then hum gently for three seconds. Aim towards the centre of the bar; pause between tries."
             ]
         case .matchHum:
             return [
                 "Tap Hear hum whenever you want to hear the human example.",
-                "Tap Record, follow 3–2–1, then hum the same note for three seconds. Record does not play the example.",
+                "Tap Record, count 1–2–3–4, then hum the same note for three seconds. Record does not play the example.",
                 "Keep your lips softly together and your voice gentle. The bar follows the same note you heard."
             ]
         case .pulse:
@@ -98,13 +98,13 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
             ]
         case .twoTaps:
             return [
-                "Tap Start and wait through 4–3–2–1 before tapping. This lesson uses the Tap pad, not your voice.",
+                "Tap Start and count 1–2–3–4 with the app; your first tap is on the next 1. This lesson uses the Tap pad, not your voice.",
                 "Count 1 and 2 and: & means “and”. Tap with each vibration on a number, then once halfway to the next vibration for “and”.",
                 "Continue through 8 and, making 16 evenly spaced taps. The vibrations stay one second apart; your taps are half a second apart."
             ]
         case .mixedRhythm:
             return [
-                "Tap Start and wait through 4–3–2–1. Keep the same slow beat as Lesson 4.",
+                "Tap Start and count 1–2–3–4 with the app; your first tap is on the next 1. Keep the same slow beat as Lesson 4.",
                 "Tap once on 1, twice on 2-and, once on 3, twice on 4-and. Repeat with 5, 6-and, 7, 8-and. The vibration marks every number; & means “and”.",
                 "Leave space after the odd numbers. Add the halfway tap only after the even numbers. This makes 12 taps across eight beats."
             ]
@@ -120,7 +120,7 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
             return [
                 "Settle your cello and bow using the position your teacher shows you.",
                 "Play the \(string) string alone, without pressing it with a finger. Hear string plays its reference note.",
-                "Tap Record, follow 3–2–1, then play an even note. Tap Stop to finish."
+                "Tap Record, count 1–2–3–4, then play an even note. Tap Stop to finish."
             ]
         }
     }

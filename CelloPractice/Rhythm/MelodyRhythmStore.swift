@@ -53,17 +53,14 @@ struct MelodyRhythmAttempt: Codable, Identifiable, Equatable, Sendable {
 
     var cue: String {
         guard isScored else { return "Tap each note’s start through the whole phrase to get a score." }
-        if unexpectedTapCount > 0 {
-            return "Tap once when a note starts. Keep counting while a longer note continues."
-        }
-        if !patternGoal { return "Follow every note’s start, including the quick repeated notes." }
-        if !timingGoal {
-            return (medianOffsetMilliseconds ?? 0) < 0
-                ? "Let each note’s start arrive before you tap."
-                : "Try landing your taps a little earlier, with each note’s start."
-        }
-        if !consistencyGoal { return "Keep counting the steady beat as the note lengths change." }
-        return "The pattern and timing stayed steady. Try the next phrase when you feel ready."
+        // Only say "one beat late" when the first tap really landed a beat after the first note.
+        let beat = context.beatInterval
+        let oneBeatLate = zip(actualTapTimes.prefix(1), context.expectedTapTimes.prefix(1))
+            .contains { abs($0 - ($1 + beat)) <= beat * 0.3 }
+        return TapDiagnosis.feedback(kind: .melody, expected: expectedTapCount, offsets: offsets,
+                                     extras: unexpectedTapCount, oneBeatLate: oneBeatLate,
+                                     coverage: patternGoal || unexpectedTapCount > 0,
+                                     timing: timingGoal, evenness: consistencyGoal)
     }
 
     /// Keep version-one grading fixed; a changed rubric needs a new version.
@@ -94,7 +91,7 @@ struct MelodyRhythmAttempt: Codable, Identifiable, Equatable, Sendable {
               unexpectedTapCount >= 0,
               actualTapTimes.count == offsets.count + unexpectedTapCount,
               actualTapTimes.count <= Int(ceil(context.duration / 0.05)) + 1,
-              actualTapTimes.allSatisfy({ $0.isFinite && $0 >= 0 && $0 < context.duration }),
+              actualTapTimes.allSatisfy({ $0.isFinite && $0 >= -context.tapWindow(for: 0) - 1e-9 && $0 < context.duration }),
               zip(actualTapTimes, actualTapTimes.dropFirst()).allSatisfy({ pair in
                   pair.1 - pair.0 + 1e-9 >= MelodyRhythmTiming.duplicateInterval
               }),

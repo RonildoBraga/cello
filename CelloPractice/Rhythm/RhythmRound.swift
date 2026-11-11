@@ -14,6 +14,11 @@ enum RhythmPhase: Equatable {
 protocol RhythmRoundTiming {
     var startTime: TimeInterval { get }
     var beatInterval: TimeInterval { get }
+    /// When the first practice beat falls, after the count-in.
+    var practiceStartTime: TimeInterval { get }
+    /// When each tap is due, in seconds from the first practice beat.
+    var tapTimes: [TimeInterval] { get }
+    var endTime: TimeInterval { get }
     var offsets: [Int: TimeInterval] { get }
     var unexpectedTapCount: Int { get }
     func phase(at time: TimeInterval) -> RhythmPhase
@@ -100,9 +105,10 @@ final class RhythmRound<Timing: RhythmRoundTiming>: ObservableObject {
         if !finished { timing = nil }
     }
 
-    func tap() {
+    /// `time` is when the finger touched the screen, on the system uptime clock.
+    func tap(at time: TimeInterval = ProcessInfo.processInfo.systemUptime) {
         guard running else { return }
-        timing?.recordTap(at: ProcessInfo.processInfo.systemUptime)
+        timing?.recordTap(at: time)
     }
 }
 
@@ -153,14 +159,23 @@ struct RhythmTapCard<Timing: RhythmRoundTiming, Idle: View>: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            if round.timing != nil {
-                Button { round.tap() } label: {
-                    Label("Tap", systemImage: "hand.tap").font(.headline)
-                        .frame(maxWidth: .infinity, minHeight: 72)
-                        .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: Layout.controlRadius))
-                }.buttonStyle(.plain).disabled(!round.canTap).opacity(round.canTap ? 1 : 0.45)
-                    .accessibilityLabel(tapLabel).accessibilityHint(tapHint)
-                    .accessibilityIdentifier(identifiers.tap)
+            if let timing = round.timing {
+                if round.running {
+                    BeatLane(elapsed: round.now - timing.practiceStartTime, beatInterval: timing.beatInterval,
+                             countInBeats: Int(((timing.practiceStartTime - timing.startTime) / timing.beatInterval).rounded()),
+                             duration: timing.endTime - timing.practiceStartTime,
+                             marks: timing.tapTimes.enumerated().map {
+                                 LaneMark(start: $1, hit: timing.offsets[$0] != nil)
+                             }).frame(height: 58)
+                }
+                Label("Tap", systemImage: "hand.tap").font(.headline)
+                    .frame(maxWidth: .infinity, minHeight: 72)
+                    .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: Layout.controlRadius))
+                    .opacity(round.canTap ? 1 : 0.45).accessibilityHidden(true)
+                    .overlay {
+                        TapSurface(isEnabled: round.canTap, label: tapLabel, hint: tapHint,
+                                   identifier: identifiers.tap) { round.tap(at: $0) }
+                    }
             }
             Text(count).font(.caption).foregroundStyle(.white.opacity(0.7))
                 .accessibilityIdentifier(identifiers.count)
@@ -183,7 +198,8 @@ struct RhythmTapCard<Timing: RhythmRoundTiming, Idle: View>: View {
         if listening { return "♪" }
         guard let timing = round.timing else { return "—" }
         switch timing.phase(at: round.now) {
-        case .countIn(let remaining): return "\(remaining)"
+        // Count in the way music is counted, 1 2 3 4, so the first tap is the next 1.
+        case .countIn(let remaining): return "\(5 - remaining)"
         case .tapping(let tap): return beatLabel(timing, tap, round.now)
         case .finished: return "✓"
         }
@@ -211,5 +227,42 @@ struct RhythmStartButton<Timing: RhythmRoundTiming>: View {
             Label(round.running ? "Stop" : listening ? "Cancel" : round.timing == nil ? "Start" : "Try again",
                   systemImage: round.running || listening ? "stop.fill" : "play.fill")
         }.buttonStyle(PrimaryActionButtonStyle())
+    }
+}
+
+/// The tap pad's touch surface. A SwiftUI button reports a tap when the finger
+/// lifts and only once the scroll view has let the touch through; this reports
+/// the moment the finger landed, from the touch's own timestamp.
+private struct TapSurface: UIViewRepresentable {
+    let isEnabled: Bool
+    let label: String
+    let hint: String
+    let identifier: String
+    let onTouchDown: (TimeInterval) -> Void
+
+    func makeUIView(context: Context) -> Pad { Pad() }
+
+    func updateUIView(_ pad: Pad, context: Context) {
+        pad.onTouchDown = onTouchDown
+        pad.isUserInteractionEnabled = isEnabled
+        pad.isAccessibilityElement = true
+        pad.accessibilityLabel = label
+        pad.accessibilityHint = hint
+        pad.accessibilityIdentifier = identifier
+        pad.accessibilityTraits = isEnabled ? .button : [.button, .notEnabled]
+    }
+
+    final class Pad: UIView {
+        var onTouchDown: ((TimeInterval) -> Void)?
+
+        override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+            if let touch = touches.first { onTouchDown?(touch.timestamp) }
+        }
+
+        /// VoiceOver and Switch Control activate the pad without a touch.
+        override func accessibilityActivate() -> Bool {
+            onTouchDown?(ProcessInfo.processInfo.systemUptime)
+            return true
+        }
     }
 }

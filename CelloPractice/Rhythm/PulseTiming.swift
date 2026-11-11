@@ -19,6 +19,9 @@ struct PulseTiming: RhythmRoundTiming {
         self.exercise = exercise
     }
 
+    var practiceStartTime: TimeInterval { startTime + Double(Self.countInBeats) * Self.beatInterval }
+    var tapTimes: [TimeInterval] { exercise.tapTimes }
+
     var endTime: TimeInterval {
         startTime + Double(Self.countInBeats) * Self.beatInterval + exercise.practiceDuration
     }

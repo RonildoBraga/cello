@@ -72,6 +72,7 @@ struct MelodyRhythmTiming: RhythmRoundTiming {
     var beatInterval: TimeInterval { context.beatInterval }
     var practiceStartTime: TimeInterval { startTime + context.countInDuration }
     var endTime: TimeInterval { practiceStartTime + context.duration }
+    var tapTimes: [TimeInterval] { context.expectedTapTimes }
 
     private var hasValidClock: Bool {
         context.isValid && startTime.isFinite && startTime >= 0
@@ -92,9 +93,10 @@ struct MelodyRhythmTiming: RhythmRoundTiming {
     }
 
     /// Keep the pad active through the whole phrase, including continuing long
-    /// notes and rests. An unwanted touch there must remain observable.
+    /// notes and rests. An unwanted touch there must remain observable. It opens
+    /// just before the first note, so a tap a touch early still counts.
     func canTap(at time: TimeInterval) -> Bool {
-        hasValidClock && time.isFinite && time >= practiceStartTime && time < endTime
+        hasValidClock && time.isFinite && time >= practiceStartTime - context.tapWindow(for: 0) && time < endTime
     }
 
     @discardableResult

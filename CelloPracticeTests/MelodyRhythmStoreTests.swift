@@ -32,7 +32,7 @@ final class MelodyRhythmStoreTests: XCTestCase {
         XCTAssertTrue(result.timingGoal)
         XCTAssertTrue(result.consistencyGoal)
         XCTAssertEqual(result.starCount, 2, "An extra beat during the long final note must prevent three stars")
-        XCTAssertTrue(result.cue.contains("longer note"))
+        XCTAssertTrue(result.cue.contains("1 tap landed where no note starts"))
     }
 
     func testDuplicateCallbackIsIgnoredButAnotherPressCostsPatternStar() throws {

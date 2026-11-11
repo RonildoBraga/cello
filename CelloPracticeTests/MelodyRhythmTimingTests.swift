@@ -33,7 +33,8 @@ final class MelodyRhythmTimingTests: XCTestCase {
         XCTAssertEqual(timing.phase(at: 105.4), .tapping(2))
         XCTAssertEqual(timing.phase(at: 107.99), .tapping(3))
         XCTAssertEqual(timing.phase(at: 108), .finished)
-        XCTAssertFalse(timing.canTap(at: 103.99))
+        XCTAssertFalse(timing.canTap(at: 103.5), "The count-in is not for tapping")
+        XCTAssertTrue(timing.canTap(at: 103.99), "The first note may be met a touch early")
         XCTAssertTrue(timing.canTap(at: 107.99))
         XCTAssertFalse(timing.canTap(at: 108))
     }
@@ -114,11 +115,22 @@ final class MelodyRhythmTimingTests: XCTestCase {
 
     func testMissingNotesHaveNoOffsetsAndCountInTouchesDoNotBecomeAttempts() throws {
         var timing = MelodyRhythmTiming(startTime: 100, context: try .hotCrossBuns())
-        for time in [100.0, 101, 102, 103, 103.999] { XCTAssertFalse(timing.recordTap(at: time)) }
-        XCTAssertTrue(timing.recordTap(at: 105))
-        XCTAssertEqual(Set(timing.offsets.keys), [1])
-        XCTAssertEqual(timing.actualTapTimes, [1])
+        for time in [100.0, 101, 102, 103] { XCTAssertFalse(timing.recordTap(at: time)) }
+        XCTAssertTrue(timing.recordTap(at: 106))
+        XCTAssertEqual(Set(timing.offsets.keys), [2])
+        XCTAssertEqual(timing.actualTapTimes, [2])
         XCTAssertEqual(timing.unexpectedTapCount, 0)
+    }
+
+    func testAFirstTapATouchEarlyCountsForTheFirstNote() throws {
+        var timing = MelodyRhythmTiming(startTime: 100, context: try .hotCrossBuns())
+        XCTAssertTrue(timing.recordTap(at: 103.95), "Meeting the first note slightly early is still a tap")
+        XCTAssertEqual(try XCTUnwrap(timing.offsets[0]), -0.05, accuracy: 1e-9)
+        XCTAssertTrue(timing.recordTap(at: 105))
+        XCTAssertTrue(timing.recordTap(at: 106))
+        XCTAssertEqual(timing.unexpectedTapCount, 0)
+        let attempt = try XCTUnwrap(MelodyRhythmAttempt(timing: timing, finishedAt: timing.endTime))
+        XCTAssertEqual(attempt.starCount, 3, "An early first tap is graded like any other tap")
     }
 
     func testExplicitRestAndUnwrittenGapHaveNoExpectedTap() {

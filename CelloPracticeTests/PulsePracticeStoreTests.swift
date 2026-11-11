@@ -264,7 +264,7 @@ final class PulsePracticeStoreTests: XCTestCase {
         XCTAssertTrue(wrongPattern.timingGoal)
         XCTAssertTrue(wrongPattern.evennessGoal)
         XCTAssertEqual(wrongPattern.starCount, 2, "Continuing Lesson 4's rhythm must not complete Lesson 5")
-        XCTAssertTrue(wrongPattern.cue.contains("odd numbers"))
+        XCTAssertTrue(wrongPattern.cue.contains("Beats 1, 3, 5 and 7 get one tap"))
     }
 
     func testMixedRhythmHistoryProgressAndUnexpectedTapsStayInTheirOwnFile() throws {

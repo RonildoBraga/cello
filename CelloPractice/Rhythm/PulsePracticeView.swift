@@ -82,8 +82,8 @@ struct PulsePracticeView<Header: View>: View {
             Text(mixed ? "Tap with every vibration. Add an ‘and’ halfway after 2, 4, 6 and 8; leave the space after 1, 3, 5 and 7."
                  : "& means “and”. Tap the pad with each vibration on a number, then once halfway to the next vibration.")
                 .font(.subheadline).foregroundStyle(.white.opacity(0.85))
-            Text(mixed ? "Tap Start, wait for 4–3–2–1, then count through 8 &: 12 taps across 8 beats."
-                 : "Tap Start, wait for 4–3–2–1, then keep going to 8 &. No humming needed.")
+            Text(mixed ? "Tap Start, count 1–2–3–4, then count through 8 &: 12 taps across 8 beats."
+                 : "Tap Start, count 1–2–3–4, then keep going to 8 &. No humming needed.")
                 .font(.caption).foregroundStyle(.white.opacity(0.70))
         }.fixedSize(horizontal: false, vertical: true).foregroundStyle(.white)
             .accessibilityElement(children: .contain)
@@ -113,11 +113,11 @@ struct PulsePracticeView<Header: View>: View {
 
     private var phaseCue: String {
         guard let timing = round.timing, let phase = round.phase else {
-            return store.exercise == .pulse ? "Watch four count-in beats, then tap 16 pulses."
+            return store.exercise == .pulse ? "Count 1–2–3–4 with the app, then tap 16 beats as each dot reaches the line."
                 : "Count in four beats, then tap 1 & 2 & across 8 beats."
         }
         switch phase {
-        case .countIn: return "Get ready to tap."
+        case .countIn: return "Count 1–2–3–4. Tap when the first dot reaches the line."
         case .tapping:
             return timing.exercise == .pulse ? "Keep an even beat."
                 : timing.exercise == .twoTaps ? "Tap on each number and &." : "One tap on odd numbers; two on even numbers."
@@ -131,8 +131,7 @@ struct PulsePracticeView<Header: View>: View {
         let noun = mixed ? "places" : attempt.exercise == .pulse ? "beats" : "taps"
         let coverageRule = "\(goalTitle) · Tap at least \(attempt.exercise.coverageTarget) of the \(attempt.exercise.tapCount) \(noun)"
             + (mixed ? ", with no more than one extra tap." : ".")
-        let feedback = (attempt.starCount == 3 ? "All three goals reached." : attempt.cue)
-            + (mixed ? " \(attempt.unexpectedTapCount) extra taps." : "")
+        let feedback = attempt.cue + (mixed ? " \(attempt.unexpectedTapCount) extra taps." : "")
         return PracticeResultCard(starCount: attempt.starCount, goals: [
             PracticeGoal(title: goalTitle, earned: attempt.beatsGoal, identifier: "pulse.beats"),
             PracticeGoal(title: "Timing", earned: attempt.timingGoal, identifier: "pulse.timing"),

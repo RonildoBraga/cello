@@ -53,6 +53,34 @@ enum VoicePracticeMode: Equatable {
     var duration: TimeInterval { melodyContext?.duration ?? 3 }
     var meterRange: Double { exercise.usesComfortableTarget ? 200 : 50 }
 
+    // MARK: The lane
+
+    /// Seconds per count-in beat: the melody's own beat, or one second.
+    var beatInterval: TimeInterval { melodyContext.map { 60 / Double($0.tempoBPM) } ?? 1 }
+
+    /// The notes to hum as bars on the lane; empty for a take with no set length.
+    /// Echo keeps its bars level and unnamed, so the count-in gives nothing away.
+    var laneMarks: [LaneMark] {
+        guard let context = melodyContext else {
+            guard isTimed else { return [] }
+            return [LaneMark(start: 0, length: duration,
+                             label: TunerReading(frequency: targetFrequency, targetFrequency: nil).noteName)]
+        }
+        let notes = context.expectedEvents.compactMap(\.midiNote)
+        let low = notes.min() ?? 0
+        let span = max(1, (notes.max() ?? 0) - low)
+        let names = context.noteNames
+        var pitched = 0
+        return context.expectedEvents.compactMap { event in
+            guard let note = event.midiNote else { return nil }
+            defer { pitched += 1 }
+            // The reference leaves the last eighth of each note silent; the bar shows that pause.
+            return LaneMark(start: event.onsetBeat * beatInterval, length: event.durationBeats * beatInterval * 0.88,
+                            label: isEcho ? nil : names[pitched],
+                            level: isEcho || notes.min() == notes.max() ? 0.5 : Double(note - low) / Double(span))
+        }
+    }
+
     // MARK: How the screen behaves
 
     var isEcho: Bool {
@@ -128,9 +156,9 @@ enum VoicePracticeMode: Equatable {
 
     func idleMessage(referenceHeard: Bool) -> String {
         switch self {
-        case .note: return "Record starts with 3–2–1"
-        case .phrase(let context): return "3–2–1, then hum for \(Int(context.duration)) seconds"
-        case .echo: return referenceHeard ? "Tap Record, then hum after 3–2–1." : "Tap Hear pattern first."
+        case .note: return "Record counts 1–2–3–4 first"
+        case .phrase(let context): return "1–2–3–4, then hum for \(Int(context.duration)) seconds"
+        case .echo: return referenceHeard ? "Tap Record, then hum after 1–2–3–4." : "Tap Hear pattern first."
         }
     }
 

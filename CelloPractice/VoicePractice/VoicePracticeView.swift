@@ -18,7 +18,11 @@ struct VoicePracticeView<Header: View>: View {
     @State private var pendingRecord = false
     @State private var flowToken = UUID()
     @State private var cameraExpanded = false
+    /// Count-in beats still to come; shown counting up as 1 2 3 4.
     @State private var countInSeconds = 0
+    /// The moment, on the system uptime clock, when the lane's time is zero:
+    /// the end of the count-in, then the true start of the recording.
+    @State private var laneZero: TimeInterval?
     @State private var countInTask: Task<Void, Never>?
     @State private var restSeconds = 0
     @State private var restTask: Task<Void, Never>?
@@ -101,10 +105,14 @@ struct VoicePracticeView<Header: View>: View {
             }
             .onChange(of: capture.isRecording) { _, recording in
                 guard isVisible else { return }
-                if recording { phase = .recording }
+                if recording {
+                    phase = .recording
+                    laneZero = ProcessInfo.processInfo.systemUptime - capture.elapsed
+                }
                 else if phase == .recording || phase == .startingRecording {
                     let needsRest = timedRecording && isVisible
                     phase = .idle
+                    laneZero = nil
                     timedRecording = false
                     stopRequested = false
                     if needsRest { beginRest() }
@@ -148,7 +156,7 @@ struct VoicePracticeView<Header: View>: View {
                                 .font(.subheadline.weight(.medium)).foregroundStyle(Palette.forest)
                         }
                     } else {
-                        statusCard
+                        statusCard.id("statusCard")
                         if showsIdleContent { lessonProgress }
                     }
                     if capture.isReady && mode.recordsVideo {
@@ -160,6 +168,10 @@ struct VoicePracticeView<Header: View>: View {
                         Text(error).font(.footnote).foregroundStyle(.red)
                     }
                 }.screenContent()
+            }
+            // Bring the lane, the note and the tuning bar into view together for the take.
+            .onChange(of: laneZero != nil) { _, showsLane in
+                if showsLane { withAnimation { scroll.scrollTo("statusCard", anchor: .top) } }
             }
             .onChange(of: latestSession?.id) { _, id in
                 withAnimation {
@@ -262,6 +274,15 @@ struct VoicePracticeView<Header: View>: View {
                     .foregroundStyle(.white.opacity(0.85)).frame(minHeight: 22)
                     .accessibilityIdentifier("livePitchFeedback")
             }.padding(.vertical, 4)
+            if let laneZero, !saving, !mode.laneMarks.isEmpty {
+                // The notes travel to the line through the count-in and the take. Between
+                // the count-in ending and the recorder starting, the first note waits at the line.
+                TimelineView(.animation) { _ in
+                    let elapsed = ProcessInfo.processInfo.systemUptime - laneZero
+                    BeatLane(elapsed: capture.isRecording ? elapsed : min(0, elapsed), beatInterval: mode.beatInterval,
+                             duration: mode.duration, marks: mode.laneMarks)
+                }.frame(height: 66)
+            }
             if showsMeter {
                 PitchMeter(cents: reading.cents ?? 0,
                            active: currentTarget != nil && reading.cents != nil && !isBusy && !saving,
@@ -293,7 +314,7 @@ struct VoicePracticeView<Header: View>: View {
     }
 
     private var statusTitle: String {
-        if countInSeconds > 0 { return "\(countInSeconds)" }
+        if countInSeconds > 0 { return "\(Self.countInBeats + 1 - countInSeconds)" }
         if phase == .previewing { return "Listen" }
         guard showsMeter else { return mode.idleTitle }
         if phase == .preparing || phase == .startingRecording { return "Get ready" }
@@ -379,7 +400,9 @@ struct VoicePracticeView<Header: View>: View {
         let token = flowToken
         countInTask?.cancel()
         countInTask = Task { @MainActor in
-            guard await countDown(to: $countInSeconds, token: token), phase == .counting else { return }
+            laneZero = ProcessInfo.processInfo.systemUptime + Double(Self.countInBeats) * mode.beatInterval
+            guard await countDown(to: $countInSeconds, beats: Self.countInBeats, beatInterval: mode.beatInterval,
+                                  token: token), phase == .counting else { return }
             guard scenePhase == .active, capture.isReady else {
                 cancelFlow(stopCapture: false)
                 return
@@ -391,18 +414,22 @@ struct VoicePracticeView<Header: View>: View {
         }
     }
 
-    /// Counts three seconds down on the monotonic clock. False when cancelled or superseded.
-    private func countDown(to seconds: Binding<Int>, token: UUID) async -> Bool {
-        seconds.wrappedValue = 3
-        let deadline = ProcessInfo.processInfo.systemUptime + 3
+    /// Like tapping, a take counts in four beats at its own tempo: 1 2 3 4.
+    private static var countInBeats: Int { 4 }
+
+    /// Counts beats down on the monotonic clock. False when cancelled or superseded.
+    private func countDown(to beats: Binding<Int>, beats total: Int = 3, beatInterval: TimeInterval = 1,
+                           token: UUID) async -> Bool {
+        beats.wrappedValue = total
+        let deadline = ProcessInfo.processInfo.systemUptime + Double(total) * beatInterval
         while !Task.isCancelled && token == flowToken {
             let remaining = deadline - ProcessInfo.processInfo.systemUptime
             if remaining <= 0 {
-                seconds.wrappedValue = 0
+                beats.wrappedValue = 0
                 return true
             }
-            seconds.wrappedValue = Int(ceil(remaining))
-            do { try await Task.sleep(nanoseconds: 100_000_000) }
+            beats.wrappedValue = Int(ceil(remaining / beatInterval))
+            do { try await Task.sleep(nanoseconds: 50_000_000) }
             catch { return false }
         }
         return false
@@ -444,6 +471,7 @@ struct VoicePracticeView<Header: View>: View {
         countInTask?.cancel()
         countInTask = nil
         countInSeconds = 0
+        laneZero = nil
         restTask?.cancel()
         restTask = nil
         restSeconds = 0

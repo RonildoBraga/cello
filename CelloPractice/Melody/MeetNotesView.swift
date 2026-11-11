@@ -26,7 +26,7 @@ struct MeetNotesView: View {
         VoicePracticeView(store: store, capture: capture, mode: .phrase(context),
                           nextPhrase: next.map { next in (next.title, { drill = next }) }) { locked in
             VStack(alignment: .leading, spacing: 17) {
-                LessonHeader(subtitle: "This melody uses \(NoteDrill.notes(for: piece).count) notes. Hear one, then hum it back after 3–2–1. The bar shows how close you are.",
+                LessonHeader(subtitle: "This melody uses \(NoteDrill.notes(for: piece).count) notes. Hear one, then hum it back after the count of 1–2–3–4. The bar shows how close you are.",
                              collapsesSubtitle: store.melodyProgress(for: context).successfulAttempts > 0)
                 HStack {
                     ChoiceMenu(choices: drills, selection: $drill, name: "Note", title: \.title) {

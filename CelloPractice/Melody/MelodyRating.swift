@@ -66,6 +66,24 @@ struct MelodyRating: Codable, Equatable, Sendable {
 
     var goalReached: Bool { starCount == 3 }
 
+    /// Names the first note whose timing was off, how far, and what to do.
+    var timingAdvice: String? {
+        guard let note = noteResults.first(where: { $0.expectedFrequency != nil && !$0.timed }),
+              let frequency = note.expectedFrequency, let onset = note.observedOnset else { return nil }
+        let position = noteResults.filter { $0.expectedFrequency != nil }.firstIndex(of: note) ?? 0
+        let name = "\(position == 0 ? "The first note" : "Note \(position + 1)") "
+            + "(\(TunerReading(frequency: frequency, targetFrequency: nil).noteName))"
+        let offset = onset - note.expectedStart
+        // The same allowance the rating uses for a note's start.
+        guard abs(offset) > min(0.20, note.expectedDuration * 0.35) else {
+            return "\(name) stopped too soon. Hold it until its bar has passed the line."
+        }
+        let amount = String(format: "%.1f", abs(offset))
+        return "\(name) started \(amount) s \(offset > 0 ? "late" : "early"). "
+            + (position == 0 ? "Start as its bar reaches the line, right after the count of 4."
+               : "Change as its bar reaches the line.")
+    }
+
     /// One next action, rather than several competing instructions.
     var feedback: String {
         switch status {
@@ -76,7 +94,9 @@ struct MelodyRating: Codable, Equatable, Sendable {
         case .rated:
             if octaveMismatch { return "Your hum was in a different octave. Choose a comfortable voice register and match its first note." }
             if !notes { return "Listen to this phrase again and follow each note as it changes." }
-            if !timing { return "Start when the countdown ends, then follow the note lengths. Separate the quick repeated notes gently." }
+            if !timing {
+                return timingAdvice ?? "Start as the first bar reaches the line, then follow the note lengths. Separate the quick repeated notes gently."
+            }
             if !clarity { return "Keep a gentle, clear hum going through each note." }
             return "All three goals reached. Try this phrase again, then move to the next one."
         }
