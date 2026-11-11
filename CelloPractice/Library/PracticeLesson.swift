@@ -12,8 +12,11 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    /// A lesson with a cello side can be practised by voice or on the cello.
-    var hasCelloSide: Bool { self == .steadyHum }
+    /// A recorded lesson can be practised by voice or on the cello; a tapping lesson uses the screen.
+    var isRecorded: Bool {
+        if case .recording = activity { return true }
+        return false
+    }
 
     var activity: LessonActivity {
         switch self {
@@ -44,7 +47,7 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
     var purpose: String {
         switch self {
         case .steadyHum: return "Hold one gentle note and let it settle, with your voice or on an open string."
-        case .matchHum: return "Listen to a note, remember it, then hum it back."
+        case .matchHum: return "Listen to a note, remember it, then hum or play it back."
         case .pulse: return "Find an even beat with your hands."
         case .twoTaps: return "Keep the slow beat and add an even tap between beats."
         case .mixedRhythm: return "Switch between one tap and two taps while the beat stays steady."
@@ -56,7 +59,8 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
         switch self {
         case .steadyHum: return method == .cello ? "Play one open string steadily, then tap Stop."
             : "Hum one note for three seconds."
-        case .matchHum: return "Listen, then hum the same note."
+        case .matchHum: return method == .cello ? "Listen to an open string, then play the same one."
+            : "Listen, then hum the same note."
         case .pulse: return "Tap an even beat."
         case .twoTaps: return "Count 1 & 2 & and tap on each."
         case .mixedRhythm: return "Count 1, 2 &, 3, 4 & and tap on each."
@@ -76,7 +80,8 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
             return [
                 "Tap the note at the top whenever you want to hear the human example.",
                 "Tap Record, count 1–2–3–4, then hum the same note for three seconds. Record does not play the example.",
-                "Keep your lips softly together and your voice gentle. The bar follows the same note you heard."
+                "Keep your lips softly together and your voice gentle. The bar follows the same note you heard.",
+                "With a cello, choose Cello on the practice screen: hear an open string, then play the same one."
             ]
         case .pulse:
             return [

@@ -8,6 +8,7 @@ struct MelodyHummingView: View {
     @State private var section: MelodySection
     /// A chip was tapped to switch phrase: the phrase it shows plays once.
     @State private var hearOnArrival = false
+    @Environment(\.practiceMethod) private var method
 
     init(store: SessionStore, capture: CaptureController, piece: MelodyPiece, section: MelodySection = .phrase1) {
         self.store = store
@@ -16,7 +17,7 @@ struct MelodyHummingView: View {
         _section = State(initialValue: section)
     }
 
-    private var context: MelodyPracticeContext { piece.humming(register: .lowVoice, section: section) }
+    private var context: MelodyPracticeContext { piece.humming(register: method.wrappedValue.register, section: section) }
 
     /// Hum it steps through the four phrases; Whole melody is one part and a lesson of its own.
     private var parts: LessonParts? {
@@ -35,7 +36,7 @@ struct MelodyHummingView: View {
                 PartStrip(parts: section == .whole ? [.whole] : MelodySection.phrases, selection: $section,
                           leading: section == .whole ? nil : "Phrase",
                           short: { $0 == .whole ? $0.title : $0.chipLabel }, title: \.title,
-                          progress: { store.melodyProgress(for: piece.humming(register: .lowVoice, section: $0)) },
+                          progress: { store.melodyProgress(for: piece.humming(register: method.wrappedValue.register, section: $0)) },
                           hear: PartHearing(spoken: mode.hearSpoken, identifier: "previewTargetButton") { changed in
                               if changed { hearOnArrival = true } else { controls.hear() }
                           })
@@ -47,7 +48,7 @@ struct MelodyHummingView: View {
                                 elapsed: capture.isRecording ? capture.elapsed
                                     : capture.isPlayingReference ? capture.referenceElapsed : nil)
             }.id("practiceTop")
-        }.id("\(piece.rawValue)|\(section.rawValue)")
-            .background(Palette.paper).screenTitle(piece.title)
+        }.id("\(piece.rawValue)|\(section.rawValue)|\(method.wrappedValue.rawValue)")
+            .background(Palette.paper).screenTitle(piece.title, methodSwitch: capture)
     }
 }

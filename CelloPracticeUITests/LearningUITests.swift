@@ -719,6 +719,18 @@ final class LearningUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [again], timeout: 3), .completed, "The chip on show replays its note")
         waitForRecord(in: app, timeout: 10)
         XCTAssertFalse(app.staticTexts["melodyRatingStars"].exists, "Hearing a note is not a take")
+
+        // The same lesson on the cello: the same notes in the cello's key, with its own chips.
+        let method = app.segmentedControls["practiceMethodPicker"]
+        XCTAssertTrue(method.buttons["Voice"].isSelected)
+        XCTAssertFalse(app.buttons["celloIntroductionLink"].exists)
+        method.buttons["Cello"].tap()
+        XCTAssertTrue(app.buttons["part-E3"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["previewTargetButton"].label.hasPrefix("D3"))
+        XCTAssertTrue(app.buttons["celloIntroductionLink"].exists, "On the cello, Meet your cello is one tap away")
+        screenshot("Hot Cross Buns · meet the notes on the cello")
+        method.buttons["Voice"].tap()
+        XCTAssertTrue(app.buttons["part-A2"].waitForExistence(timeout: 5))
         assertNoWrittenInput(in: app)
         assertNoPermissionAlerts(in: app)
     }
@@ -1889,7 +1901,9 @@ final class LearningUITests: XCTestCase {
 
     /// Opens a lesson's practice screen the way a learner does: the path, the
     /// lesson page, then Start. An open string is the cello's side of Steady
-    /// note: the lesson is opened, then Cello and the string are chosen.
+    /// note: the lesson is opened, then Cello and the string are chosen. The
+    /// method stays as chosen for the rest of a launch, so a recorded lesson
+    /// asked for by name chooses Voice.
     private func startLesson(_ title: String, in app: XCUIApplication) {
         let string = title.hasPrefix("Open ") ? title : nil
         let lesson = string == nil ? title : "Steady note"
@@ -1898,7 +1912,7 @@ final class LearningUITests: XCTestCase {
         let heading = app.staticTexts["practiceLessonTitle"]
         XCTAssertTrue(heading.waitForExistence(timeout: 5))
         XCTAssertEqual(heading.label, lesson)
-        guard lesson == "Steady note" else { return }
+        guard ["Steady note", "Listen & match"].contains(lesson) else { return }
         let method = app.segmentedControls["practiceMethodPicker"].buttons[string == nil ? "Voice" : "Cello"]
         XCTAssertTrue(method.waitForExistence(timeout: 5))
         if !method.isSelected { method.tap() }

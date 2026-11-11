@@ -30,13 +30,13 @@ enum EchoLevel: String, CaseIterable, Identifiable, Codable, Sendable {
     }
 
     func rangeLabel(for register: MelodyRegister) -> String {
-        guard register != .cello else { return "—" }
         switch (self, register) {
         case (.twoNotes, .lowVoice): return "G2–B2"
         case (.twoNotes, .higherVoice): return "G3–B3"
         case (.threeNotes, .lowVoice): return "G2–D3"
         case (.threeNotes, .higherVoice): return "G3–D4"
-        default: return "—"
+        case (.twoNotes, .cello): return "D3–F♯3"
+        case (.threeNotes, .cello): return "D3–A3"
         }
     }
 
@@ -45,7 +45,7 @@ enum EchoLevel: String, CaseIterable, Identifiable, Codable, Sendable {
                     gradingVersion: MelodyRating.currentVersion)
     }
 
-    /// A fresh pattern for the practice screen, which offers only the two voice registers.
+    /// A fresh pattern for the practice screen, in the voice's or the cello's register.
     func newPattern(register: MelodyRegister, excluding previous: Int?) -> (index: Int, context: MelodyPracticeContext) {
         let index = nextPatternIndex(excluding: previous)
         return (index, build(patternIndex: index, register: register, gradingVersion: MelodyRating.currentVersion))
@@ -53,7 +53,6 @@ enum EchoLevel: String, CaseIterable, Identifiable, Codable, Sendable {
 
     private func context(patternIndex: Int, register: MelodyRegister,
                          gradingVersion: Int) throws -> MelodyPracticeContext {
-        guard register != .cello else { throw ContextError.voiceRegisterRequired }
         guard patterns.indices.contains(patternIndex) else { throw ContextError.invalidPattern }
         return build(patternIndex: patternIndex, register: register, gradingVersion: gradingVersion)
     }
@@ -90,7 +89,7 @@ enum EchoLevel: String, CaseIterable, Identifiable, Codable, Sendable {
     /// identify a changed score, tempo, register or arbitrary notes. Known historical
     /// grading versions remain recognisable without becoming current achievements.
     static func selection(for context: MelodyPracticeContext) -> (level: EchoLevel, patternIndex: Int)? {
-        guard context.isValid, context.register != .cello,
+        guard context.isValid,
               let gradingVersion = context.gradingVersion, [1, 2].contains(gradingVersion),
               let level = allCases.first(where: { $0.pieceID == context.pieceID }) else { return nil }
         for index in 0..<level.patternCount {
@@ -102,11 +101,10 @@ enum EchoLevel: String, CaseIterable, Identifiable, Codable, Sendable {
     }
 
     enum ContextError: LocalizedError {
-        case voiceRegisterRequired, invalidPattern
+        case invalidPattern
 
         var errorDescription: String? {
             switch self {
-            case .voiceRegisterRequired: return "Listen & Echo uses the low voice."
             case .invalidPattern: return "This echo pattern is unavailable. Choose a new pattern."
             }
         }
@@ -142,7 +140,6 @@ struct EchoProgressLedger: SessionProgressLedger {
     }
 
     private static func key(for level: EchoLevel, register: MelodyRegister) -> String? {
-        guard register != .cello else { return nil }
         // Full canonical catalogue captures level, voice, pitch/timing, key,
         // tuning and both versions, while deliberately aggregating its patterns.
         let contexts = (0..<level.patternCount).compactMap {
@@ -160,13 +157,13 @@ struct EchoProgressLedger: SessionProgressLedger {
 extension MelodyRating {
     var echoFeedback: String {
         switch status {
-        case .insufficientSound: return "Hum the whole pattern after the countdown."
-        case .unclear: return "The sound was not clear enough to score. Try a gentle hum in a quieter spot."
+        case .insufficientSound: return "Start after the countdown and go through the whole pattern."
+        case .unclear: return "The sound was not clear enough to score. Try again gently, in a quieter spot."
         case .rated:
-            if octaveMismatch { return "Choose a comfortable voice register, then hear the pattern again." }
+            if octaveMismatch { return "That was in a different octave. Hear the pattern again and match its first note." }
             if !notes { return "Hear the pattern again and follow its repeated, rising or falling notes." }
             if !timing { return timingAdvice ?? "Start as the first bar reaches the line and match the note lengths. Separate repeated notes gently." }
-            if !clarity { return "Keep a gentle, clear hum going through each note." }
+            if !clarity { return "Keep a gentle, clear sound going through each note." }
             return "All three goals reached. Try a fresh pattern."
         }
     }

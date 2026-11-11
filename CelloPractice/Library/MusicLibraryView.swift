@@ -60,6 +60,8 @@ struct MusicLibraryView: View {
     /// The levels showing their lessons. The level holding the next lesson opens
     /// each time the path comes into view.
     @State private var open: Set<String> = []
+    /// Voice or cello, once chosen in a lesson. Until then, the way the last take was made.
+    @State private var chosenMethod: PracticeMethod?
 
     /// The first lesson on the path that has not been passed yet.
     private var next: (level: Level, lesson: PathLesson)? { Level.nextLesson(isPassed: isPassed) }
@@ -85,6 +87,8 @@ struct MusicLibraryView: View {
                     destination($0).id($0).environment(\.currentPathLesson, $0.pathLesson)
                 }
         }.tint(Palette.forest).environment(\.openPathLesson, open)
+            .environment(\.practiceMethod, Binding(get: { chosenMethod ?? store.sessions.first?.method ?? .voice },
+                                                   set: { chosenMethod = $0 }))
             .environment(\.pathLessonIsPassed, isPassed)
     }
 
@@ -135,15 +139,30 @@ struct MusicLibraryView: View {
         return celloLeads(lesson) != nil ? .practice(lesson) : step.route
     }
 
-    /// The cello's progress in a lesson with a cello side, when it has got further than
-    /// the voice's. Either method passes the lesson, and the path shows the one ahead.
-    private func celloLeads(_ lesson: PracticeLesson) -> LessonProgress? {
-        guard lesson.hasCelloSide else { return nil }
-        let voice = LessonState(lesson: lesson, store: store, rhythmStores: rhythmStores).step
-        let cello = LessonProgress(PracticeMethod.openStrings.map {
+    /// The four open strings: the cello's side of a single-note lesson.
+    private var openStrings: LessonProgress {
+        LessonProgress(PracticeMethod.openStrings.map {
             store.progress(for: $0, targetFrequency: VoicePracticeMode.note($0).targetFrequency)
         }, partNoun: "strings")
-        return cello.passed && !voice.gold || cello.started && !voice.started ? cello : nil
+    }
+
+    /// The cello's progress in a recorded foundation lesson, when it has got further than the voice's.
+    private func celloLeads(_ lesson: PracticeLesson) -> LessonProgress? {
+        guard lesson.isRecorded else { return nil }
+        let voice = LessonState(lesson: lesson, store: store, rhythmStores: rhythmStores).step
+        let cello = openStrings
+        return leading(voice: voice, cello: cello) == cello && cello.started ? cello : nil
+    }
+
+    /// Either method passes a lesson, and the path shows the one that has got further.
+    private func leading(voice: LessonProgress, cello: LessonProgress) -> LessonProgress {
+        cello.passed && !voice.gold || cello.started && !voice.started ? cello : voice
+    }
+
+    /// A melody lesson's progress in the method that has got further.
+    private func leading(_ parts: (MelodyRegister) -> [PracticeProgress], partNoun: String = "phrases") -> LessonProgress {
+        leading(voice: LessonProgress(parts(.lowVoice), partNoun: partNoun),
+                cello: LessonProgress(parts(.cello), partNoun: partNoun))
     }
 
     // MARK: Path
@@ -238,19 +257,19 @@ struct MusicLibraryView: View {
             }))
         case .meetNotes(let piece):
             // Every note needs a passing take; the two pairs are extra practice.
-            return PathRowState(progress: LessonProgress(NoteDrill.notes(for: piece).map {
-                store.melodyProgress(for: $0.context)
+            return PathRowState(progress: leading({ register in
+                NoteDrill.notes(for: piece, register: register).map { store.melodyProgress(for: $0.context) }
             }, partNoun: "notes"))
         case .hum(let piece):
-            return PathRowState(progress: LessonProgress(MelodySection.phrases.map {
-                store.melodyProgress(for: piece.humming(register: .lowVoice, section: $0))
-            }))
+            return PathRowState(progress: leading { register in
+                MelodySection.phrases.map { store.melodyProgress(for: piece.humming(register: register, section: $0)) }
+            })
         case .wholeMelody(let piece):
-            return PathRowState(progress: LessonProgress([
-                store.melodyProgress(for: piece.humming(register: .lowVoice, section: .whole))
-            ]))
+            return PathRowState(progress: leading { register in
+                [store.melodyProgress(for: piece.humming(register: register, section: .whole))]
+            })
         case .echo:
-            return PathRowState(progress: LessonProgress([store.echoProgress(for: .twoNotes, register: .lowVoice)]))
+            return PathRowState(progress: leading { [store.echoProgress(for: .twoNotes, register: $0)] })
         }
     }
 }

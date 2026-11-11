@@ -20,6 +20,7 @@ struct VoicePracticeView<Header: View>: View {
     @ObservedObject var store: SessionStore
     @ObservedObject private var capture: CaptureController
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.practiceMethod) private var method
     @State private var isVisible = false
     @State private var screen = UUID()
     @State private var phase: Phase = .idle
@@ -71,6 +72,14 @@ struct VoicePracticeView<Header: View>: View {
     var body: some View {
         recordingPracticeScreen
             .toolbar {
+                // On the cello, the instrument's parts and strings are one tap away.
+                if method.wrappedValue == .cello {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        NavigationLink(value: MusicRoute.celloIntroduction) {
+                            Image(systemName: "info.circle").frame(width: 44, height: 44)
+                        }.accessibilityLabel("Meet your cello").accessibilityIdentifier("celloIntroductionLink")
+                    }
+                }
                 if capture.isReady {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button { cancelFlow(stopCapture: true) } label: {
@@ -304,7 +313,7 @@ struct VoicePracticeView<Header: View>: View {
                 Spacer()
                 if capture.isReady {
                     Text(reading.cents.map { "\(reading.noteName) · " + String(format: "%+.0f cents", $0) }
-                         ?? "Hum \(TunerReading(frequency: currentTarget, targetFrequency: nil).noteName)")
+                         ?? "\(method.wrappedValue.verb.capitalized) \(TunerReading(frequency: currentTarget, targetFrequency: nil).noteName)")
                         .font(.subheadline).monospacedDigit().foregroundStyle(Palette.muted)
                         .accessibilityIdentifier("livePitchCents")
                 } else {

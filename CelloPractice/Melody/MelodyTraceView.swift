@@ -133,7 +133,7 @@ struct MelodyTraceView: View {
                 Spacer(minLength: 8)
                 HStack(spacing: 10) {
                     legend("Reference", color: Palette.forest, dashed: true)
-                    legend("Your hum", color: Palette.gold)
+                    legend("Your take", color: Palette.gold)
                 }
             }
             if data.hasValidContext {

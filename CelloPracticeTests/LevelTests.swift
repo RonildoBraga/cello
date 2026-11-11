@@ -9,16 +9,38 @@ final class LevelTests: XCTestCase {
                                              .lesson(.twoTaps), .lesson(.mixedRhythm), .echo])
     }
 
-    func testSteadyNoteIsOneLessonForVoiceAndCello() {
+    func testEveryRecordedLessonHasAVoiceSideAndACelloSide() throws {
         XCTAssertEqual(PracticeLesson.steadyHum.title, "Steady note")
-        XCTAssertEqual(PracticeLesson.allCases.filter(\.hasCelloSide), [.steadyHum])
-        XCTAssertEqual(PracticeMethod.openStrings.map(\.targetNote), ["C2", "G2", "D3", "A3"], "Low to high")
+        XCTAssertEqual(PracticeLesson.allCases.filter(\.isRecorded), [.steadyHum, .matchHum])
+        // Single-note lessons: the four open strings, low to high.
+        XCTAssertEqual(PracticeMethod.openStrings.map(\.targetNote), ["C2", "G2", "D3", "A3"])
         XCTAssertTrue(PracticeMethod.openStrings.allSatisfy { $0.section == .cello })
-        XCTAssertNotEqual(PracticeLesson.steadyHum.practicePrompt(.cello), PracticeLesson.steadyHum.practicePrompt(.voice))
-        XCTAssertEqual(PracticeLesson.matchHum.practicePrompt(.cello), PracticeLesson.matchHum.practicePrompt(.voice))
+        for lesson in [PracticeLesson.steadyHum, .matchHum] {
+            XCTAssertNotEqual(lesson.practicePrompt(.cello), lesson.practicePrompt(.voice))
+        }
         // A recording keeps the name of what was recorded.
         XCTAssertEqual(Exercise.steadyHum.title, "Steady hum")
         XCTAssertEqual(Exercise.openG.title, "Open G string")
+
+        // Melody lessons: the same notes and phrases in the cello's register, with their own progress.
+        XCTAssertEqual(PracticeMethod.voice.register, .lowVoice)
+        XCTAssertEqual(PracticeMethod.cello.register, .cello)
+        let voiceNotes = NoteDrill.notes(for: .hotCrossBuns)
+        let celloNotes = NoteDrill.notes(for: .hotCrossBuns, register: .cello)
+        XCTAssertEqual(voiceNotes.map(\.chipLabel), ["G2", "A2", "B2"])
+        XCTAssertEqual(celloNotes.map(\.chipLabel), ["D3", "E3", "F♯3"])
+        XCTAssertTrue(Set(voiceNotes.map(\.id)).isDisjoint(with: celloNotes.map(\.id)))
+        XCTAssertTrue(celloNotes.allSatisfy { $0.context.isValid && $0.context.register == .cello })
+        let phrase = VoicePracticeMode.phrase(MelodyPiece.hotCrossBuns.humming(register: .cello, section: .phrase1))
+        XCTAssertTrue(phrase.recordsVideo, "A cello take is filmed")
+        XCTAssertEqual(phrase.recordingTitle, "Play")
+        XCTAssertFalse(VoicePracticeMode.phrase(MelodyPiece.hotCrossBuns.humming(register: .lowVoice, section: .phrase1)).recordsVideo)
+
+        // Listen & Echo: the same patterns on the cello, kept apart from the voice's.
+        let echo = try EchoLevel.twoNotes.context(patternIndex: 1, register: .cello)
+        XCTAssertEqual(EchoLevel.selection(for: echo)?.patternIndex, 1)
+        XCTAssertEqual(EchoLevel.twoNotes.rangeLabel(for: .cello), "D3–F♯3")
+        XCTAssertNotEqual(echo, try EchoLevel.twoNotes.context(patternIndex: 1, register: .lowVoice))
     }
 
     func testEveryMelodyLevelHasTheSameLessonsInTheSameOrder() {

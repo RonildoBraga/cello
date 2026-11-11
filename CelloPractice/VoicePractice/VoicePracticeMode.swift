@@ -33,6 +33,10 @@ enum VoicePracticeMode: Equatable {
     }
 
     private var section: PracticeSection { exercise.section ?? .humming }
+    /// Voice or cello, read from what is recorded.
+    private var method: PracticeMethod {
+        section == .cello || melodyContext?.register == .cello ? .cello : .voice
+    }
 
     var targetFrequency: Double {
         if let context = melodyContext {
@@ -101,10 +105,7 @@ enum VoicePracticeMode: Equatable {
     /// Echo unlocks Record only after its pattern has been heard to the end.
     var requiresHearFirst: Bool { isEcho }
     /// Video helps review posture and bowing; a hummed note needs only the microphone.
-    var recordsVideo: Bool {
-        if case .note(let exercise) = self { return exercise.section == .cello }
-        return false
-    }
+    var recordsVideo: Bool { method == .cello }
 
     @MainActor
     func progress(in store: SessionStore) -> PracticeProgress {
@@ -156,13 +157,13 @@ enum VoicePracticeMode: Equatable {
     var idleLabel: String { isEcho ? "READY" : "LIVE TUNER" }
     var idleTitle: String { isEcho ? "Your turn" : "Ready" }
     /// Shown while recording before any pitch is heard.
-    var recordingTitle: String { section == .humming ? "Hum" : "Play" }
+    var recordingTitle: String { method.verb.capitalized }
 
     func idleMessage(referenceHeard: Bool) -> String {
         switch self {
         case .note: return "Record counts 1–2–3–4 first"
-        case .phrase(let context): return "1–2–3–4, then hum for \(Int(context.duration)) seconds"
-        case .echo: return referenceHeard ? "Tap Record, then hum after 1–2–3–4." : "Tap the pattern above to hear it first."
+        case .phrase(let context): return "1–2–3–4, then \(method.verb) for \(Int(context.duration)) seconds"
+        case .echo: return referenceHeard ? "Tap Record, then \(method.verb) after 1–2–3–4." : "Tap the pattern above to hear it first."
         }
     }
 
@@ -176,12 +177,12 @@ enum VoicePracticeMode: Equatable {
         }
     }
 
-    private var echoCountdownMessage: String { "Start humming when the countdown ends." }
+    private var echoCountdownMessage: String { "Start \(method == .cello ? "playing" : "humming") when the countdown ends." }
     var preparingMessage: String {
         isEcho ? echoCountdownMessage : recordsVideo ? "Preparing camera & microphone…" : "Preparing microphone…"
     }
     var countInMessage: String {
-        isEcho ? echoCountdownMessage : isTimed ? "Get ready to hum" : "Get ready to play"
+        isEcho ? echoCountdownMessage : "Get ready to \(method.verb)"
     }
     var startingMessage: String { isEcho ? echoCountdownMessage : "Starting recording…" }
     var reviewingMessage: String {
@@ -196,12 +197,12 @@ enum VoicePracticeMode: Equatable {
             return reading.frequency == nil ? (isTimed ? "Hum one gentle note" : "Play one steady note") : nil
         case .phrase(let context):
             let hint = context.noteDrillPiece == nil ? " · follow the phrase" : ""
-            return note.map { "Hum \($0)\(hint)" } ?? "Rest"
+            return note.map { "\(method.verb.capitalized) \($0)\(hint)" } ?? "Rest"
         case .echo:
             guard let note else { return "Pattern finished" }
-            guard let cents = reading.cents else { return "Hum \(note) · aim for the centre" }
+            guard let cents = reading.cents else { return "\(method.verb.capitalized) \(note) · aim for the centre" }
             if abs(cents) <= 10 { return "Close to \(note)" }
-            return cents < 0 ? "Below \(note) · hum higher" : "Above \(note) · hum lower"
+            return cents < 0 ? "Below \(note) · \(method.verb) higher" : "Above \(note) · \(method.verb) lower"
         }
     }
 

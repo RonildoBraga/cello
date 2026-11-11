@@ -7,11 +7,16 @@ struct EchoPracticeView: View {
     @ObservedObject var capture: CaptureController
 
     @State private var level = EchoLevel.twoNotes
-    /// Echo patterns are sung in the one voice the app offers.
-    private let register = MelodyRegister.lowVoice
-    @State private var pattern = EchoLevel.twoNotes.newPattern(register: .lowVoice, excluding: nil)
+    @Environment(\.practiceMethod) private var method
+    /// The pattern on show, by its place in the level's catalogue; the method decides its register.
+    @State private var patternIndex = EchoLevel.twoNotes.nextPatternIndex(excluding: nil)
 
-    private var context: MelodyPracticeContext { pattern.context }
+    private var register: MelodyRegister { method.wrappedValue.register }
+    private var context: MelodyPracticeContext {
+        // The index always comes from this level's catalogue.
+        (try? level.context(patternIndex: patternIndex, register: register))
+            ?? level.newPattern(register: register, excluding: nil).context
+    }
 
     /// A chip was tapped to switch pattern length: the new pattern plays once.
     @State private var hearOnArrival = false
@@ -20,7 +25,7 @@ struct EchoPracticeView: View {
         Binding(get: { level }, set: { next in
             guard next != level else { return }
             level = next
-            pattern = next.newPattern(register: register, excluding: nil)
+            patternIndex = next.nextPatternIndex(excluding: nil)
         })
     }
 
@@ -33,7 +38,7 @@ struct EchoPracticeView: View {
         VoicePracticeView(store: store, capture: capture, mode: mode, parts: parts,
                           hearOnArrival: $hearOnArrival) { controls in
             VStack(alignment: .leading, spacing: 16) {
-                LessonHeader(subtitle: "Tap the pattern to hear it, then hum it back. Follow the tuning bar as you record.",
+                LessonHeader(subtitle: "Tap the pattern to hear it, then \(method.wrappedValue.verb) it back. Follow the tuning bar as you record.",
                            collapsesSubtitle: store.echoProgress(for: level, register: register).successfulAttempts > 0)
                 // The pattern's notes stay secret, so its chip is named by its length.
                 HStack(spacing: 8) {
@@ -51,11 +56,11 @@ struct EchoPracticeView: View {
                     .font(.caption).foregroundStyle(Palette.muted)
                     .accessibilityIdentifier("echoDuration")
             }.id("practiceTop")
-        }.id("\(level.pieceID)|\(register.rawValue)|\(pattern.index)")
-            .background(Palette.paper).screenTitle("Listen & Echo")
+        }.id("\(level.pieceID)|\(register.rawValue)|\(patternIndex)")
+            .background(Palette.paper).screenTitle("Listen & Echo", methodSwitch: capture)
     }
 
     private func newPattern() {
-        pattern = level.newPattern(register: register, excluding: pattern.index)
+        patternIndex = level.nextPatternIndex(excluding: patternIndex)
     }
 }

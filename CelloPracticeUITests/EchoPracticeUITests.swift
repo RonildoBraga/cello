@@ -218,6 +218,7 @@ final class EchoPracticeUITests: XCTestCase {
         XCTAssertTrue(start.waitForExistence(timeout: 5))
         start.tap()
         XCTAssertTrue(app.staticTexts["practiceLessonTitle"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.segmentedControls["practiceMethodPicker"].buttons["Voice"].isSelected)
     }
 
     /// Level 1's spoken summary on the path, including its count of finished lessons.

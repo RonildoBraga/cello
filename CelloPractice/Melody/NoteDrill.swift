@@ -10,27 +10,28 @@ struct NoteDrill: Hashable, Identifiable {
     static let pairBeats = 2.0
 
     let piece: MelodyPiece
-    /// The pitches to hum, in order, in the low voice.
+    /// The pitches to hum or play, in order, in this drill's register.
     let midiNotes: [Int]
+    var register = MelodyRegister.lowVoice
 
-    var id: String { "\(piece.rawValue)-\(midiNotes.map(String.init).joined(separator: "-"))" }
+    var id: String { "\(piece.rawValue)-\(register.rawValue)-\(midiNotes.map(String.init).joined(separator: "-"))" }
     var isSingleNote: Bool { midiNotes.count == 1 }
 
     /// The piece's distinct notes, lowest first.
-    static func notes(for piece: MelodyPiece) -> [NoteDrill] {
+    static func notes(for piece: MelodyPiece, register: MelodyRegister = .lowVoice) -> [NoteDrill] {
         Set(piece.score.events.compactMap(\.midiNote)).sorted().map {
-            NoteDrill(piece: piece, midiNotes: [$0 + MelodyRegister.lowVoice.transpositionSemitones])
+            NoteDrill(piece: piece, midiNotes: [$0 + register.transpositionSemitones], register: register)
         }
     }
 
     /// The notes, then the lowest and highest together: up, then down.
-    static func drills(for piece: MelodyPiece) -> [NoteDrill] {
-        let singles = notes(for: piece)
+    static func drills(for piece: MelodyPiece, register: MelodyRegister = .lowVoice) -> [NoteDrill] {
+        let singles = notes(for: piece, register: register)
         guard let low = singles.first?.midiNotes[0], let high = singles.last?.midiNotes[0], low != high else {
             return singles
         }
-        return singles + [NoteDrill(piece: piece, midiNotes: [low, high]),
-                          NoteDrill(piece: piece, midiNotes: [high, low])]
+        return singles + [NoteDrill(piece: piece, midiNotes: [low, high], register: register),
+                          NoteDrill(piece: piece, midiNotes: [high, low], register: register)]
     }
 
     var context: MelodyPracticeContext {
@@ -39,7 +40,7 @@ struct NoteDrill: Hashable, Identifiable {
             MelodyEvent(onsetBeat: Double(index) * beats, durationBeats: beats, midiNote: note)
         }
         return MelodyPracticeContext(pieceID: Self.pieceID(for: piece), scoreVersion: Self.scoreVersion,
-                                     register: .lowVoice, referenceKey: MelodyRegister.lowVoice.keyName,
+                                     register: register, referenceKey: register.keyName,
                                      tuningA4Hz: 440, tempoBPM: 60, section: .phrase1, expectedEvents: events,
                                      durationBeats: Double(midiNotes.count) * beats,
                                      gradingVersion: MelodyRating.currentVersion)

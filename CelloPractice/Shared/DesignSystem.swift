@@ -44,11 +44,18 @@ extension View {
 
     /// Names the screen for the back stack and assistive technology without
     /// drawing it in the bar: each screen shows its title once, in `ScreenHeader`.
-    func screenTitle(_ title: String) -> some View {
+    /// A recorded lesson passes its capture controller: the bar then holds the
+    /// Voice / Cello switch, apart from the chips, because it changes how to
+    /// practise, not what to hear.
+    func screenTitle(_ title: String, methodSwitch capture: CaptureController? = nil) -> some View {
         navigationTitle(title).navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Color.clear.frame(width: 1, height: 1).accessibilityHidden(true)
+                    if let capture {
+                        PracticeMethodSwitch(capture: capture)
+                    } else {
+                        Color.clear.frame(width: 1, height: 1).accessibilityHidden(true)
+                    }
                 }
             }
     }
