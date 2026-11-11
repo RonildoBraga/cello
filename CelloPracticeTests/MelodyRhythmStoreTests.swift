@@ -9,7 +9,7 @@ final class MelodyRhythmStoreTests: XCTestCase {
             let context = try MelodyRhythmContext.hotCrossBuns(section: section)
             let result = try attempt(round(context))
             XCTAssertEqual(result.starCount, 3, section.rawValue)
-            XCTAssertEqual(result.matchedTapCount, context.expectedTapTimes.count)
+            XCTAssertEqual(result.offsets.count, context.expectedTapTimes.count)
             XCTAssertEqual(result.spreadMilliseconds ?? -1, 0, accuracy: 1e-6)
             XCTAssertEqual(result.medianOffsetMilliseconds ?? -1, 40, accuracy: 1e-6)
         }
@@ -76,7 +76,7 @@ final class MelodyRhythmStoreTests: XCTestCase {
         for time in [0.5, 1.5, 3.0] { misplaced.recordTap(at: misplaced.practiceStartTime + time) }
         let result = try attempt(misplaced)
         XCTAssertEqual(result.totalTaps, 3)
-        XCTAssertEqual(result.matchedTapCount, 0)
+        XCTAssertEqual(result.offsets.count, 0)
         XCTAssertEqual(result.starCount, 0)
         XCTAssertTrue(result.isScored)
         XCTAssertFalse(result.timingGoal)
@@ -87,7 +87,7 @@ final class MelodyRhythmStoreTests: XCTestCase {
         var lucky = MelodyRhythmTiming(startTime: 100, context: whole)
         for time in [0.04, 1.04, 3.0] { lucky.recordTap(at: lucky.practiceStartTime + time) }
         let twoHits = try attempt(lucky)
-        XCTAssertEqual(twoHits.matchedTapCount, 2)
+        XCTAssertEqual(twoHits.offsets.count, 2)
         XCTAssertEqual(twoHits.starCount, 0)
     }
 

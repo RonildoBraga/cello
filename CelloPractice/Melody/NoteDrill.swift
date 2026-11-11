@@ -52,6 +52,9 @@ struct NoteDrill: Hashable, Identifiable {
             : "\(names[0]) then \(names[1]) · going lower"
     }
 
+    /// On a chip: "G2", or "G2→B2" for a pair.
+    var chipLabel: String { context.noteNames.joined(separator: "→") }
+
     static func pieceID(for piece: MelodyPiece) -> String { "\(piece.rawValue).notes" }
 }
 

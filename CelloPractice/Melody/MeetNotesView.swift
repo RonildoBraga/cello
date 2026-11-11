@@ -8,6 +8,8 @@ struct MeetNotesView: View {
     @ObservedObject var capture: CaptureController
     let piece: MelodyPiece
     @State private var drill: NoteDrill
+    /// A chip was tapped to switch note: the note it shows plays once.
+    @State private var hearOnArrival = false
 
     init(store: SessionStore, capture: CaptureController, piece: MelodyPiece) {
         self.store = store
@@ -18,27 +20,25 @@ struct MeetNotesView: View {
 
     private var drills: [NoteDrill] { NoteDrill.drills(for: piece) }
     private var context: MelodyPracticeContext { drill.context }
-    private var next: NoteDrill? {
-        drills.firstIndex(of: drill).flatMap { drills.indices.contains($0 + 1) ? drills[$0 + 1] : nil }
+    private var parts: LessonParts {
+        LessonParts(drills, current: drill, noun: "Note", title: \.title,
+                    passed: store.melodyProgress(for: context).passed) { drill = $0 }
     }
 
     var body: some View {
-        VoicePracticeView(store: store, capture: capture, mode: .phrase(context),
-                          nextPhrase: next.map { next in (next.title, { drill = next }) }) { locked in
+        let mode = VoicePracticeMode.phrase(context)
+        VoicePracticeView(store: store, capture: capture, mode: mode, parts: parts,
+                          hearOnArrival: $hearOnArrival) { controls in
             VStack(alignment: .leading, spacing: 17) {
-                LessonHeader(subtitle: "This melody uses \(NoteDrill.notes(for: piece).count) notes. Hear one, then hum it back after the count of 1–2–3–4. The bar shows how close you are.",
+                LessonHeader(subtitle: "This melody uses \(NoteDrill.notes(for: piece).count) notes. Tap a note to hear it, then hum it back after the count of 1–2–3–4. The bar shows how close you are.",
                              collapsesSubtitle: store.melodyProgress(for: context).successfulAttempts > 0)
-                HStack {
-                    ChoiceMenu(choices: drills, selection: $drill, name: "Note", title: \.title) {
-                        store.melodyProgress(for: $0.context).completed
-                    }.disabled(locked).accessibilityIdentifier("meetNotesPicker")
-                    Spacer()
-                    Text("\(Int(context.duration)) seconds")
-                        .font(.caption).foregroundStyle(Palette.muted)
-                }
-                MelodyNotesView(context: context,
-                                elapsed: capture.isRecording ? capture.elapsed
-                                    : capture.isPlayingReference ? capture.referenceElapsed : nil)
+                // The chips name every note and play it, so nothing else on the screen repeats them.
+                PartStrip(parts: drills, selection: $drill, short: \.chipLabel, title: \.title,
+                          progress: { store.melodyProgress(for: $0.context) },
+                          hear: PartHearing(spoken: mode.hearSpoken, identifier: "previewTargetButton") { changed in
+                              if changed { hearOnArrival = true } else { controls.hear() }
+                          })
+                    .disabled(controls.locked)
             }.id("practiceTop")
         }.id(drill.id)
             .background(Palette.paper).screenTitle(piece.title)

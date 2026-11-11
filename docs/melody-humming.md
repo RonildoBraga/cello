@@ -15,6 +15,10 @@ Saved takes showed the pitch was mostly right while the second note of a pattern
 
 The rating rules below are unchanged.
 
+## The live tuner after a take
+
+After a take the live tuner sits inside the take's chart card, under the chart: look at the take, then try the correction at once. It compares the voice with one note. A take with several different notes (a pair in Meet the notes, a phrase, the whole melody) shows them as "Tune to" chips, in the order they first sound; the first is chosen to begin with. If the microphone has been turned off, the row offers to turn it on. Before and during a take there is nothing to choose: the tuner follows the score by itself. Listen & Echo has no tuner after a take.
+
 ## Assessment version 1
 
 Saved media is decoded to 48 kHz mono PCM on the movie timeline. Leading silence is retained; missing media cannot be concatenated into an apparently continuous note. The grader uses the frozen expected interval without shifting the learner's start, transposing the hum or folding octaves onto the target. Codec/file-output sound after the expected end does not change the exercise result; the complete original media remains available.
@@ -26,6 +30,10 @@ Pitch windows and short RMS cells describe actual sound independently of the tar
 - Clarity checks enough confident, unambiguous voicing through each note. Insufficient sound, clipping, mostly unpitched noise or substantial competing-octave evidence remains unscored, with progress unchanged.
 
 A clearly measured octave mismatch remains in its original octave and receives explicit feedback. The chart plots the frozen target and saved-audio observations; uncertain frames and silence break the observed trace. These are beginner practice goals, not a complete judgment of singing, tone or technique.
+
+### Octave slips
+
+As a hum fades, its first overtone can outlast it, and for a frame or two the detector reads the note an octave high. In 9 of 58 saved takes such a reading, 150 ms or shorter, sat next to the real note; in one it was counted as an extra note and turned a three-star take into none. A voice cannot leap an octave and back that fast, so frames that read an octave away from the sound beside them for 150 ms or less are marked ambiguous: they are not a note, not a point on the chart, and never folded onto the target. A note really held an octave away is unaffected. This corrects the measurement, not the rubric, so the grading version is unchanged and saved ratings keep the grade they were given.
 
 ## Persistence and progression
 

@@ -6,24 +6,38 @@ struct MelodyRhythmView: View {
     @ObservedObject var capture: CaptureController
     var piece: MelodyPiece = .hotCrossBuns
     @State private var section = MelodySection.phrase1
+    /// A chip was tapped to switch part: the part it shows plays once.
+    @State private var hearOnArrival = false
 
     private var context: MelodyRhythmContext { piece.rhythm(section: section) }
+
+    /// The four phrases, then all of them together. That last part is tapped,
+    /// so it is not called "Whole melody", which is the lesson where it is hummed.
+    private static let parts = MelodySection.phrases + [.whole]
+    private static func title(_ section: MelodySection) -> String {
+        section == .whole ? "All phrases" : section.title
+    }
 
     var body: some View {
         MelodyRhythmRoundView(store: store, capture: capture, context: context,
                               patternHint: piece.rhythmHint(for: section),
-                              next: section.next.map { next in (next.title, { section = next }) }) { locked in
+                              parts: LessonParts(Self.parts, current: section, noun: "Part", title: Self.title,
+                                                 passed: store.progress(for: context).passed) { section = $0 },
+                              hearOnArrival: $hearOnArrival) { controls in
             VStack(alignment: .leading, spacing: 12) {
                 LessonHeader(subtitle: "Tap once when each note starts. Keep counting while a long note continues.",
                            collapsesSubtitle: store.progress(for: context).successfulAttempts > 0)
-                HStack {
-                    SectionMenu(selection: $section) { store.progress(for: piece.rhythm(section: $0)).completed }
-                        .disabled(locked).accessibilityIdentifier("melodyRhythmSectionPicker")
-                    Spacer()
-                    Text("\(Int(context.duration)) seconds · \(context.reference.tempoBPM) BPM")
-                        .font(.caption).foregroundStyle(Palette.muted)
-                        .accessibilityIdentifier("melodyRhythmDuration")
-                }
+                PartStrip(parts: Self.parts, selection: $section, leading: "Phrase",
+                          short: \.chipLabel, title: Self.title,
+                          progress: { store.progress(for: piece.rhythm(section: $0)) },
+                          hear: PartHearing(spoken: section == .whole ? "Hear melody" : "Hear phrase",
+                                            identifier: "melodyRhythmHearButton") { changed in
+                              if changed { hearOnArrival = true } else { controls.hear() }
+                          })
+                    .disabled(controls.locked)
+                Text("\(Int(context.duration)) seconds · \(context.reference.tempoBPM) BPM")
+                    .font(.caption).foregroundStyle(Palette.muted)
+                    .accessibilityIdentifier("melodyRhythmDuration")
                 if let best = store.bestStars(for: context) {
                     let latest = store.latestStars(for: context).map { "\($0) / 3" } ?? "unrated"
                     Text("Best \(best) / 3 stars · Latest \(latest)")
@@ -43,11 +57,13 @@ private struct MelodyRhythmRoundView<Header: View>: View {
     @ObservedObject var capture: CaptureController
     let context: MelodyRhythmContext
     let patternHint: String
-    let next: (title: String, action: () -> Void)?
-    @ViewBuilder let header: (Bool) -> Header
+    let parts: LessonParts
+    @Binding var hearOnArrival: Bool
+    @ViewBuilder let header: (PracticeHeaderControls) -> Header
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isVisible = false
+    @State private var screen = UUID()
     @StateObject private var round = RhythmRound<MelodyRhythmTiming>()
     @State private var finishedAttempt: MelodyRhythmAttempt?
 
@@ -63,21 +79,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
         ScrollViewReader { scroll in
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    header(locked).id("melodyRhythmTop")
-                    // Hearing the phrase comes before tapping it, so the button stays in view above the pattern.
-                    HStack {
-                        Label("Recorded hum", systemImage: "waveform").font(.caption)
-                            .foregroundStyle(Palette.muted)
-                        Spacer()
-                        Button {
-                            guard isVisible, !running, scenePhase == .active else { return }
-                            capture.playMelodyReference(context.reference)
-                        } label: {
-                            Label(context.reference.section == .whole ? "Hear melody" : "Hear phrase",
-                                  systemImage: "speaker.wave.2")
-                        }.buttonStyle(SecondaryActionButtonStyle()).disabled(locked)
-                            .accessibilityIdentifier("melodyRhythmHearButton")
-                    }
+                    header(PracticeHeaderControls(locked: locked, hear: hear)).id("melodyRhythmTop")
                     if let attempt = finishedAttempt, !capture.isPlayingReference {
                         VStack(spacing: 16) {
                             MelodyRhythmResultView(attempt: attempt, errorMessage: store.errorMessage)
@@ -116,26 +118,34 @@ private struct MelodyRhythmRoundView<Header: View>: View {
                 }
             }
         }.background(Palette.paper)
-            .bottomActionBar(lessonsLocked: locked) {
+            .bottomActionBar(lessonsLocked: locked, parts: parts) {
                 RhythmStartButton(round: round, listening: capture.isPlayingReference) {
                     if running { round.stop() }
                     else if capture.isPlayingReference { capture.stop() }
                     else { start() }
                 }.accessibilityIdentifier("melodyRhythmStartButton")
             }
-            .onAppear { isVisible = true }
-            .onDisappear { isVisible = false; round.stop(); capture.stop() }
+            .onAppear { isVisible = true; capture.claim(screen) }
+            .task {
+                guard hearOnArrival else { return }
+                hearOnArrival = false
+                await capture.waitUntilQuiet()
+                hear()
+            }
+            .onDisappear { isVisible = false; round.stop(); capture.release(screen) }
             .onChange(of: scenePhase) { _, phase in
                 if isVisible, phase != .active { round.stop(); capture.stop() }
             }
     }
 
+    /// Plays the recorded hum of this part.
+    private func hear() {
+        guard isVisible, !running, scenePhase == .active else { return }
+        capture.playMelodyReference(context.reference)
+    }
+
     private var progress: some View {
-        let saved = store.progress(for: context)
-        let step = next.map {
-            NextPart.item($0.title, completed: saved.completed, identifier: "nextRhythmPhraseButton", action: $0.action)
-        }
-        return PracticeProgressView(progress: saved, next: step, disabled: locked, attemptNoun: "rounds")
+        PracticeProgressView(progress: store.progress(for: context), attemptNoun: "rounds")
     }
 
     private var pattern: some View {

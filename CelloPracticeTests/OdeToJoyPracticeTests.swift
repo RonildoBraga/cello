@@ -80,7 +80,7 @@ final class OdeToJoyPracticeTests: XCTestCase {
         XCTAssertEqual(context.expectedTapTimes, [0, 1.5, 2])
         let quarterNotes = round(context, times: [0.04, 1.04, 2.04])
         let incorrect = try XCTUnwrap(MelodyRhythmAttempt(timing: quarterNotes, finishedAt: quarterNotes.endTime))
-        XCTAssertEqual(incorrect.matchedTapCount, 2)
+        XCTAssertEqual(incorrect.offsets.count, 2)
         XCTAssertEqual(incorrect.unexpectedTapCount, 1)
         XCTAssertFalse(incorrect.patternGoal)
         XCTAssertNotEqual(incorrect.starCount, 3)

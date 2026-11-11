@@ -44,3 +44,6 @@ MelodyRhythmPractice.json
 *.mp4
 *.zip
 /docs/engineering-review-1.8.0.md
+
+# Generated reference sounds for testing the app by ear
+exercise-samples/

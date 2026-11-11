@@ -4,6 +4,13 @@ import UIKit
 
 /// Recording lifecycle stays scoped to one frozen lesson/reference. SessionStore
 /// owns the durable result after this screen disappears.
+/// What a lesson's header needs from the practice screen: whether to hold its
+/// controls still, and how to play what is about to be hummed.
+struct PracticeHeaderControls {
+    let locked: Bool
+    let hear: () -> Void
+}
+
 @MainActor
 struct VoicePracticeView<Header: View>: View {
     private enum Phase: Equatable {
@@ -14,6 +21,7 @@ struct VoicePracticeView<Header: View>: View {
     @ObservedObject private var capture: CaptureController
     @Environment(\.scenePhase) private var scenePhase
     @State private var isVisible = false
+    @State private var screen = UUID()
     @State private var phase: Phase = .idle
     @State private var pendingRecord = false
     @State private var flowToken = UUID()
@@ -32,27 +40,33 @@ struct VoicePracticeView<Header: View>: View {
     @State private var saved = false
     @State private var referenceWasHeard = false
     @State private var latestSession: PracticeSession?
+    /// The note the idle tuner listens for; nil is the take's first note.
+    @State private var tunerTarget: Double?
     private var hasResult: Bool { latestSession?.rating != nil || latestSession?.melodyRating != nil }
 
     private let mode: VoicePracticeMode
-    private let nextPhrase: (title: String, action: () -> Void)?
-    private let header: (Bool) -> Header
+    /// Where this take sits among the lesson's phrases or notes, if it has several.
+    private let parts: LessonParts?
+    /// Set by a chip that has just switched to this take: play it once on arrival.
+    @Binding private var hearOnArrival: Bool
+    private let header: (PracticeHeaderControls) -> Header
 
     init(store: SessionStore, capture: CaptureController, mode: VoicePracticeMode,
-         nextPhrase: (title: String, action: () -> Void)? = nil,
-         @ViewBuilder header: @escaping (Bool) -> Header) {
+         parts: LessonParts? = nil, hearOnArrival: Binding<Bool> = .constant(false),
+         @ViewBuilder header: @escaping (PracticeHeaderControls) -> Header) {
         self.store = store
         self.capture = capture
         self.mode = mode
-        self.nextPhrase = nextPhrase
+        self.parts = parts
+        _hearOnArrival = hearOnArrival
         self.header = header
     }
 
     private var needsReference: Bool {
         mode.requiresHearFirst && !referenceWasHeard && phase == .idle && !capture.isRecording
     }
-    /// The pitch meter is hidden while a mode keeps its target secret before the take.
-    private var showsMeter: Bool { !mode.hidesTunerUntilRecording || capture.isRecording }
+    /// Echo shows no pitch until the take starts, so the pattern is not given away.
+    private var showsMeter: Bool { !mode.isEcho || capture.isRecording }
 
     var body: some View {
         recordingPracticeScreen
@@ -66,8 +80,19 @@ struct VoicePracticeView<Header: View>: View {
                     }
                 }
             }
-            .onAppear { isVisible = true }
-            .onDisappear { isVisible = false; referenceWasHeard = false; cancelFlow(stopCapture: true) }
+            .onAppear { isVisible = true; capture.claim(screen) }
+            .task {
+                guard hearOnArrival else { return }
+                hearOnArrival = false
+                await capture.waitUntilQuiet()
+                previewReference()
+            }
+            .onDisappear {
+                isVisible = false
+                referenceWasHeard = false
+                cancelFlow(stopCapture: false)
+                capture.release(screen)
+            }
             .onChange(of: scenePhase) { _, newPhase in
                 guard isVisible else { return }
                 if newPhase == .background {
@@ -135,26 +160,29 @@ struct VoicePracticeView<Header: View>: View {
         ScrollViewReader { scroll in
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    header(controlsLocked || (mode.requiresHearFirst && restSeconds > 0))
-                    targetControls
+                    header(PracticeHeaderControls(locked: controlsLocked || restSeconds > 0, hear: previewReference))
                     if let session = latestSession, hasResult, showsIdleContent {
                         VStack(spacing: 16) {
-                            if let rating = session.melodyRating, let context = session.melodyContext {
+                            if let rating = session.melodyRating {
                                 MelodyFeedbackView(rating: rating, isEcho: mode.isEcho)
-                                MelodyTraceView(context: context, rating: rating, duration: session.duration)
                             } else if let rating = session.rating {
                                 PracticeRatingView(rating: rating)
                                     .accessibilityIdentifier("latestRatingCard")
-                                if let target = session.effectiveTargetFrequency {
+                            }
+                            // The chart of the take and the tuner share a card: look, then try again live.
+                            VStack(alignment: .leading, spacing: 14) {
+                                if let rating = session.melodyRating, let context = session.melodyContext {
+                                    MelodyTraceView(context: context, rating: rating, duration: session.duration)
+                                } else if let target = session.effectiveTargetFrequency {
                                     PitchTraceView(samples: session.pitchSamples, targetFrequency: target, duration: session.duration)
                                 }
-                            }
+                                if !mode.isEcho {
+                                    Divider()
+                                    liveTuner
+                                }
+                            }.card()
                             lessonProgress
                         }.id("latestRating")
-                        if mode.offersTunerAfterResult {
-                            DisclosureGroup("Live tuner") { statusCard.padding(.top, 10) }
-                                .font(.subheadline.weight(.medium)).foregroundStyle(Palette.forest)
-                        }
                     } else {
                         statusCard.id("statusCard")
                         if showsIdleContent { lessonProgress }
@@ -179,48 +207,14 @@ struct VoicePracticeView<Header: View>: View {
                 }
             }
         }
-        .bottomActionBar(lessonsLocked: controlsLocked || restSeconds > 0) { recordingControls }
+        .bottomActionBar(lessonsLocked: controlsLocked || restSeconds > 0, parts: parts) { recordingControls }
     }
 
     /// Results and progress give way to the status card while anything is in flight.
     private var showsIdleContent: Bool { !isBusy && !capture.isRecording && !saving }
 
     private var lessonProgress: some View {
-        let progress = mode.progress(in: store)
-        return PracticeProgressView(progress: progress, next: nextPart(completed: progress.completed),
-                                    disabled: controlsLocked || restSeconds > 0)
-    }
-
-    private func nextPart(completed: Bool) -> NextPart? {
-        guard let nextPhrase, !mode.nextPartNeedsResult || hasResult else { return nil }
-        // A fresh echo pattern is always something to try, never a continuation.
-        return .item(nextPhrase.title, completed: completed && !mode.isEcho, identifier: mode.nextPartIdentifier) {
-            guard canStartAction else { return }
-            cancelFlow(stopCapture: true)
-            nextPhrase.action()
-        }
-    }
-
-    private var targetControls: some View {
-        HStack(spacing: 12) {
-            if let caption = mode.referenceCaption {
-                VStack(alignment: .leading, spacing: 3) {
-                    Eyebrow(text: caption.eyebrow)
-                    Text(caption.text).font(.subheadline.weight(.medium)).foregroundStyle(Palette.ink)
-                        .accessibilityIdentifier("currentTargetLabel")
-                        .accessibilityLabel(caption.spoken)
-                }
-            } else {
-                Label("Recorded hum", systemImage: "waveform")
-                    .font(.subheadline).foregroundStyle(Palette.muted)
-            }
-            Spacer(minLength: 0)
-            Button { previewReference() } label: {
-                Label(mode.hearLabel, systemImage: "speaker.wave.2")
-            }.buttonStyle(SecondaryActionButtonStyle())
-                .disabled(controlsLocked || restSeconds > 0)
-                .accessibilityIdentifier("previewTargetButton")
-        }
+        PracticeProgressView(progress: mode.progress(in: store))
     }
 
     private var recordingControls: some View {
@@ -250,7 +244,7 @@ struct VoicePracticeView<Header: View>: View {
                 }
             }.buttonStyle(PrimaryActionButtonStyle(color: capture.isRecording ? .red : Palette.forest))
                 .disabled(saving || needsReference || (restSeconds > 0 && !isBusy && !capture.isRecording))
-                .accessibilityHint(needsReference ? "Tap Hear pattern and listen to the end first."
+                .accessibilityHint(needsReference ? "Tap the pattern and listen to the end first."
                                    : restSeconds > 0 ? "Available after a short rest." : "")
                 .accessibilityIdentifier("practiceRecordButton")
         }
@@ -302,6 +296,46 @@ struct VoicePracticeView<Header: View>: View {
             .accessibilityIdentifier(showsMeter ? mode.tunerIdentifier : "echoPracticeCard")
     }
 
+    /// After a take the tuner sits under its chart, so a correction can be tried at once.
+    private var liveTuner: some View {
+        VStack(spacing: 10) {
+            HStack {
+                Text("Live tuner").font(.subheadline.weight(.semibold)).foregroundStyle(Palette.ink)
+                Spacer()
+                if capture.isReady {
+                    Text(reading.cents.map { "\(reading.noteName) · " + String(format: "%+.0f cents", $0) }
+                         ?? "Hum \(TunerReading(frequency: currentTarget, targetFrequency: nil).noteName)")
+                        .font(.subheadline).monospacedDigit().foregroundStyle(Palette.muted)
+                        .accessibilityIdentifier("livePitchCents")
+                } else {
+                    Button("Turn on") { capture.start(includingCamera: mode.recordsVideo) }
+                        .font(.subheadline.weight(.semibold)).foregroundStyle(Palette.forest)
+                        .accessibilityLabel("Turn on live tuner")
+                }
+            }.frame(minHeight: 30)
+            PitchMeter(cents: reading.cents ?? 0, active: reading.cents != nil, range: mode.meterRange, onCard: true)
+                .frame(height: 30).padding(.horizontal, 6)
+            // With several notes in the take, the learner picks which one the tuner listens for.
+            if mode.tunerTargets.count > 1 {
+                HStack(spacing: 8) {
+                    Text("Tune to").font(.caption).foregroundStyle(Palette.muted)
+                    ForEach(mode.tunerTargets, id: \.self) { target in
+                        let name = TunerReading(frequency: target, targetFrequency: nil).noteName
+                        let selected = target == currentTarget
+                        Button(name) { tunerTarget = target }
+                            .font(.subheadline.weight(.semibold)).foregroundStyle(selected ? .white : Palette.forest)
+                            .padding(.horizontal, 13).frame(minWidth: 44, minHeight: 44)
+                            .background(Palette.forest.opacity(selected ? 1 : 0.07), in: Capsule())
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Tune to \(name)")
+                            .accessibilityAddTraits(selected ? .isSelected : [])
+                            .accessibilityIdentifier("tunerTarget-\(name)")
+                    }
+                }
+            }
+        }.accessibilityElement(children: .contain).accessibilityIdentifier(mode.tunerIdentifier)
+    }
+
     private var camera: some View {
         CameraPreview(session: capture.session)
             .overlay(alignment: .bottomTrailing) {
@@ -321,7 +355,9 @@ struct VoicePracticeView<Header: View>: View {
         if reading.frequency != nil { return reading.noteName }
         return capture.isRecording ? mode.recordingTitle : mode.idleTitle
     }
-    private var currentTarget: Double? { mode.target(at: capture.isRecording ? capture.elapsed : 0) }
+    private var currentTarget: Double? {
+        capture.isRecording ? mode.target(at: capture.elapsed) : tunerTarget ?? mode.target(at: 0)
+    }
     private var reading: TunerReading { TunerReading(frequency: capture.frequency, targetFrequency: currentTarget) }
     private var isBusy: Bool { phase != .idle && phase != .recording }
     private var controlsLocked: Bool { isBusy || capture.isRecording || saving || capture.isPlayingReference }

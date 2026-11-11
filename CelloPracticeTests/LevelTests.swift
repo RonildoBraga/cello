@@ -89,6 +89,23 @@ final class LevelTests: XCTestCase {
         for step in Level.path.flatMap(\.lessons) { XCTAssertNotNil(Level.position(of: step)) }
     }
 
+    func testALessonsPartsStepForwardAndBackAndStopAtTheirEnds() {
+        var shown: [String] = []
+        let parts = ["Phrase 1", "Phrase 2", "Phrase 3"]
+        let first = LessonParts(parts, current: "Phrase 1", noun: "Phrase", title: { $0 }, passed: false) { shown.append($0) }
+        XCTAssertEqual(first.label, "Phrase 1 of 3")
+        XCTAssertNil(first.previous, "Before the first part comes the previous lesson, not a part")
+        XCTAssertEqual(first.next?.title, "Phrase 2")
+        first.next?.action()
+
+        let last = LessonParts(parts, current: "Phrase 3", noun: "Phrase", title: { $0 }, passed: true) { shown.append($0) }
+        XCTAssertEqual(last.label, "Phrase 3 of 3")
+        XCTAssertNil(last.next, "After the last part comes the next lesson")
+        XCTAssertTrue(last.passed)
+        last.previous?()
+        XCTAssertEqual(shown, ["Phrase 2", "Phrase 2"])
+    }
+
     func testStoredIDsAreRememberedOnceEach() {
         var stored = ""
         XCTAssertFalse(StoredIDs.contains("hotCrossBuns", in: stored))

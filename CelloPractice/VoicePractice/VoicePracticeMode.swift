@@ -48,6 +48,16 @@ enum VoicePracticeMode: Equatable {
         return context.frequency(for: context.expectedEvents[index])
     }
 
+    /// The take's different notes in the order they first sound, when it has more than one.
+    /// Echo offers none: its tuner stays hidden so the notes are not given away.
+    var tunerTargets: [Double] {
+        guard !isEcho, let context = melodyContext else { return [] }
+        var targets: [Double] = []
+        for target in context.expectedEvents.compactMap({ context.frequency(for: $0) })
+        where !targets.contains(target) { targets.append(target) }
+        return targets.count > 1 ? targets : []
+    }
+
     /// Humming takes stop by themselves; cello takes run until Stop.
     var isTimed: Bool { melodyContext != nil || exercise == .steadyHum || exercise == .matchHum }
     var duration: TimeInterval { melodyContext?.duration ?? 3 }
@@ -90,16 +100,11 @@ enum VoicePracticeMode: Equatable {
 
     /// Echo unlocks Record only after its pattern has been heard to the end.
     var requiresHearFirst: Bool { isEcho }
-    /// Echo shows no pitch until the take starts, so the pattern is not given away.
-    var hidesTunerUntilRecording: Bool { isEcho }
-    var offersTunerAfterResult: Bool { !isEcho }
     /// Video helps review posture and bowing; a hummed note needs only the microphone.
     var recordsVideo: Bool {
         if case .note(let exercise) = self { return exercise.section == .cello }
         return false
     }
-    /// Echo offers a new pattern only once the current one has a result.
-    var nextPartNeedsResult: Bool { isEcho }
 
     @MainActor
     func progress(in store: SessionStore) -> PracticeProgress {
@@ -120,22 +125,23 @@ enum VoicePracticeMode: Equatable {
 
     // MARK: Wording
 
-    /// The reference line beside the Hear button; echo names no notes.
-    var referenceCaption: (eyebrow: String, text: String, spoken: String)? {
+    /// What is being heard, for the chip that plays it; echo names no notes.
+    var referenceSpoken: String? {
         switch self {
         case .note:
             let note = TunerReading(frequency: targetFrequency, targetFrequency: nil).noteName
-            let text = String(format: "%@ · %.1f Hz", note, targetFrequency)
-            return ("Target", text, "Target \(text)")
+            return String(format: "Target %@ · %.1f Hz", note, targetFrequency)
         case .phrase(let context) where context.noteDrillPiece != nil:
-            let notes = context.noteNames.joined(separator: " then ")
-            return ("Recorded hum", notes, "Reference \(notes)")
+            return "Reference \(context.noteNames.joined(separator: " then "))"
         case .phrase(let context):
             let range = MelodyPiece(rawValue: context.pieceID)?.rangeLabel(for: context.register) ?? context.rangeLabel
-            return ("Recorded hum", "\(context.referenceKey) · \(range)", "Reference \(context.referenceKey), \(range)")
+            return "Reference \(context.referenceKey), \(range)"
         case .echo: return nil
         }
     }
+
+    /// What the chip on show says when spoken: how to hear it and what it is.
+    var hearSpoken: String { [hearLabel, referenceSpoken].compactMap { $0 }.joined(separator: ", ") }
 
     var hearLabel: String {
         switch self {
@@ -147,8 +153,6 @@ enum VoicePracticeMode: Equatable {
         }
     }
 
-    var nextPartIdentifier: String { isEcho ? "nextEchoPatternButton" : "nextMelodyPhraseButton" }
-
     var idleLabel: String { isEcho ? "READY" : "LIVE TUNER" }
     var idleTitle: String { isEcho ? "Your turn" : "Ready" }
     /// Shown while recording before any pitch is heard.
@@ -158,7 +162,7 @@ enum VoicePracticeMode: Equatable {
         switch self {
         case .note: return "Record counts 1–2–3–4 first"
         case .phrase(let context): return "1–2–3–4, then hum for \(Int(context.duration)) seconds"
-        case .echo: return referenceHeard ? "Tap Record, then hum after 1–2–3–4." : "Tap Hear pattern first."
+        case .echo: return referenceHeard ? "Tap Record, then hum after 1–2–3–4." : "Tap the pattern above to hear it first."
         }
     }
 

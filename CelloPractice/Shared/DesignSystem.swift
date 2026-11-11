@@ -56,13 +56,15 @@ extension View {
     /// Pins a screen's primary action above the tab bar. On a lesson's screen the
     /// lesson bar sits just above it, within reach of the thumb; `lessonsLocked`
     /// holds it still while a take or round is in flight.
-    func bottomActionBar<Bar: View>(lessonsLocked: Bool = false, @ViewBuilder _ bar: @escaping () -> Bar) -> some View {
-        modifier(BottomActionBar(lessonsLocked: lessonsLocked, bar: bar))
+    func bottomActionBar<Bar: View>(lessonsLocked: Bool = false, parts: LessonParts? = nil,
+                                    @ViewBuilder _ bar: @escaping () -> Bar) -> some View {
+        modifier(BottomActionBar(lessonsLocked: lessonsLocked, parts: parts, bar: bar))
     }
 }
 
 private struct BottomActionBar<Bar: View>: ViewModifier {
     let lessonsLocked: Bool
+    let parts: LessonParts?
     @ViewBuilder let bar: () -> Bar
     @Environment(\.currentPathLesson) private var step
 
@@ -70,7 +72,7 @@ private struct BottomActionBar<Bar: View>: ViewModifier {
         content.safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 10) {
                 if let step, let position = Level.position(of: step) {
-                    LessonBar(position: position).disabled(lessonsLocked)
+                    LessonBar(position: position, parts: parts).disabled(lessonsLocked)
                 }
                 bar()
             }.padding(.horizontal, Layout.gutter).padding(.vertical, 12)

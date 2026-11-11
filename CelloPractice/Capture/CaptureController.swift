@@ -131,6 +131,13 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         }
     }
 
+    /// The practice screen now on show. Choosing another part replaces the screen, and
+    /// the old one disappears after the new one has started to play: only the screen
+    /// still on show may stop the sound.
+    private var owner: UUID?
+    func claim(_ screen: UUID) { owner = screen }
+    func release(_ screen: UUID) { if owner == screen { stop() } }
+
     /// Finishes an active take before releasing the camera and microphone.
     func stop() {
         publish {
