@@ -23,7 +23,11 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     @Published private(set) var isRecording = false
     /// Includes the short quiet tail after playback, while pitch analysis is paused.
     @Published private(set) var isPlayingReference = false
+    /// The note being heard. Sound that does not stand clear of the room is not one.
     @Published private(set) var frequency: Double?
+    /// The room's own sound, once the microphone has listened for a moment. It is published
+    /// when the room turns noisy or quiet, not with every measurement.
+    @Published private(set) var room: RoomNoise?
     @Published private(set) var message: String?
     @Published private(set) var elapsed: TimeInterval = 0
     /// Actual player position, independent of the recording timer.
@@ -40,7 +44,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     private var configured = false
     private var wantsToRun = false
     private var recordingRequested = false
-    private var recordingCompletion: ((URL, [PitchSample]) -> Void)?
+    private var recordingCompletion: ((URL, [PitchSample], RoomNoise?) -> Void)?
     private var stopWhenRecordingStarts = false
     private var videoInput: AVCaptureDeviceInput?
     private var observerTokens: [NSObjectProtocol] = []
@@ -59,6 +63,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     private var pitchSamples: [PitchSample] = []
     private var reportedUnsupportedAudio = false
     private var analysisSuppressed = false
+    private var listener = RoomListener()
 
     // Accessed only on the main thread.
     private var displayTimer: Timer?
@@ -197,8 +202,9 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
 
     /// The completion belongs to this take, even if its lesson screen disappears.
     /// Called on main; failed saves deliberately retain the original pending file.
+    /// It also receives the room as it was heard just before the take.
     func startRecording(maximumDuration: TimeInterval = 90,
-                        onFinished: @escaping (URL, [PitchSample]) -> Void) {
+                        onFinished: @escaping (URL, [PitchSample], RoomNoise?) -> Void) {
         sessionQueue.async { [weak self] in
             guard let self, !self.recordingRequested else { return }
             guard maximumDuration.isFinite, maximumDuration > 0, maximumDuration <= 90 else {
@@ -554,6 +560,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         publish {
             self.isReady = false
             self.frequency = nil
+            self.room = nil
         }
         audioQueue.async { [weak self] in
             guard let self else { return }
@@ -562,6 +569,8 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
             self.audioWindow.removeAll(keepingCapacity: true)
             self.recordingStartHostTime = nil
             self.pitchSamples.removeAll(keepingCapacity: true)
+            // The next time the microphone is on, the room may be a different one.
+            self.listener = RoomListener()
         }
     }
 
@@ -667,15 +676,24 @@ extension CaptureController: AVCaptureAudioDataOutputSampleBufferDelegate {
         analysisQueue.async { [weak self] in
             guard let self else { return }
             let estimate = self.detector.estimate(samples: samples, sampleRate: sampleRate)
+            let level = RoomNoise.level(of: samples)
             self.audioQueue.async { [weak self] in
                 guard let self else { return }
                 self.analyzing = false
                 guard self.generation == currentGeneration else { return }
+                // The saved take keeps every observation: scoring is not changed by the room.
                 if let capturedTime, capturedTime <= 90.5, let estimate {
                     self.pitchSamples.append(PitchSample(time: capturedTime, frequency: estimate.frequency,
                                                         confidence: estimate.confidence, rms: estimate.rms))
                 }
-                self.publish { self.frequency = estimate?.frequency }
+                // The room is heard only outside a take, so the learner is not measured as noise.
+                let roomChanged = start == nil && self.listener.hear(level)
+                let room = self.listener.room
+                let heard = estimate.flatMap { room?.isClear($0.rms) ?? true ? $0.frequency : nil }
+                self.publish {
+                    self.frequency = heard
+                    if roomChanged { self.room = room }
+                }
             }
         }
     }
@@ -752,12 +770,13 @@ extension CaptureController: AVCaptureFileOutputRecordingDelegate {
             self.stopWhenRecordingStarts = false
             let completion = self.recordingCompletion
             self.recordingCompletion = nil
-            let observations: [PitchSample] = self.audioQueue.sync {
+            // The room is not measured during a take, so this is the room just before it.
+            let (observations, room): ([PitchSample], RoomNoise?) = self.audioQueue.sync {
                 self.generation += 1
                 self.recordingStartHostTime = nil
                 let captured = self.pitchSamples
                 self.pitchSamples.removeAll(keepingCapacity: true)
-                return captured
+                return (captured, self.listener.room)
             }
             let nsError = error as NSError?
             let successfullyFinished = error == nil || nsError?.userInfo[AVErrorRecordingSuccessfullyFinishedKey] as? Bool == true
@@ -768,7 +787,7 @@ extension CaptureController: AVCaptureFileOutputRecordingDelegate {
                 self.displayStartTime = nil
                 self.isRecording = false
                 if successfullyFinished && fileSize > 0 {
-                    completion?(outputFileURL, observations)
+                    completion?(outputFileURL, observations, room)
                 } else {
                     self.message = "Recording could not finish: \(error?.localizedDescription ?? "nothing was captured"). Any partial file has been kept on this device."
                 }

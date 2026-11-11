@@ -67,11 +67,13 @@ struct PracticeSession: Identifiable, Codable {
     let melodyContext: MelodyPracticeContext?
     /// Melody feedback is frozen with the take and never replaces foundation feedback.
     let melodyRating: MelodyRating?
+    /// How loud the room was just before the take. Earlier recordings omit it.
+    let roomLevel: Double?
 
     init(id: UUID, createdAt: Date, exercise: Exercise, duration: Double, notes: String,
          pitchSamples: [PitchSample], videoFilename: String, tuningTargetFrequency: Double? = nil,
          rating: PracticeRating? = nil, melodyContext: MelodyPracticeContext? = nil,
-         melodyRating: MelodyRating? = nil) {
+         melodyRating: MelodyRating? = nil, roomLevel: Double? = nil) {
         self.id = id
         self.createdAt = createdAt
         self.exercise = exercise
@@ -83,7 +85,11 @@ struct PracticeSession: Identifiable, Codable {
         self.rating = rating
         self.melodyContext = melodyContext
         self.melodyRating = melodyRating
+        self.roomLevel = roomLevel
     }
+
+    /// The room this take was made in, when it was measured.
+    var room: RoomNoise? { roomLevel.map(RoomNoise.init(level:)) }
 
     var title: String {
         guard let context = melodyContext else { return exercise.title }

@@ -12,6 +12,7 @@ struct SessionDetailView: View {
     /// Humming takes are sound only; they need a player bar, not a video frame.
     @State private var hasVideo = true
     @State private var error: String?
+    private var noisyRoom: Bool { session.room?.isLoud == true }
     init(session: PracticeSession, store: SessionStore) {
         self.session = session
         self.store = store
@@ -24,10 +25,12 @@ struct SessionDetailView: View {
                              subtitle: "\(session.createdAt.formatted(date: .long, time: .shortened)) · \(timeString(session.duration))")
                 if let rating = session.melodyRating, let context = session.melodyContext {
                     MelodyFeedbackView(rating: rating, isEcho: EchoLevel.selection(for: context) != nil)
+                    if noisyRoom { RoomNoiseNote() }
                     MelodyTraceView(context: context, rating: rating, duration: session.duration).card()
                 } else if let rating = session.rating {
                     PracticeRatingView(rating: rating)
                         .accessibilityIdentifier("archivedRatingCard")
+                    if noisyRoom { RoomNoiseNote() }
                 }
                 if let target = session.effectiveTargetFrequency {
                     PitchTraceView(samples: session.pitchSamples, targetFrequency: target, duration: session.duration).card()
