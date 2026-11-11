@@ -72,6 +72,16 @@ struct Level: Identifiable {
         return nil
     }
 
+    /// Today's practice: the next lesson, then the passed lessons with the lowest best
+    /// score, earliest first. A lesson leaves the list once it reaches three stars,
+    /// so the list changes as the practice is done. Unscored lessons are never reviewed.
+    static func today(isPassed: (PathLesson) -> Bool, stars: (PathLesson) -> Int?, reviews: Int = 2) -> [PathLesson] {
+        let weakest = path.flatMap(\.lessons).enumerated().compactMap { index, lesson in
+            stars(lesson).flatMap { $0 < CompletionRule.goldStars && isPassed(lesson) ? (lesson, $0, index) : nil }
+        }.sorted { ($0.1, $0.2) < ($1.1, $1.2) }.prefix(reviews).map(\.0)
+        return [nextLesson(isPassed: isPassed)?.lesson].compactMap { $0 } + weakest
+    }
+
     /// Where a lesson sits in its level, and its neighbours there.
     static func position(of step: PathLesson) -> LessonPosition? {
         for level in path {

@@ -48,6 +48,23 @@ final class LevelTests: XCTestCase {
         XCTAssertEqual(skippedAhead?.lesson, .lesson(.matchHum))
     }
 
+    func testTodaysPracticeIsTheNextLessonThenTheWeakestPassedOnes() {
+        // Nothing done yet: only the first lesson.
+        XCTAssertEqual(Level.today(isPassed: { _ in false }, stars: { _ in 0 }), [.lesson(.steadyHum)])
+
+        let scores: [PathLesson: Int] = [.lesson(.steadyHum): 3, .lesson(.matchHum): 2, .lesson(.pulse): 2,
+                                         .lesson(.twoTaps): 3, .lesson(.mixedRhythm): 2]
+        let today = Level.today(isPassed: { scores[$0] != nil }, stars: { scores[$0] ?? 0 })
+        XCTAssertEqual(today, [.echo, .lesson(.matchHum), .lesson(.pulse)],
+                       "The next lesson, then the two weakest passed lessons, earliest first")
+
+        // Unscored lessons (Listen, Meet your cello) are never offered for review, and
+        // nothing is left once every lesson has three stars.
+        let listened = Level.today(isPassed: { $0 == .listen(.hotCrossBuns) }, stars: { _ in nil })
+        XCTAssertEqual(listened, [.lesson(.steadyHum)])
+        XCTAssertTrue(Level.today(isPassed: { _ in true }, stars: { _ in 3 }).isEmpty)
+    }
+
     func testTheCelloLevelComesLastOnThePath() {
         let beforeCello = Set(Level.path.dropLast().flatMap(\.lessons))
         let next = Level.nextLesson { beforeCello.contains($0) }
