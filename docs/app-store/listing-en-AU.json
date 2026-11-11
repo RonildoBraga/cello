@@ -1,0 +1,19 @@
+{
+  "name": "Cello",
+  "subtitle": "Humming, rhythm & first notes",
+  "version": "1.19.0",
+  "build": 36,
+  "primary_language": "en-AU",
+  "primary_category": "Music",
+  "secondary_category": "Education",
+  "price": "Free",
+  "availability": "Worldwide",
+  "promotional_text": "Start making music with short humming and rhythm lessons, recorded examples, live pitch feedback and simple melodies. No instrument needed for the first lessons.",
+  "description": "Start making music, one short lesson at a time. Cello helps beginners practise humming, rhythm and their first cello notes.\n\nHEAR, HUM AND MATCH\nListen to recorded human humming, try the note yourself and follow live pitch feedback. Review your take with a pitch chart and beginner-friendly stars.\n\nFIND THE BEAT\nTap along with a steady pulse, learn two taps per beat and practise mixed rhythms. Timing charts show how your taps compare with the pattern.\n\nLEARN SIMPLE MELODIES\nBuild Hot Cross Buns and the opening of Ode to Joy note by note, phrase by phrase, then try the whole melody. Listen & Echo adds fresh two-note and three-note humming patterns.\n\nSTART YOUR CELLO JOURNEY\nMeet the parts of the cello, hear recorded cello examples and practise the four open strings. Cello recording includes video for your own review or optional sharing with a teacher. You can start the humming and rhythm lessons before you own an instrument.\n\nSEE YOUR PROGRESS\nFollow a clear lesson path and today’s practice suggestions. Earn a pass with two stars and a gold mark with three three-star attempts among your last five. Lessons stay available so you can return whenever you like.\n\nPRIVATE BY DESIGN\nNo account, advertising, subscription or analytics. Recordings and progress stay on your device. You choose whether to export or share a take.\n\nRatings are beginner practice feedback. Pitch estimates can miss notes or choose the wrong octave. A teacher can help with cello setup, posture and bowing.",
+  "keywords": "music,cello,humming,rhythm,pitch,tuner,ear training,beginner,practice,lessons,beat,melody",
+  "support_url": "https://ronildobraga.github.io/cello/",
+  "privacy_policy_url": "https://ronildobraga.github.io/cello/privacy.html",
+  "copyright": "2026 Ronildo Braga",
+  "review_notes": "No login, account, purchases or subscription. All lessons are available. Begin at Music > First sounds > Steady hum. Humming uses microphone audio only; cello recording also requests camera access. Reference playback requires neither permission. Rhythm lessons use taps and whole-beat haptics. Recordings and progress remain local; export is user initiated. The pitch detector and beginner stars run on device. The Cello open-string lessons are optional: the humming/rhythm/melody lessons can be tested without an instrument. Recorded reference audio is licensed and credited in About. No live AI coach is advertised or provided.",
+  "release_method": "Automatically after Apple approval"
+}

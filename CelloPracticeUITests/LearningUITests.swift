@@ -66,6 +66,14 @@ final class LearningUITests: XCTestCase {
         app.launch()
         app.tabBars.buttons["About"].tap()
         XCTAssertTrue(app.staticTexts["aboutTitle"].waitForExistence(timeout: 5))
+        for (identifier, label) in [("aboutPrivacyLink", "Privacy policy"),
+                                    ("aboutSupportLink", "Help & support"),
+                                    ("aboutEmailLink", "Email ronildo@blueberry.money")] {
+            let link = app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+            app.scroll(to: link)
+            XCTAssertEqual(link.label, label)
+        }
+        screenshot("About · privacy and support")
         for text in ["Ronildo Braga", "Claude, by Anthropic", "“Deep Humming Noise” by retropttam", "VSCO 2 Community Edition"] {
             let credit = app.staticTexts[text]
             app.scroll(to: credit)
