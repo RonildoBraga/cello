@@ -90,6 +90,8 @@ Practice data stays on the device. The app has no account, analytics, automatic 
 
 The bundled [privacy manifest](CelloPractice/Resources/PrivacyInfo.xcprivacy) declares no tracking or collected data. Countdown and rhythm timers use system uptime to measure elapsed intervals under Apple's approved reason `35F9.1`; raw boot times are not exported. The build also declares that it uses no non-exempt encryption; progress keys use Apple's SHA256 hashing.
 
+The same manifest declares app-only saved preferences under reason `CA92.1`. Public [help and support](https://ronildobraga.github.io/cello/) and the [privacy policy](https://ronildobraga.github.io/cello/privacy.html) are also linked from About. The static pages in `docs/` are published with GitHub Pages; they have no added analytics or forms.
+
 - Takes (sound only for humming, sound and video for cello) and metadata: `Documents/PracticeSessions`.
 - Unfinished or failed-save takes retained for recovery: `Documents/PendingTakes`.
 - Voice completion milestones: `Documents/PracticeProgress.json`.
