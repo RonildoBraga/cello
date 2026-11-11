@@ -96,4 +96,11 @@ final class MelodyRhythmChartTests: XCTestCase {
             XCTAssertEqual(data.timeRange, 0...1)
         }
     }
+
+    func testAFirstTapATouchEarlyIsPlottedRatherThanShownAsMissed() throws {
+        let context = try MelodyRhythmContext.hotCrossBuns()
+        let data = MelodyRhythmChartData(context: context, offsets: [0: -0.11, 1: -0.11, 2: -0.1])
+        XCTAssertEqual(data.points.count, 3)
+        XCTAssertTrue(data.missedNoteIndices.isEmpty, "Three stars and one missed note cannot both be shown")
+    }
 }

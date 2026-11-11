@@ -32,7 +32,9 @@ Every lesson uses one compact row, whatever it opens: lesson number, title, prog
 
 Every lesson's screen opens with the same header (`LessonHeader`): the level ("Level 1 · First sounds"), the lesson's title and one plain line about what to do. A lesson bar, "‹ Lesson 1 of 6 · Listen & match ›", is pinned at the bottom just above the main button, where the thumb already is; it was first tried under the title, where it pushed the practice area down. The shared bottom action bar adds it on any screen that belongs to a lesson, and holds it still while a take or round is in flight. The arrows move to the previous and next lesson of the level and fade at its first and last lesson. Moving with the bar replaces the screen, so Back always returns to Music. A lesson's page, with instructions and scores, is what a tap on the path opens; its Start button also leads to a practice screen directly above the path.
 
-Under the practice area one line reports both tiers in words: "Passed · Gold: 2 of 3 three-star takes". Inside a melody lesson the same row still offers the next phrase or note.
+Under the practice area one line reports both tiers in words: "Passed · Gold: 2 of 3 three-star takes".
+
+The lesson bar is the only control for moving on. A lesson with several parts (the four phrases of Hum it, the five parts of Tap it, the notes of Meet the notes) passes them to the bar as `LessonParts`: Next steps through the parts, then to the next lesson, then into the next level, and Previous goes back the same way. The bar shows "Lesson 2 of 5" with "Part 1 of 5" beneath it. A separate "Try Whole melody" link under the result used to offer the next part; it looked like a different lesson and was removed. For the same reason Tap it's last part is called "All phrases", and Hum it lists only its phrases: Whole melody is the next lesson.
 
 ### Moving on
 
