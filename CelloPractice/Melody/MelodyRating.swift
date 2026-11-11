@@ -91,8 +91,12 @@ struct MelodyRating: Codable, Equatable, Sendable {
         let position = noteResults.filter { $0.expectedFrequency != nil }.firstIndex(of: note) ?? 0
         let name = "\(position == 0 ? "The first note" : "Note \(position + 1)") (\(NoteName.frequency(expected)))"
         let cents = 1_200 * log2(observed / expected)
-        // Near enough on the whole, so it moved about: the rating wants most of the note close.
-        guard abs(cents) >= 60 else { return "\(name) wavered. Find it, then keep it steady." }
+        guard abs(cents) >= 60 else {
+            // Near enough on the whole. A note heard clearly for most of its length missed
+            // because it moved about; one that was not may only have been cut short, and
+            // the saved result cannot tell, so the general advice stays.
+            return note.clear ? "\(name) wavered. Find it, then keep it steady." : nil
+        }
         let amount = abs(cents) < 120 ? "a little too" : "too"
         return "\(name) was \(amount) \(cents < 0 ? "low" : "high"). "
             + (position == 0 ? "Hear the start again and begin on its pitch." : "Aim \(cents < 0 ? "higher" : "lower") on that note.")

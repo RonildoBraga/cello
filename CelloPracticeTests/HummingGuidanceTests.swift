@@ -63,10 +63,10 @@ final class HummingGuidanceTests: XCTestCase {
     }
 
     func testFeedbackNamesTheNoteThatWasOffPitchAndWhichWayToMoveIt() {
-        func missed(_ index: Int, expected: Double, observed: Double?) -> MelodyNoteResult {
+        func missed(_ index: Int, expected: Double, observed: Double?, clear: Bool = true) -> MelodyNoteResult {
             MelodyNoteResult(expectedIndex: index, expectedStart: Double(index), expectedDuration: 0.5,
                              expectedFrequency: expected, observedFrequency: observed, observedOnset: Double(index),
-                             matched: false, timed: true, clear: true, octaveMismatch: false)
+                             matched: false, timed: true, clear: clear, octaveMismatch: false)
         }
         func feedback(_ notes: [MelodyNoteResult]) -> String {
             MelodyRating(status: .rated, notes: false, timing: true, clarity: true, noteResults: notes).feedback
@@ -81,9 +81,14 @@ final class HummingGuidanceTests: XCTestCase {
                        "The first note (G2) was too low. Hear the start again and begin on its pitch.")
         XCTAssertEqual(feedback([good, missed(1, expected: 110, observed: 107)]),
                        "Note 2 (A2) wavered. Find it, then keep it steady.")
-        // A note that was not heard clearly enough to measure keeps the general advice.
+        // A note that was not heard clearly enough to measure keeps the general advice. So does
+        // one on pitch but not heard for most of its length: it may have been cut short, not wavering.
         XCTAssertEqual(feedback([good, missed(1, expected: 110, observed: nil)]),
                        "Listen to this phrase again and follow each note as it changes.")
+        XCTAssertEqual(feedback([good, missed(1, expected: 110, observed: 110, clear: false)]),
+                       "Listen to this phrase again and follow each note as it changes.")
+        XCTAssertEqual(feedback([good, missed(1, expected: 110, observed: 103.6, clear: false)]),
+                       "Note 2 (A2) was a little too low. Aim higher on that note.")
     }
 
     func testWithoutAMeasuredStartTheGeneralAdviceStays() {

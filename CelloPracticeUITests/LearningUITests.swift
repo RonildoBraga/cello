@@ -738,13 +738,13 @@ final class LearningUITests: XCTestCase {
         XCTAssertFalse(app.buttons["celloIntroductionLink"].exists)
         method.buttons["Cello"].tap()
         XCTAssertTrue(app.buttons["part-F♯3"].waitForExistence(timeout: 5))
-        // The note on show keeps its place: A2, the second note, becomes E3.
-        XCTAssertTrue(hear.label.hasPrefix("E3"))
+        // What is on show keeps its place: the quick G2's become the cello's quick D3's.
+        XCTAssertTrue(hear.label.hasPrefix("D3 · 8 quick notes"))
         XCTAssertTrue(app.buttons["celloIntroductionLink"].exists, "On the cello, Meet your cello is one tap away")
         screenshot("Hot Cross Buns · meet the notes on the cello")
         method.buttons["Voice"].tap()
         XCTAssertTrue(app.buttons["part-B2"].waitForExistence(timeout: 5))
-        XCTAssertTrue(hear.label.hasPrefix("A2"))
+        XCTAssertTrue(hear.label.hasPrefix("G2 · 8 quick notes"))
         assertNoWrittenInput(in: app)
         assertNoPermissionAlerts(in: app)
     }
