@@ -1899,7 +1899,7 @@ final class LearningUITests: XCTestCase {
         XCTAssertTrue(heading.waitForExistence(timeout: 5))
         XCTAssertEqual(heading.label, lesson)
         guard lesson == "Steady note" else { return }
-        let method = app.buttons["part-\(string == nil ? "Voice" : "Cello")"]
+        let method = app.segmentedControls["practiceMethodPicker"].buttons[string == nil ? "Voice" : "Cello"]
         XCTAssertTrue(method.waitForExistence(timeout: 5))
         if !method.isSelected { method.tap() }
         if let string, app.buttons["part-\(string)"].waitForExistence(timeout: 2) {

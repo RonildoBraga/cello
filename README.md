@@ -14,7 +14,7 @@ A native iPhone practice companion for beginners learning music while preparing 
 
 Each Level 1 lesson opens the first time with a short primer that explains its new idea in plain words: a note, higher and lower, a beat, two taps per beat.
 
-Every lesson belongs to a level, and every lesson uses the same compact row: its place in the level, its title, how far it has got and its best score. The cello has no level of its own: **Steady note** can be practised by voice or on the cello (the four open strings), chosen with the Voice / Cello chips on its practice screen. Progress is kept for each, and either one passes the lesson. The **About** tab holds the long-term goal (Bach’s Cello Suite No. 1), who built the app, where every sound comes from and what informed the lessons. See [the path design](https://github.com/RonildoBraga/cello/issues/53).
+Every lesson belongs to a level, and every lesson uses the same compact row: its place in the level, its title, how far it has got and its best score. The cello has no level of its own: **Steady note** can be practised by voice or on the cello (the four open strings), chosen with the Voice / Cello switch on its practice screen. Progress is kept for each, and either one passes the lesson. The **About** tab holds the long-term goal (Bach’s Cello Suite No. 1), who built the app, where every sound comes from and what informed the lessons. See [the path design](https://github.com/RonildoBraga/cello/issues/53).
 
 The lessons include:
 

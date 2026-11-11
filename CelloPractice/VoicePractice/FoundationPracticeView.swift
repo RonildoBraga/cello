@@ -37,6 +37,16 @@ struct FoundationPracticeView: View {
                 PulsePracticeView(store: rhythmStores.store(for: exercise)) { header }
             }
         }.background(Palette.paper).screenTitle(screenTitle)
+            .toolbar {
+                // On the cello, the instrument's parts and strings are one tap away.
+                if onCello {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        NavigationLink(value: MusicRoute.celloIntroduction) {
+                            Image(systemName: "info.circle").frame(width: 44, height: 44)
+                        }.accessibilityLabel("Meet your cello").accessibilityIdentifier("celloIntroductionLink")
+                    }
+                }
+            }
     }
 
     /// What the screen is called on the back stack: the kind of practice on show.
@@ -59,43 +69,38 @@ struct FoundationPracticeView: View {
                                  hearOnArrival: $hearOnArrival) { controls in
             VStack(alignment: .leading, spacing: 17) {
                 header
-                if lesson.hasCelloSide { methodChips.disabled(controls.locked) }
                 let hearing = PartHearing(spoken: mode.hearSpoken, identifier: "previewTargetButton") { changed in
                     if changed { hearOnArrival = true } else { controls.hear() }
                 }
-                Group {
+                // What to hear on the left; how it is practised, a different kind of choice, on the right.
+                HStack(spacing: 8) {
                     if onCello {
-                        PartStrip(parts: strings, selection: $string, short: { $0.targetNote ?? "" }, title: \.title,
-                                  progress: progress, hear: hearing)
+                        PartStrip(parts: strings, selection: $string, short: { String($0.targetNote?.dropLast() ?? "") },
+                                  title: \.title, progress: progress, hear: hearing)
                     } else {
                         let note = TunerReading(frequency: mode.targetFrequency, targetFrequency: nil).noteName
                         PartStrip<String>(parts: [note], selection: .constant(note), short: { $0 }, title: { $0 },
                                           hear: hearing)
                     }
+                    if lesson.hasCelloSide { methodPicker }
                 }.disabled(controls.locked)
             }
         }.id(exercise)
     }
 
-    /// Voice or cello, each with its own mark once passed. On the cello, the
-    /// instrument's parts and strings are one tap away.
-    private var methodChips: some View {
-        HStack(spacing: 8) {
-            PartStrip(parts: PracticeMethod.allCases, selection: Binding(get: { method }, set: { next in
-                // The cello is filmed and the voice is not: release the microphone between them.
-                if next != method { capture.stop() }
-                method = next
-            }), short: \.title, title: \.title, progress: { method in
+    /// Voice or cello, each marked once passed (✓) or gold (★).
+    private var methodPicker: some View {
+        Picker("Practise with", selection: Binding(get: { method }, set: { next in
+            // The cello is filmed and the voice is not: release the microphone between them.
+            if next != method { capture.stop() }
+            method = next
+        })) {
+            ForEach(PracticeMethod.allCases) { method in
                 let parts = method == .cello ? PracticeMethod.openStrings.map(progress) : [progress(.steadyHum)]
-                return PracticeProgress(successfulAttempts: 0, completed: parts.allSatisfy(\.completed),
-                                        passed: parts.allSatisfy(\.passed))
-            })
-            if onCello {
-                NavigationLink(value: MusicRoute.celloIntroduction) {
-                    Label("Meet your cello", systemImage: "info.circle").labelStyle(.iconOnly)
-                }.buttonStyle(SecondaryActionButtonStyle()).accessibilityIdentifier("celloIntroductionLink")
+                let mark = parts.allSatisfy(\.completed) ? " ★" : parts.allSatisfy(\.passed) ? " ✓" : ""
+                Text(method.title + mark).tag(method)
             }
-        }
+        }.pickerStyle(.segmented).frame(width: 136).accessibilityIdentifier("practiceMethodPicker")
     }
 
     private var header: some View {

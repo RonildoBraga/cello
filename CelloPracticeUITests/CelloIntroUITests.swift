@@ -132,7 +132,7 @@ final class CelloIntroUITests: XCTestCase {
         let start = app.buttons["startLessonButton"]
         XCTAssertTrue(start.waitForExistence(timeout: 5))
         start.tap()
-        let cello = app.buttons["part-Cello"]
+        let cello = app.segmentedControls["practiceMethodPicker"].buttons["Cello"]
         XCTAssertTrue(cello.waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["celloIntroductionLink"].exists, "The voice has no instrument to meet")
         cello.tap()
