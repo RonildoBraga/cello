@@ -205,7 +205,7 @@ struct MusicLibraryView: View {
                         }
                     }
                 }.card(padding: 0)
-            }.accessibilityIdentifier("todayPractice")
+            }
         }
     }
 
