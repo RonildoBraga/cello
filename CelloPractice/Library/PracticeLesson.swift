@@ -49,12 +49,6 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
         progression.firstIndex(of: self)! + 1
     }
 
-    var next: PracticeLesson? {
-        let lessons = progression
-        let index = number
-        return lessons.indices.contains(index) ? lessons[index] : nil
-    }
-
     var title: String {
         switch activity {
         case .recording(let exercise): return exercise.title
@@ -91,17 +85,16 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
         }
     }
 
+    /// One plain line under the title of the practice screen.
     var practicePrompt: String {
-        let prompt: String
         switch self {
-        case .steadyHum: prompt = "3-second hum"
-        case .matchHum: prompt = "Listen, then hum"
-        case .pulse: prompt = "Keep an even beat"
-        case .twoTaps: prompt = "Count 1 & 2 &"
-        case .mixedRhythm: prompt = "Count 1, 2 &, 3, 4 &"
-        case .openC, .openG, .openD, .openA: prompt = "Play, then tap Stop"
+        case .steadyHum: return "Hum one note for three seconds."
+        case .matchHum: return "Listen, then hum the same note."
+        case .pulse: return "Tap an even beat."
+        case .twoTaps: return "Count 1 & 2 & and tap on each."
+        case .mixedRhythm: return "Count 1, 2 &, 3, 4 & and tap on each."
+        case .openC, .openG, .openD, .openA: return "Play one steady note, then tap Stop."
         }
-        return "Lesson \(number) · \(prompt)"
     }
 
     var instructions: [String] {

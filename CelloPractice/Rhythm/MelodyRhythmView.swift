@@ -14,9 +14,10 @@ struct MelodyRhythmView: View {
                               patternHint: piece.rhythmHint(for: section),
                               next: section.next.map { next in (next.title, { section = next }) }) { locked in
             VStack(alignment: .leading, spacing: 12) {
-                ScreenHeader(eyebrow: piece.title, title: "Tap it",
-                             subtitle: "Tap once when each note starts. Keep counting while a long note continues.",
-                             collapsesSubtitle: store.progress(for: context).successfulAttempts > 0)
+                StepHeader(step: .tap(piece),
+                           subtitle: "Tap once when each note starts. Keep counting while a long note continues.",
+                           collapsesSubtitle: store.progress(for: context).successfulAttempts > 0)
+                    .disabled(locked)
                 HStack {
                     SectionMenu(selection: $section) { store.progress(for: piece.rhythm(section: $0)).completed }
                         .disabled(locked).accessibilityIdentifier("melodyRhythmSectionPicker")

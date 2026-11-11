@@ -82,7 +82,7 @@ struct MusicLibraryView: View {
                     }
                 }
                 .navigationDestination(for: MusicRoute.self) { destination($0) }
-        }.tint(Palette.forest)
+        }.tint(Palette.forest).environment(\.openPathStep, open)
     }
 
     @ViewBuilder
@@ -98,8 +98,8 @@ struct MusicLibraryView: View {
         case .lesson(let lesson):
             LessonDetailView(lesson: lesson, store: store, rhythmStores: rhythmStores, onStartLesson: practise)
         case .practice(let lesson):
-            FoundationPracticeView(lesson: lesson, store: store, capture: capture, rhythmStores: rhythmStores,
-                                   onStartLesson: practise).id(lesson)
+            FoundationPracticeView(lesson: lesson, store: store, capture: capture, rhythmStores: rhythmStores)
+                .id(lesson)
         case .celloIntroduction: CelloIntroductionView(capture: capture)
         case .echo: EchoPracticeView(store: store, capture: capture)
         case .pieceHumming(let piece, let section):
@@ -110,10 +110,15 @@ struct MusicLibraryView: View {
         }
     }
 
-    /// Opens a lesson's practice screen above its own lesson page, so Back
-    /// always leads somewhere that matches what is on screen.
+    /// Opens a lesson's practice screen directly above the path, so Back
+    /// always returns to Music.
     private func practise(_ lesson: PracticeLesson) {
-        path = needsPrimer(lesson) ? [.primer(lesson)] : [.lesson(lesson), .practice(lesson)]
+        path = needsPrimer(lesson) ? [.primer(lesson)] : [.practice(lesson)]
+    }
+
+    /// Moves to another step from the step bar, replacing the current screen.
+    private func open(_ step: PathStep) {
+        if case .lesson(let lesson) = step { practise(lesson) } else { path = [step.route] }
     }
 
     /// A lesson's new idea is explained once, before the lesson is first opened.
@@ -352,7 +357,7 @@ private struct LessonDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 25) {
-                ScreenHeader(eyebrow: "Lesson \(String(format: "%02d", lesson.number)) · \(lesson.area.title)",
+                ScreenHeader(eyebrow: Level.position(of: .lesson(lesson)).map { "Level \($0.level.number) · \($0.label)" },
                              title: lesson.title, subtitle: lesson.purpose, titleIdentifier: "lessonDetailTitle")
 
                 if let primer = lesson.primer {

@@ -7,25 +7,23 @@ struct FoundationPracticeView: View {
     @ObservedObject var store: SessionStore
     @ObservedObject var capture: CaptureController
     let rhythmStores: RhythmStores
-    /// Moves on to another lesson, such as the suggested next one.
-    let onStartLesson: (PracticeLesson) -> Void
 
     var body: some View {
         Group {
             switch lesson.activity {
             case .recording(let exercise):
-                VoicePracticeView(store: store, capture: capture, mode: .note(exercise),
-                                  nextLesson: lesson.next, onStartLesson: onStartLesson) { _ in header }
+                VoicePracticeView(store: store, capture: capture, mode: .note(exercise)) { locked in
+                    header.disabled(locked)
+                }
             case .rhythm(let exercise):
-                PulsePracticeView(store: rhythmStores.store(for: exercise),
-                                  nextLesson: lesson.next, onNext: onStartLesson) { header }
+                PulsePracticeView(store: rhythmStores.store(for: exercise)) { header }
             }
         }.background(Palette.paper).screenTitle(lesson.area.title)
     }
 
     private var header: some View {
-        ScreenHeader(eyebrow: lesson.area.title, title: lesson.title, subtitle: lesson.practicePrompt,
-                     titleIdentifier: "practiceLessonTitle", eyebrowIdentifier: "practiceLessonArea")
+        StepHeader(step: .lesson(lesson), subtitle: lesson.practicePrompt,
+                   titleIdentifier: "practiceLessonTitle", eyebrowIdentifier: "practiceLessonArea")
             .id("practiceTop")
     }
 }

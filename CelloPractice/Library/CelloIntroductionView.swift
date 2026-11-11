@@ -22,8 +22,8 @@ struct CelloIntroductionView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                ScreenHeader(title: "Meet your cello",
-                             subtitle: "Learn the parts and hear the four strings, from low to high.")
+                StepHeader(step: .celloIntroduction,
+                           subtitle: "Learn the parts and hear the four strings, from low to high.")
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         SectionTitle("Find the parts")

@@ -20,8 +20,9 @@ struct MelodyHummingView: View {
         VoicePracticeView(store: store, capture: capture, mode: .phrase(context),
                           nextPhrase: section.next.map { next in (next.title, { section = next }) }) { locked in
             VStack(alignment: .leading, spacing: 17) {
-                ScreenHeader(eyebrow: piece.title, title: section == .whole ? "Whole melody" : "Hum it", subtitle: piece.hummingIntro,
-                             collapsesSubtitle: store.melodyProgress(for: context).successfulAttempts > 0)
+                StepHeader(step: section == .whole ? .wholeMelody(piece) : .hum(piece), subtitle: piece.hummingIntro,
+                           collapsesSubtitle: store.melodyProgress(for: context).successfulAttempts > 0)
+                    .disabled(locked)
                 HStack {
                     SectionMenu(selection: $section) {
                         store.melodyProgress(for: piece.humming(register: .lowVoice, section: $0)).completed

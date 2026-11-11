@@ -16,8 +16,8 @@ struct PracticeRatingView: View {
     }
 }
 
-/// The suggested step after this activity: the next lesson, phrase or pattern.
-/// It is a suggestion only; every activity stays available.
+/// The suggested next part inside a step: the next phrase, note or pattern.
+/// Moving between steps is the step bar's job.
 struct NextStep {
     /// "Try" before the current goal is reached, "Continue to" after.
     let caption: String
@@ -25,13 +25,6 @@ struct NextStep {
     let spokenLabel: String
     let identifier: String
     let action: () -> Void
-
-    static func lesson(_ lesson: PracticeLesson, completed: Bool, action: @escaping () -> Void) -> NextStep {
-        let verb = completed ? "Continue to" : "Try"
-        return NextStep(caption: "\(verb) lesson \(lesson.number)", title: lesson.title,
-                        spokenLabel: "\(verb) Lesson \(lesson.number), \(lesson.title)",
-                        identifier: "nextExerciseButton", action: action)
-    }
 
     static func item(_ title: String, completed: Bool, identifier: String, action: @escaping () -> Void) -> NextStep {
         let verb = completed ? "Continue to" : "Try"
@@ -56,8 +49,8 @@ struct PracticeProgressView: View {
                 }
             }.accessibilityHidden(true)
             Text(progress.completed ? "Gold · Goal reached"
-                 : progress.passed ? "Passed · \(progress.successfulAttempts) of 3 for gold"
-                 : "\(progress.successfulAttempts) of 3 successful \(attemptNoun)")
+                 : "\(progress.passed ? "Passed" : "Not passed yet") · Gold: \(progress.successfulAttempts) of 3 three-star \(attemptNoun)")
+                .fixedSize(horizontal: false, vertical: true)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(progress.completed ? Palette.forest : Palette.muted)
                 .accessibilityIdentifier("practiceProgressText")

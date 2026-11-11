@@ -72,6 +72,17 @@ struct Level: Identifiable {
         return nil
     }
 
+    /// Where a step sits in its level, and its neighbours there.
+    static func position(of step: PathStep) -> StepPosition? {
+        for level in path {
+            guard let index = level.steps.firstIndex(of: step) else { continue }
+            return StepPosition(level: level, index: index,
+                                previous: index > 0 ? level.steps[index - 1] : nil,
+                                next: index + 1 < level.steps.count ? level.steps[index + 1] : nil)
+        }
+        return nil
+    }
+
     func passedSteps(isPassed: (PathStep) -> Bool) -> Int { steps.filter(isPassed).count }
 
     /// A level is complete when every one of its steps has been passed.
@@ -81,6 +92,16 @@ struct Level: Identifiable {
     static func newlyCompleted(celebrated: String, isPassed: (PathStep) -> Bool) -> Level? {
         path.last { $0.isComplete(isPassed: isPassed) && !StoredIDs.contains($0.id, in: celebrated) }
     }
+}
+
+/// A step's place in its level. Previous and next stay inside the level.
+struct StepPosition {
+    let level: Level
+    let index: Int
+    let previous: PathStep?
+    let next: PathStep?
+
+    var label: String { "Step \(index + 1) of \(level.steps.count)" }
 }
 
 /// How far a step has got, rolled up from its parts: one part for a lesson or
