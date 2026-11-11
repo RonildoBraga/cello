@@ -77,7 +77,7 @@ enum VoicePracticeMode: Equatable {
         guard let context = melodyContext else {
             guard isTimed else { return [] }
             return [LaneMark(start: 0, length: duration,
-                             label: TunerReading(frequency: targetFrequency, targetFrequency: nil).noteName)]
+                             label: NoteName.frequency(targetFrequency))]
         }
         let notes = context.expectedEvents.compactMap(\.midiNote)
         let low = notes.min() ?? 0
@@ -129,7 +129,7 @@ enum VoicePracticeMode: Equatable {
     var referenceSpoken: String? {
         switch self {
         case .note:
-            let note = TunerReading(frequency: targetFrequency, targetFrequency: nil).noteName
+            let note = NoteName.frequency(targetFrequency)
             return String(format: "Target %@ · %.1f Hz", note, targetFrequency)
         case .phrase(let context) where context.noteDrillPiece != nil:
             return "Reference \(context.noteNames.joined(separator: " then "))"
@@ -190,7 +190,7 @@ enum VoicePracticeMode: Equatable {
 
     /// Guidance during a take. Nil means the generic above/below-target wording applies.
     func recordingMessage(target: Double?, reading: TunerReading) -> String? {
-        let note = target.map { TunerReading(frequency: $0, targetFrequency: nil).noteName }
+        let note = target.map(NoteName.frequency)
         switch self {
         case .note:
             return reading.frequency == nil ? (isTimed ? "Hum one gentle note" : "Play one steady note") : nil

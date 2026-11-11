@@ -102,7 +102,7 @@ struct PracticeSession: Identifiable, Codable {
     }
 
     var effectiveTargetNote: String? {
-        effectiveTargetFrequency.map { TunerReading(frequency: $0, targetFrequency: nil).noteName }
+        effectiveTargetFrequency.map(NoteName.frequency)
     }
 
     /// Estimates relative to equal-tempered targets at A4 = 440 Hz, not musical grades.

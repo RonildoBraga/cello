@@ -72,7 +72,7 @@ struct MelodyRating: Codable, Equatable, Sendable {
               let frequency = note.expectedFrequency, let onset = note.observedOnset else { return nil }
         let position = noteResults.filter { $0.expectedFrequency != nil }.firstIndex(of: note) ?? 0
         let name = "\(position == 0 ? "The first note" : "Note \(position + 1)") "
-            + "(\(TunerReading(frequency: frequency, targetFrequency: nil).noteName))"
+            + "(\(NoteName.frequency(frequency)))"
         let offset = onset - note.expectedStart
         // The same allowance the rating uses for a note's start.
         guard abs(offset) > min(0.20, note.expectedDuration * 0.35) else {

@@ -119,9 +119,7 @@ enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
 private func melodyNoteRange(_ notes: [Int]) -> String {
     guard let low = notes.min(), let high = notes.max(),
           (0...127).contains(low), (0...127).contains(high) else { return "—" }
-    let names = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"]
-    func name(_ midi: Int) -> String { "\(names[midi % 12])\(midi / 12 - 1)" }
-    return low == high ? name(low) : "\(name(low))–\(name(high))"
+    return low == high ? NoteName.midi(low) : "\(NoteName.midi(low))–\(NoteName.midi(high))"
 }
 
 enum MelodyRegister: String, CaseIterable, Identifiable, Codable, Sendable {

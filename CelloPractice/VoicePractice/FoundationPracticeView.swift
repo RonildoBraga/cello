@@ -51,7 +51,7 @@ struct FoundationPracticeView: View {
                         PartStrip(parts: strings, selection: $string, short: { String($0.targetNote?.dropLast() ?? "") },
                                   title: \.title, progress: progress, hear: controls.hearing)
                     } else {
-                        let note = TunerReading(frequency: mode.targetFrequency, targetFrequency: nil).noteName
+                        let note = NoteName.frequency(mode.targetFrequency)
                         PartStrip<String>(parts: [note], selection: .constant(note), short: { $0 }, title: { $0 },
                                           hear: controls.hearing)
                     }

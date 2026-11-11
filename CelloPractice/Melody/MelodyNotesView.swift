@@ -47,9 +47,7 @@ struct MelodyNotesView: View {
     // time limit on some Xcode versions.
     private func tile(_ event: MelodyEvent, width: CGFloat, isCurrent: Bool) -> some View {
         let beats: String = event.durationBeats.formatted()
-        let note: String = context.frequency(for: event).map {
-            TunerReading(frequency: $0, targetFrequency: nil).noteName
-        } ?? "Rest"
+        let note: String = context.frequency(for: event).map(NoteName.frequency) ?? "Rest"
         let label: String
         if labelStyle == .pitch || event.midiNote == nil { label = note }
         else if event.durationBeats == 0.5 { label = "½" }

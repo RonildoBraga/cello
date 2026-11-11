@@ -67,8 +67,6 @@ extension MelodyPracticeContext {
 
     /// The names of the notes to hum, in order.
     var noteNames: [String] {
-        expectedEvents.compactMap { frequency(for: $0) }.map {
-            TunerReading(frequency: $0, targetFrequency: nil).noteName
-        }
+        expectedEvents.compactMap { frequency(for: $0) }.map(NoteName.frequency)
     }
 }

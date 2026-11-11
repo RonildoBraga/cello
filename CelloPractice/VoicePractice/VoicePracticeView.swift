@@ -320,7 +320,7 @@ struct VoicePracticeView<Header: View>: View {
                 Spacer()
                 if capture.isReady {
                     Text(reading.cents.map { "\(reading.noteName) · " + String(format: "%+.0f cents", $0) }
-                         ?? "\(method.wrappedValue.verb.capitalized) \(TunerReading(frequency: currentTarget, targetFrequency: nil).noteName)")
+                         ?? "\(method.wrappedValue.verb.capitalized) \(NoteName.frequency(currentTarget))")
                         .font(.subheadline).monospacedDigit().foregroundStyle(Palette.muted)
                         .accessibilityIdentifier("livePitchCents")
                 } else {
@@ -336,7 +336,7 @@ struct VoicePracticeView<Header: View>: View {
                 HStack(spacing: 8) {
                     Text("Tune to").font(.caption).foregroundStyle(Palette.muted)
                     ForEach(mode.tunerTargets, id: \.self) { target in
-                        let name = TunerReading(frequency: target, targetFrequency: nil).noteName
+                        let name = NoteName.frequency(target)
                         let selected = target == currentTarget
                         Button(name) { tunerTarget = target }
                             .font(.subheadline.weight(.semibold)).foregroundStyle(selected ? .white : Palette.forest)
