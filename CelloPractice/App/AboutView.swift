@@ -13,6 +13,16 @@ struct AboutView: View {
                     note("Bach’s Cello Suite No. 1 is the long-term goal. Each level builds the listening, rhythm and note skills it needs; more melodies will join the path on the way there.")
                 }
 
+                section("Privacy & support", identifier: "aboutPrivacySupport") {
+                    note("Your recordings, pitch data and progress are saved on your iPhone. Cello has no accounts, ads, analytics or automatic uploads.")
+                    Link("Privacy policy", destination: URL(string: "https://ronildobraga.github.io/cello/privacy.html")!)
+                        .frame(minHeight: 44).accessibilityIdentifier("aboutPrivacyLink")
+                    Link("Help & support", destination: URL(string: "https://ronildobraga.github.io/cello/")!)
+                        .frame(minHeight: 44).accessibilityIdentifier("aboutSupportLink")
+                    Link("Email ronildo@blueberry.money", destination: URL(string: "mailto:ronildo@blueberry.money")!)
+                        .frame(minHeight: 44).accessibilityIdentifier("aboutEmailLink")
+                }
+
                 section("Who built it", identifier: "aboutBuilders") {
                     credit("Ronildo Braga", "Idea, design, testing on a real iPhone and every decision about what the app should be.")
                     credit("Claude, by Anthropic", "AI assistant that wrote the code, lessons and tests with Ronildo.")
@@ -36,7 +46,6 @@ struct AboutView: View {
 
                 section("Everything else you hear and feel", identifier: "aboutOtherSounds") {
                     note("Nothing in the app is a computer-made tone: every example is one of the two recordings above. Rhythm lessons use your phone’s vibration and make no sound.")
-                    note("Your own recordings stay on this iPhone. Nothing is uploaded.")
                 }
 
                 section("The melodies", identifier: "aboutMelodies") {
