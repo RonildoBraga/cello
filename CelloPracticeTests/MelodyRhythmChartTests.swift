@@ -48,15 +48,16 @@ final class MelodyRhythmChartTests: XCTestCase {
         XCTAssertEqual(data.lateCount, 1)
     }
 
-    func testInvalidIndicesOffsetsAndOutOfRoundTapsDoNotBecomeChartPoints() throws {
+    func testInvalidIndicesAndOffsetsDoNotBecomeChartPoints() throws {
         let context = try MelodyRhythmContext.hotCrossBuns(section: .phrase3)
         let data = MelodyRhythmChartData(context: context, offsets: [
             -1: 0, 8: 0, 0: -0.01, 1: .nan, 2: .infinity,
             3: -.infinity, 4: 0.226, 5: -0.226, 6: -0.225, 7: 0.225
         ])
-        XCTAssertEqual(data.points.map(\.noteIndex), [6, 7])
-        XCTAssertEqual(data.points.map(\.time), [3, 3.5])
-        XCTAssertEqual(data.missedNoteIndices, [0, 1, 2, 3, 4, 5])
+        // A first tap a touch before the first note is a real tap and is plotted.
+        XCTAssertEqual(data.points.map(\.noteIndex), [0, 6, 7])
+        XCTAssertEqual(data.points.map(\.time), [0, 3, 3.5])
+        XCTAssertEqual(data.missedNoteIndices, [1, 2, 3, 4, 5])
     }
 
     func testWideValidErrorsExpandTheScaleWithoutHidingRecordedOffsets() throws {
