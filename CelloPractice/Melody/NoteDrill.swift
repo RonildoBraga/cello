@@ -45,14 +45,24 @@ struct NoteDrill: Hashable, Identifiable {
         }
     }
 
-    /// The notes, then the lowest and highest together (up, then down), then any quick repeats.
+    /// The two notes of the melody's widest jump, lower first, in the score's own pitches.
+    /// A jump is two notes in a row more than a whole tone apart; a melody that only steps has none.
+    private static func jump(in piece: MelodyPiece) -> [Int]? {
+        let notes = piece.score.events.compactMap(\.midiNote)
+        return zip(notes, notes.dropFirst()).filter { abs($0 - $1) > 2 }
+            .max { abs($0.0 - $0.1) < abs($1.0 - $1.1) }.map { [min($0, $1), max($0, $1)] }
+    }
+
+    /// The notes, then two of them together (up, then down), then any quick repeats. The two are
+    /// the melody's jump, so it is met before a phrase asks for it, or else its lowest and highest notes.
     static func drills(for piece: MelodyPiece, register: MelodyRegister = .lowVoice) -> [NoteDrill] {
         let singles = notes(for: piece, register: register)
         guard let low = singles.first?.midiNotes[0], let high = singles.last?.midiNotes[0], low != high else {
             return singles
         }
-        return singles + [NoteDrill(piece: piece, midiNotes: [low, high], register: register, noteBeats: pairBeats),
-                          NoteDrill(piece: piece, midiNotes: [high, low], register: register, noteBeats: pairBeats)]
+        let pair = jump(in: piece)?.map { $0 + register.transpositionSemitones } ?? [low, high]
+        return singles + [NoteDrill(piece: piece, midiNotes: pair, register: register, noteBeats: pairBeats),
+                          NoteDrill(piece: piece, midiNotes: pair.reversed(), register: register, noteBeats: pairBeats)]
             + quickRepeats(for: piece, register: register)
     }
 

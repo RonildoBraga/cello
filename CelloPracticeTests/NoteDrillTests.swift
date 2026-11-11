@@ -5,6 +5,7 @@ final class NoteDrillTests: XCTestCase {
     func testEachPieceListsExactlyItsOwnNotesLowestFirst() {
         XCTAssertEqual(NoteDrill.notes(for: .hotCrossBuns).map(\.title), ["G2", "A2", "B2"])
         XCTAssertEqual(NoteDrill.notes(for: .odeToJoy).map(\.title), ["G2", "A2", "B2", "C3", "D3"])
+        XCTAssertEqual(NoteDrill.notes(for: .twinkle).map(\.title), ["G2", "A2", "B2", "C3", "D3", "E3"])
         for piece in MelodyPiece.allCases {
             let humming = piece.humming(register: .lowVoice, section: .whole)
             XCTAssertEqual(Set(NoteDrill.notes(for: piece).flatMap(\.midiNotes)),
@@ -18,6 +19,22 @@ final class NoteDrillTests: XCTestCase {
         XCTAssertEqual(drills[3...4].map(\.title), ["G2 then B2 · going higher", "B2 then G2 · going lower"])
         XCTAssertEqual(NoteDrill.drills(for: .odeToJoy).suffix(2).map(\.midiNotes), [[43, 50], [50, 43]])
         XCTAssertEqual(Set(drills.map(\.id)).count, drills.count)
+    }
+
+    func testAMelodyWithAJumpPractisesThatJumpInsteadOfItsLowestAndHighestNotes() {
+        // Twinkle opens G G D D: five notes up in one go. Its highest note, E3, is only ever reached by step.
+        let drills = NoteDrill.drills(for: .twinkle)
+        XCTAssertEqual(drills.map(\.chipLabel), ["G2", "A2", "B2", "C3", "D3", "E3", "G2→D3", "D3→G2"])
+        XCTAssertEqual(drills.suffix(2).map(\.title), ["G2 then D3 · going higher", "D3 then G2 · going lower"])
+        XCTAssertEqual(NoteDrill.drills(for: .twinkle, register: .cello).suffix(2).map(\.chipLabel), ["D3→A3", "A3→D3"],
+                       "On the cello the jump is from the open D string to the open A string")
+        XCTAssertTrue(NoteDrill.quickRepeats(for: .twinkle).isEmpty, "Every note lasts a beat or more")
+        XCTAssertNil(VoicePracticeMode.phrase(MelodyPiece.twinkle.humming(register: .lowVoice, section: .whole)).quickNotesHint)
+        // Hot Cross Buns' only jump is between its lowest and highest notes, and Ode to Joy
+        // moves by step alone, so both keep the pairs they have always had.
+        XCTAssertEqual(NoteDrill.drills(for: .hotCrossBuns)[3...4].map(\.midiNotes), [[43, 47], [47, 43]])
+        XCTAssertEqual(NoteDrill.drills(for: .odeToJoy).map(\.chipLabel),
+                       ["G2", "A2", "B2", "C3", "D3", "G2→D3", "D3→G2"])
     }
 
     func testAMelodysQuickRepeatedNotesAreMetOnTheirOwnBeforeThePhraseThatNeedsThem() {

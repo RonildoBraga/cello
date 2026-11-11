@@ -25,39 +25,53 @@ struct MelodyScore: Codable, Equatable, Sendable {
     let phraseBoundaries: [Double]
     let totalBeats: Double
 
-    static let hotCrossBuns: MelodyScore = {
-        let pitches = [54, 52, 50, 54, 52, 50, 50, 50, 50, 50, 52, 52, 52, 52, 54, 52, 50]
-        let durations = [1.0, 1, 2, 1, 1, 2, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1, 1, 2]
-        var beat = 0.0
-        let events = zip(pitches, durations).map { pitch, duration in
-            defer { beat += duration }
-            return MelodyEvent(onsetBeat: beat, durationBeats: duration, midiNote: pitch)
-        }
-        return MelodyScore(pieceID: "hotCrossBuns", version: 1, beatsPerBar: 4,
-                           events: events, phraseBoundaries: [0, 4, 8, 12, 16], totalBeats: 16)
-    }()
+    static let hotCrossBuns = fourBars("hotCrossBuns",
+        pitches: [54, 52, 50, 54, 52, 50, 50, 50, 50, 50, 52, 52, 52, 52, 54, 52, 50],
+        durations: [1, 1, 2, 1, 1, 2, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1, 1, 2])
 
     /// The first four bars of the theme, transposed for our teaching arrangement.
-    static let odeToJoy: MelodyScore = {
-        let pitches = [54, 54, 55, 57, 57, 55, 54, 52, 50, 50, 52, 54, 54, 52, 52]
-        let durations = Array(repeating: 1.0, count: 12) + [1.5, 0.5, 2]
+    static let odeToJoy = fourBars("odeToJoy",
+        pitches: [54, 54, 55, 57, 57, 55, 54, 52, 50, 50, 52, 54, 54, 52, 52],
+        durations: Array(repeating: 1, count: 12) + [1.5, 0.5, 2])
+
+    /// The tune's first two lines: a jump up of five notes, then steps back down.
+    static let twinkle = fourBars("twinkle",
+        pitches: [50, 50, 57, 57, 59, 59, 57, 55, 55, 54, 54, 52, 52, 50],
+        durations: [1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2])
+
+    /// A tune's notes and their lengths in beats, laid end to end across four bars.
+    private static func fourBars(_ pieceID: String, pitches: [Int], durations: [Double]) -> MelodyScore {
         var beat = 0.0
         let events = zip(pitches, durations).map { pitch, duration in
             defer { beat += duration }
             return MelodyEvent(onsetBeat: beat, durationBeats: duration, midiNote: pitch)
         }
-        return MelodyScore(pieceID: "odeToJoy", version: 1, beatsPerBar: 4,
+        return MelodyScore(pieceID: pieceID, version: 1, beatsPerBar: 4,
                            events: events, phraseBoundaries: [0, 4, 8, 12, 16], totalBeats: 16)
-    }()
+    }
 }
 
 /// Built-in arrangements share the same phrase and assessment flow.
 enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
-    case hotCrossBuns, odeToJoy
+    case hotCrossBuns, odeToJoy, twinkle
 
     var id: String { rawValue }
-    var title: String { self == .hotCrossBuns ? "Hot Cross Buns" : "Ode to Joy" }
-    var score: MelodyScore { self == .hotCrossBuns ? .hotCrossBuns : .odeToJoy }
+
+    var title: String {
+        switch self {
+        case .hotCrossBuns: return "Hot Cross Buns"
+        case .odeToJoy: return "Ode to Joy"
+        case .twinkle: return "Twinkle, Twinkle"
+        }
+    }
+
+    var score: MelodyScore {
+        switch self {
+        case .hotCrossBuns: return .hotCrossBuns
+        case .odeToJoy: return .odeToJoy
+        case .twinkle: return .twinkle
+        }
+    }
 
     func rangeLabel(for register: MelodyRegister) -> String {
         melodyNoteRange(score.events.compactMap(\.midiNote).map { $0 + register.transpositionSemitones })
@@ -87,6 +101,7 @@ enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
         switch self {
         case .hotCrossBuns: return "Hear the phrase, then record the same notes and rhythm. Start as the first bar reaches the line."
         case .odeToJoy: return "Follow five notes moving up and down. Hear the phrase, then record after the count of 1–2–3–4."
+        case .twinkle: return "Phrase 1 jumps up; the other phrases step back down. Hear the phrase, then record after the count of 1–2–3–4."
         }
     }
 
@@ -94,6 +109,7 @@ enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
         switch self {
         case .hotCrossBuns: return "Listen first, then gently hum along."
         case .odeToJoy: return "Hear the five-note opening, then gently hum along."
+        case .twinkle: return "Hear the jump up at the start, then gently hum along."
         }
     }
 
@@ -101,16 +117,19 @@ enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
         switch self {
         case .hotCrossBuns: return "Longer tiles hold longer. The quick notes in phrase 3 last half a beat each."
         case .odeToJoy: return "Longer tiles hold longer. Phrase 4 has a long note, a quick note, then a held ending."
+        case .twinkle: return "Longer tiles hold longer. Every note sounds twice; phrases 2 and 4 end on a held note."
         }
     }
 
+    /// How to count a selection, from the lengths of its notes: tunes that share a rhythm share its hint.
     func rhythmHint(for section: MelodySection) -> String {
-        switch (self, section) {
-        case (_, .whole): return "Tap at each new tile. Keep counting through the longer tiles."
-        case (.odeToJoy, .phrase4): return "Tap on 1, the & after 2, and 3. Count 4 while the last note continues."
-        case (.odeToJoy, _): return "Tap on each beat: 1, 2, 3, 4."
-        case (.hotCrossBuns, .phrase3): return "Two short notes per beat: 1 & 2 & 3 & 4 &."
-        case (.hotCrossBuns, _): return "Tap on 1, 2 and 3. Count 4 while the last note continues."
+        guard section != .whole else { return "Tap at each new tile. Keep counting through the longer tiles." }
+        switch score.events.filter({ section.beatRange.contains($0.onsetBeat) }).map(\.durationBeats) {
+        case [1, 1, 1, 1]: return "Tap on each beat: 1, 2, 3, 4."
+        case [1, 1, 2]: return "Tap on 1, 2 and 3. Count 4 while the last note continues."
+        case [1.5, 0.5, 2]: return "Tap on 1, the & after 2, and 3. Count 4 while the last note continues."
+        case Array(repeating: 0.5, count: 8): return "Two short notes per beat: 1 & 2 & 3 & 4 &."
+        default: return "Tap at each new tile."
         }
     }
 }

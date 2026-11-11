@@ -49,7 +49,7 @@ struct AboutView: View {
                 }
 
                 section("The melodies", identifier: "aboutMelodies") {
-                    note("Hot Cross Buns is a traditional tune. Ode to Joy is the opening of Beethoven’s theme. Both are our own short teaching arrangements.")
+                    note("Hot Cross Buns is a traditional tune. Ode to Joy is the opening of Beethoven’s theme. Twinkle, Twinkle, Little Star opens with the old French tune “Ah! vous dirai-je, maman”. All three are our own short teaching arrangements.")
                 }
 
                 section("What informed the lessons", identifier: "aboutReferences") {

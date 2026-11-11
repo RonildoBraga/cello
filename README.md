@@ -11,6 +11,7 @@ A native iPhone practice companion for beginners learning music while preparing 
 | 1 · First sounds | Steady note → Listen & match → Pulse → Two taps per beat → Mixed rhythm → Listen & Echo |
 | 2 · Hot Cross Buns | Listen → Tap it → Meet the notes → Hum it → Whole melody |
 | 3 · Ode to Joy | Listen → Tap it → Meet the notes → Hum it → Whole melody |
+| 4 · Twinkle, Twinkle | Listen → Tap it → Meet the notes → Hum it → Whole melody |
 
 Each Level 1 lesson opens the first time with a short primer that explains its new idea in plain words: a note, higher and lower, a beat, two taps per beat.
 
@@ -37,6 +38,8 @@ The first melody is Hot Cross Buns. **Meet the notes** plays each of its notes f
 **Music → Hot Cross Buns → Tap it** applies the same score to tapping: four phrases, then the whole tune. Visible note lengths and recorded-hum playback help you learn the pattern before Start. A four-beat count-in leads into each round with automatic whole-beat haptics. Tap at each note start, then count through longer notes without tapping again. Results show **Pattern**, **Timing** and **Consistency** stars and a timing chart. Each phrase earns separate progress at its own tempo; humming and foundation scores do not complete it. Every phrase remains available.
 
 **Ode to Joy** adds a second melody level: our five-note arrangement of the opening four bars of Beethoven’s theme. It uses the same Listen, Tap it and Hum it screens, four short phrases and a sixteen-second opening. The voice reference spans G2–D3; the cello reference spans D3–A3. The final phrase introduces a dotted quarter note followed by a half-beat note, with visible tap-count guidance. Stars and completion are separate from Hot Cross Buns. See [the opening score and reference provenance](docs/ode-to-joy-reference.md).
+
+**Twinkle, Twinkle** is the third melody level: the first two lines of the tune, and the first jump on the path. It opens five notes up in one go (the open D string to the open A string on the cello), then steps back down. Meet the notes practises the jump itself. The voice reference spans G2–E3; the cello reference spans D3–B3. See [the opening score and reference provenance](docs/twinkle-reference.md).
 
 **Listen** also offers manual playback in the cello register (D3–F♯3). All audible references use recorded sound: edited human humming for the voice registers and recorded bowed cello samples for cello notes. The foundation human example keeps its original pitch; melody examples adjust the recordings to the selected notes and timing. Cello playing exercises are future work. See the [melody rhythm assessment](docs/melody-rhythm.md), [humming assessment](docs/melody-humming.md), [learning-path design](docs/music-learning-path.md) and [delivery issues](https://github.com/RonildoBraga/cello/issues/1).
 
@@ -107,6 +110,8 @@ Recordings can be deleted one at a time, or all at once from Edit → Delete all
 Hot Cross Buns uses an original three-note teaching arrangement of the traditional melody. Its shared score contains 17 note events over 16 beats; recorded-sound playback preserves phrase lengths and leaves short quiet gaps between notes. No publisher score or scan is bundled. See [score and reference provenance](docs/hot-cross-buns-reference.md).
 
 Ode to Joy uses an independently encoded monophonic opening excerpt: 15 note starts, five distinct pitches and 16 beats. Beethoven’s historical composition is public domain; no modern score edition, accompaniment or third-party melody performance is bundled. The existing licensed voice/cello recordings are edited to its frozen score. See [the arrangement details and verification sources](docs/ode-to-joy-reference.md).
+
+Twinkle, Twinkle uses an independently encoded opening of the anonymous 18th-century melody *Ah! vous dirai-je, maman*: 14 note starts, six distinct pitches and 16 beats. The melody is public domain; no words, score edition or third-party performance is bundled. See [the arrangement details and verification sources](docs/twinkle-reference.md).
 
 The bundled human-hum example is a three-second excerpt of **[Deep Humming Noise](https://freesound.org/people/retropttam/sounds/177276/)** by **retropttam**, licensed under **[Creative Commons Attribution 3.0 Unported](https://creativecommons.org/licenses/by/3.0/)**. It was shortened, converted to mono PCM, volume adjusted and faded at the ends; its original pitch and timing are preserved. Full provenance and checksums are in [HUMMING-LICENSE.txt](CelloPractice/Resources/HUMMING-LICENSE.txt). Copyright remains with the original author.
 

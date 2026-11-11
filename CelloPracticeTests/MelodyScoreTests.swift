@@ -19,6 +19,43 @@ final class MelodyScoreTests: XCTestCase {
         XCTAssertEqual(score.events.last?.endBeat, score.totalBeats)
     }
 
+    func testTwinkleIsTheTunesFirstTwoLinesWithOneNewNoteForTheVoiceAndOneForTheCello() {
+        let score = MelodyScore.twinkle
+        XCTAssertEqual(score.pieceID, "twinkle")
+        XCTAssertEqual(score.version, 1)
+        // 1 1 5 5 6 6 5 | 4 4 3 3 2 2 1, each line ending on a held note.
+        XCTAssertEqual(score.events.map(\.midiNote), [50, 50, 57, 57, 59, 59, 57, 55, 55, 54, 54, 52, 52, 50])
+        XCTAssertEqual(score.events.map(\.durationBeats), [1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2])
+        XCTAssertEqual(score.events.last?.endBeat, score.totalBeats)
+        XCTAssertEqual(score.phraseBoundaries, MelodyScore.odeToJoy.phraseBoundaries)
+        for (register, range, phrases) in [
+            (MelodyRegister.lowVoice, "G2–E3", [["G2", "G2", "D3", "D3"], ["E3", "E3", "D3"], ["C3", "C3", "B2", "B2"], ["A2", "A2", "G2"]]),
+            (.cello, "D3–B3", [["D3", "D3", "A3", "A3"], ["B3", "B3", "A3"], ["G3", "G3", "F♯3", "F♯3"], ["E3", "E3", "D3"]])] {
+            XCTAssertEqual(MelodyPiece.twinkle.rangeLabel(for: register), range)
+            for (section, notes) in zip(MelodySection.phrases, phrases) {
+                let context = MelodyPiece.twinkle.humming(register: register, section: section)
+                XCTAssertTrue(context.isValid)
+                XCTAssertEqual(context.noteNames, notes)
+                XCTAssertEqual(context.expectedEvents.last?.endBeat, 4)
+                XCTAssertEqual(context.displayPieceTitle, "Twinkle, Twinkle")
+            }
+        }
+    }
+
+    func testTheRhythmHintFollowsTheLengthsOfTheNotesSoTunesThatShareARhythmShareItsHint() {
+        let onEachBeat = "Tap on each beat: 1, 2, 3, 4."
+        let heldEnding = "Tap on 1, 2 and 3. Count 4 while the last note continues."
+        let hints: [(MelodyPiece, [String])] = [
+            (.hotCrossBuns, [heldEnding, heldEnding, "Two short notes per beat: 1 & 2 & 3 & 4 &.", heldEnding]),
+            (.odeToJoy, [onEachBeat, onEachBeat, onEachBeat,
+                         "Tap on 1, the & after 2, and 3. Count 4 while the last note continues."]),
+            (.twinkle, [onEachBeat, heldEnding, onEachBeat, heldEnding])]
+        for (piece, expected) in hints {
+            XCTAssertEqual(MelodySection.phrases.map(piece.rhythmHint), expected, piece.title)
+            XCTAssertEqual(piece.rhythmHint(for: .whole), "Tap at each new tile. Keep counting through the longer tiles.")
+        }
+    }
+
     func testRegistersPreserveEveryIntervalAndDuration() throws {
         let base = try MelodyPracticeContext.hotCrossBuns(register: .cello)
         let low = try MelodyPracticeContext.hotCrossBuns(register: .lowVoice)
