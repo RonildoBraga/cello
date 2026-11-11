@@ -6,7 +6,8 @@ House rules for changing Cello, whether you are a person or an AI assistant. The
 
 ```sh
 bash scripts/test.sh        # pitch package + app unit tests (also run by CI)
-bash scripts/test.sh ui     # real-clock UI tests; run when you touch screens or navigation
+bash scripts/test.sh smoke  # nine UI tests across every area, about 6 minutes; run for each change to a screen
+bash scripts/test.sh ui     # every real-clock UI test, about 30 minutes; run before a release
 ```
 
 Simulator checks do not establish microphone, speaker, camera or haptic behaviour. Say in the pull request what was and was not checked on a physical iPhone.
