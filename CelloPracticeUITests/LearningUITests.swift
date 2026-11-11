@@ -1024,12 +1024,13 @@ final class LearningUITests: XCTestCase {
         var touches = 0
         var continuingNoteTouches = 0
         let pad = fixedPoint(at: tap, in: app)
-        let beatText = app.staticTexts["melodyRhythmBeat"]
         while isLive("melodyRhythmTapButton", in: app) && ProcessInfo.processInfo.systemUptime < deadline {
-            let beat = beatText.exists ? beatText.label : ""
+            // One query, so the count vanishing at the end of the round cannot fail the read.
+            let onBeatFour = app.staticTexts.matching(NSPredicate(format: "identifier == %@ AND label == %@",
+                                                                  "melodyRhythmBeat", "4")).count > 0
             pad.tap()
             touches += 1
-            if beat == "4" { continuingNoteTouches += 1 }
+            if onBeatFour { continuingNoteTouches += 1 }
             Thread.sleep(forTimeInterval: 0.12)
         }
         XCTAssertGreaterThanOrEqual(touches, 4)

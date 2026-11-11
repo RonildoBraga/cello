@@ -1,6 +1,6 @@
 # Listen & Echo
 
-Open **Music → First sounds → Listen & Echo**. Hear an unfamiliar short pattern, then hum it back after the usual three-second countdown. The two-note level lasts four seconds; the three-note level lasts six. Every note lasts two beats at 60 BPM, including a short articulation gap in the recorded example.
+Open **Music → First sounds → Listen & Echo**. Hear an unfamiliar short pattern, then hum it back after the usual count of 1–2–3–4. The two-note level lasts four seconds; the three-note level lasts six. Every note lasts two beats at 60 BPM, including a short articulation gap in the recorded example.
 
 The original catalogues contain six two-note and twelve three-note patterns. Two-note patterns repeat, rise or fall within G–A–B; three-note patterns add turns and expand to G–A–B–C–D. Patterns use the low voice: G2–B2 for two notes, G2–D3 for three. New pattern chooses uniformly among all other patterns at the selected level, so an immediate repeat is excluded. A level change selects a fresh pattern and resets the attempt.
 

@@ -85,8 +85,8 @@ enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
 
     var hummingIntro: String {
         switch self {
-        case .hotCrossBuns: return "Hear the phrase, then record the same notes and rhythm. Start humming after 3–2–1."
-        case .odeToJoy: return "Follow five notes moving up and down. Hear the phrase, then record after 3–2–1."
+        case .hotCrossBuns: return "Hear the phrase, then record the same notes and rhythm. Start humming as the first bar reaches the line."
+        case .odeToJoy: return "Follow five notes moving up and down. Hear the phrase, then record after the count of 1–2–3–4."
         }
     }
 

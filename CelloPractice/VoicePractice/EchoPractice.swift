@@ -164,7 +164,7 @@ extension MelodyRating {
         case .rated:
             if octaveMismatch { return "Choose a comfortable voice register, then hear the pattern again." }
             if !notes { return "Hear the pattern again and follow its repeated, rising or falling notes." }
-            if !timing { return "Start after 3–2–1 and match the note lengths. Separate repeated notes gently." }
+            if !timing { return timingAdvice ?? "Start as the first bar reaches the line and match the note lengths. Separate repeated notes gently." }
             if !clarity { return "Keep a gentle, clear hum going through each note." }
             return "All three goals reached. Try a fresh pattern."
         }

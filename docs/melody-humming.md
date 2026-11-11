@@ -1,8 +1,19 @@
 # Hot Cross Buns humming
 
-Open Music → Hot Cross Buns → Humming. Choose any phrase, or join the whole tune. Hear is manual. Record prepares the microphone, shows 3–2–1, and records the selected four-second phrase or sixteen-second melody at 60 BPM. The recording cue starts with the file-output delegate; the file output enforces the selected duration. Navigation and interruptions stop capture safely, while an already finishing take saves under its original reference.
+Open Music → Hot Cross Buns → Hum it. Choose any phrase, or join the whole tune. Hear is manual. Record prepares the microphone, counts in 1–2–3–4 at the tempo, and records the selected four-second phrase or sixteen-second melody at 60 BPM. The recording cue starts with the file-output delegate; the file output enforces the selected duration. Navigation and interruptions stop capture safely, while an already finishing take saves under its original reference.
 
 The screen reuses the foundation recorder, shared audio-session controller, proportional note tiles and result-card presentation. Melody-specific assessment, charting and completion are separate from fixed-note and rhythm exercises. All audio/video and raw measurements remain local and export through the existing recoverable save path.
+
+## Seeing when to change note
+
+Saved takes showed the pitch was mostly right while the second note of a pattern started late or early in 19 of 26 takes: nothing said when to change. Every hummed take now shows the same lane the tapping lessons use (`BeatLane`):
+
+- Each note is a bar travelling towards a fixed line. Its length is how long to hold, the gap before the next bar is the pause, and a higher note sits higher. Bars carry their note names.
+- The count-in travels the same lane as 1 2 3 4, so the first note falls on the next 1. Between the count-in ending and the recorder starting, the first bar waits at the line; once recording starts the lane follows the recording's own clock.
+- A single held note is one bar. Listen & Echo keeps its bars level and unnamed, so the count-in gives nothing away. Cello takes, which run until Stop, have no lane.
+- When the Timing star is missed, the feedback names the first note that was off and by how much: "Note 2 (A2) started 0.3 s late. Change as its bar reaches the line." It also covers an early change, a late first note and a note cut short.
+
+The rating rules below are unchanged.
 
 ## Assessment version 1
 

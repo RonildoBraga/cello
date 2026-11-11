@@ -161,7 +161,12 @@ struct RhythmTapCard<Timing: RhythmRoundTiming, Idle: View>: View {
             }
             if let timing = round.timing {
                 if round.running {
-                    TapLane(timing: timing, now: round.now).frame(height: 58).accessibilityHidden(true)
+                    BeatLane(elapsed: round.now - timing.practiceStartTime, beatInterval: timing.beatInterval,
+                             countInBeats: Int(((timing.practiceStartTime - timing.startTime) / timing.beatInterval).rounded()),
+                             duration: timing.endTime - timing.practiceStartTime,
+                             marks: timing.tapTimes.enumerated().map {
+                                 LaneMark(start: $1, hit: timing.offsets[$0] != nil)
+                             }).frame(height: 58)
                 }
                 Label("Tap", systemImage: "hand.tap").font(.headline)
                     .frame(maxWidth: .infinity, minHeight: 72)
@@ -258,59 +263,6 @@ private struct TapSurface: UIViewRepresentable {
         override func accessibilityActivate() -> Bool {
             onTouchDown?(ProcessInfo.processInfo.systemUptime)
             return true
-        }
-    }
-}
-
-/// Taps travel towards a fixed line, so each one can be seen coming and met on
-/// time instead of reacted to. The count-in travels the same lane as 1 2 3 4.
-private struct TapLane<Timing: RhythmRoundTiming>: View {
-    let timing: Timing
-    let now: TimeInterval
-
-    var body: some View {
-        Canvas { context, size in
-            let elapsed = now - timing.practiceStartTime
-            let lineX = size.width * 0.2
-            let pointsPerSecond = (size.width - lineX) / 3.2
-            func x(_ time: TimeInterval) -> CGFloat { lineX + (time - elapsed) * pointsPerSecond }
-            let middle = size.height * 0.42
-
-            // Beats: the count-in as 1 2 3 4, then a faint tick on every beat.
-            let countIn = Int(((timing.practiceStartTime - timing.startTime) / timing.beatInterval).rounded())
-            let beats = Int(((timing.endTime - timing.practiceStartTime) / timing.beatInterval).rounded(.up))
-            for beat in -countIn..<beats {
-                let position = x(Double(beat) * timing.beatInterval)
-                guard position > -20, position < size.width + 20 else { continue }
-                var tick = Path()
-                tick.move(to: CGPoint(x: position, y: middle - 12))
-                tick.addLine(to: CGPoint(x: position, y: middle + 12))
-                context.stroke(tick, with: .color(.white.opacity(0.22)), lineWidth: 1)
-                if beat < 0 {
-                    context.draw(Text("\(beat + countIn + 1)").font(.caption.weight(.semibold))
-                                    .foregroundStyle(.white.opacity(0.75)),
-                                 at: CGPoint(x: position, y: size.height - 8))
-                }
-            }
-
-            // Taps: solid while coming, gold once hit, hollow once missed.
-            for (index, time) in timing.tapTimes.enumerated() {
-                let position = x(time)
-                guard position > -12, position < size.width + 12 else { continue }
-                let dot = Path(ellipseIn: CGRect(x: position - 8, y: middle - 8, width: 16, height: 16))
-                if timing.offsets[index] != nil {
-                    context.fill(dot, with: .color(Palette.gold))
-                } else if position < lineX - 14 {
-                    context.stroke(dot, with: .color(.white.opacity(0.3)), lineWidth: 1.5)
-                } else {
-                    context.fill(dot, with: .color(.white))
-                }
-            }
-
-            var line = Path()
-            line.move(to: CGPoint(x: lineX, y: 0))
-            line.addLine(to: CGPoint(x: lineX, y: size.height - 16))
-            context.stroke(line, with: .color(.white), lineWidth: 2.5)
         }
     }
 }
