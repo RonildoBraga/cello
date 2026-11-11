@@ -78,6 +78,22 @@ final class LearningUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Hot Cross Buns"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.staticTexts["screenTitle"].label, "Hum it")
         XCTAssertEqual(app.buttons["melodyHummingSectionPicker"].label, "Section: Phrase 1")
+
+        // Choosing another section stays in this step, so the step bar still
+        // leads somewhere: on to Whole melody, and back again at phrase 1.
+        selectMelodyHummingSection("Whole melody", in: app)
+        XCTAssertEqual(app.staticTexts["stepPosition"].label, "Step 4 of 5")
+        app.buttons["nextStepButton"].tap()
+        let position = app.staticTexts["stepPosition"]
+        let onWhole = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Step 5 of 5"), object: position)
+        XCTAssertEqual(XCTWaiter.wait(for: [onWhole], timeout: 5), .completed)
+        XCTAssertEqual(app.staticTexts["screenTitle"].label, "Whole melody")
+        XCTAssertFalse(app.buttons["nextStepButton"].isEnabled, "The last step of a level has no next step")
+        selectMelodyHummingSection("Phrase 2", in: app)
+        app.buttons["previousStepButton"].tap()
+        let onHum = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Step 4 of 5"), object: position)
+        XCTAssertEqual(XCTWaiter.wait(for: [onHum], timeout: 5), .completed)
+        XCTAssertEqual(app.buttons["melodyHummingSectionPicker"].label, "Section: Phrase 1")
         openLesson("pulse", title: "Pulse", in: app)
         app.buttons["startLessonButton"].tap()
         assertInlinePulseReady(in: app)
