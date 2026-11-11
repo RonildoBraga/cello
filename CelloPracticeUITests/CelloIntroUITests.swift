@@ -19,7 +19,8 @@ final class CelloIntroUITests: XCTestCase {
             XCTAssertTrue(diagram.label.localizedCaseInsensitiveContains(part), "The diagram should identify \(part)")
         }
         assertIntroductionHasNoRecordingOrRating(in: app)
-        assertNoWrittenInputOrPermissionAlerts(in: app)
+        assertNoWrittenInput(in: app)
+        assertNoPermissionAlerts(in: app)
         screenshot("Meet your cello · labelled front-view diagram")
 
         let nextSteps = app.descendants(matching: .any).matching(identifier: "celloIntroNextSteps").firstMatch
@@ -36,7 +37,8 @@ final class CelloIntroUITests: XCTestCase {
             XCTAssertTrue(app.pathRow("lesson-\(lesson)").isEnabled)
         }
         XCTAssertFalse(app.buttons["practiceRecordButton"].exists, "Browsing lessons must not start capture")
-        assertNoWrittenInputOrPermissionAlerts(in: app)
+        assertNoWrittenInput(in: app)
+        assertNoPermissionAlerts(in: app)
     }
 
     func testFourStringReferencesPlayManuallyWithoutCaptureOrProgress() {
@@ -66,7 +68,8 @@ final class CelloIntroUITests: XCTestCase {
             assertIntroductionHasNoRecordingOrRating(in: app)
         }
         screenshot("Meet your cello · four recorded string references")
-        assertNoWrittenInputOrPermissionAlerts(in: app)
+        assertNoWrittenInput(in: app)
+        assertNoPermissionAlerts(in: app)
         app.buttons["celloIntroBrowseLessons"].tap()
         XCTAssertEqual(celloLessonSummary(in: app), summary,
                        "Hearing references must not earn performance stars or completion")
@@ -111,7 +114,8 @@ final class CelloIntroUITests: XCTestCase {
         openIntroduction(in: app)
         XCTAssertFalse(status.exists, "Back navigation must stop playback without autoplay on return")
         assertIntroductionHasNoRecordingOrRating(in: app)
-        assertNoWrittenInputOrPermissionAlerts(in: app)
+        assertNoWrittenInput(in: app)
+        assertNoPermissionAlerts(in: app)
         app.tabBars.buttons["Recordings"].tap()
         XCTAssertTrue(app.navigationBars["Recordings"].waitForExistence(timeout: 5))
         XCTAssertEqual(visibleRecordingIDs(in: app), recordingIDs,
@@ -144,33 +148,5 @@ final class CelloIntroUITests: XCTestCase {
         for id in ["practiceRecordButton", "ratingStarCount", "melodyRatingStars", "melodyRhythmStars", "practiceProgressText"] {
             XCTAssertFalse(app.descendants(matching: .any).matching(identifier: id).firstMatch.exists)
         }
-    }
-
-    private func assertNoWrittenInputOrPermissionAlerts(in app: XCUIApplication) {
-        XCTAssertEqual(app.textFields.count, 0)
-        XCTAssertEqual(app.textViews.count, 0)
-        XCTAssertEqual(app.secureTextFields.count, 0)
-        XCTAssertEqual(app.alerts.count, 0)
-        XCTAssertEqual(XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.count, 0)
-    }
-
-    private func visibleRecordingIDs(in app: XCUIApplication) -> Set<String> {
-        let recordings = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", "recording-"))
-        return Set(recordings.allElementsBoundByIndex.map(\.identifier))
-    }
-
-    private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
-        for _ in 0..<10 {
-            if element.exists && element.isHittable { return }
-            app.scrollViews.firstMatch.swipeUp()
-        }
-        XCTAssertTrue(element.exists && element.isHittable)
-    }
-
-    private func screenshot(_ name: String) {
-        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
-        attachment.name = name
-        attachment.lifetime = .keepAlways
-        add(attachment)
     }
 }

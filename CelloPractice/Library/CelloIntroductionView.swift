@@ -22,8 +22,7 @@ struct CelloIntroductionView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                LessonHeader(step: .celloIntroduction,
-                           subtitle: "Learn the parts and hear the four strings, from low to high.")
+                LessonHeader(subtitle: "Learn the parts and hear the four strings, from low to high.")
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         SectionTitle("Find the parts")

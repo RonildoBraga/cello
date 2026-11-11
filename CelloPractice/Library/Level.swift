@@ -65,7 +65,7 @@ struct Level: Identifiable {
 
     /// The first lesson on the path that has not been passed yet. It is a
     /// suggestion: every lesson stays open.
-    static func nextLesson(isPassed: (PathLesson) -> Bool) -> (level: Level, step: PathLesson)? {
+    static func nextLesson(isPassed: (PathLesson) -> Bool) -> (level: Level, lesson: PathLesson)? {
         for level in path {
             if let step = level.lessons.first(where: { !isPassed($0) }) { return (level, step) }
         }
@@ -86,14 +86,6 @@ struct Level: Identifiable {
     }
 
     func passedLessons(isPassed: (PathLesson) -> Bool) -> Int { lessons.filter(isPassed).count }
-
-    /// A level is complete when every one of its lessons has been passed.
-    func isComplete(isPassed: (PathLesson) -> Bool) -> Bool { lessons.allSatisfy(isPassed) }
-
-    /// The furthest complete level whose completion has not been shown yet.
-    static func newlyCompleted(celebrated: String, isPassed: (PathLesson) -> Bool) -> Level? {
-        path.last { $0.isComplete(isPassed: isPassed) && !StoredIDs.contains($0.id, in: celebrated) }
-    }
 }
 
 /// A lesson's place in its level. Previous and next stay inside the level.
@@ -152,11 +144,9 @@ struct LessonProgress: Equatable {
 
 /// A small set of identifiers kept as one preference string. The path uses it
 /// for the things no take or round records: which melodies have been heard to
-/// the end, which finished levels have been celebrated and which primers and
-/// introductions have been read.
+/// the end, and which primers and introductions have been read.
 enum StoredIDs {
     static let listenedMelodies = "listenedMelodies"
-    static let celebratedLevels = "celebratedLevels"
     static let seenPrimers = "seenPrimers"
     /// Stored with the read primers: Meet your cello is read once, like them.
     static let celloIntroduction = "celloIntroduction"

@@ -25,8 +25,7 @@ struct EchoPracticeView: View {
         VoicePracticeView(store: store, capture: capture, mode: .echo(context, level: level),
                           nextPhrase: ("New pattern", newPattern)) { locked in
             VStack(alignment: .leading, spacing: 16) {
-                LessonHeader(step: .echo,
-                           subtitle: "Hear the pattern, then hum it back. Follow the tuning bar as you record.",
+                LessonHeader(subtitle: "Hear the pattern, then hum it back. Follow the tuning bar as you record.",
                            collapsesSubtitle: store.echoProgress(for: level, register: register).successfulAttempts > 0)
                 Picker("Pattern length", selection: levelSelection) {
                     ForEach(EchoLevel.allCases) { level in

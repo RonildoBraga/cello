@@ -19,7 +19,7 @@ enum MusicRoute: Hashable {
 extension MusicRoute {
     /// The lesson whose screen this is. Primers and lesson pages lead into a
     /// lesson and show no lesson bar.
-    var step: PathLesson? {
+    var pathLesson: PathLesson? {
         switch self {
         case .primer, .lesson: return nil
         case .practice(let lesson): return .lesson(lesson)
@@ -57,38 +57,13 @@ struct MusicLibraryView: View {
     @ObservedObject var melodyRhythmStore: MelodyRhythmStore
     @State private var path: [MusicRoute] = []
     @AppStorage(StoredIDs.listenedMelodies) private var listened = ""
-    @AppStorage(StoredIDs.celebratedLevels) private var celebrated = ""
     @AppStorage(StoredIDs.seenPrimers) private var seenPrimers = ""
-    /// The level whose completion is being shown. It appears once.
-    @State private var celebrating: Level?
     /// The levels showing their lessons. The level holding the next lesson opens
     /// each time the path comes into view.
     @State private var open: Set<String> = []
 
-    /// The words on the fireworks now showing, if any.
-    @State private var fireworks: String?
-    @State private var fireworksCount = 0
-
-    /// Gold parts per lesson and finished levels, watched so that earning one
-    /// anywhere under this tab sets off the fireworks.
-    private var goldParts: [String: Int] {
-        Dictionary(uniqueKeysWithValues: Level.path.flatMap(\.lessons).map { ($0.id, state(for: $0).progress.goldParts) })
-    }
-    private var completedLevels: Set<String> {
-        Set(Level.path.filter { $0.isComplete(isPassed: isPassed) }.map(\.id))
-    }
-
-    private func celebrate(_ title: String) {
-        fireworksCount += 1
-        let shown = fireworksCount
-        fireworks = title
-        DispatchQueue.main.asyncAfter(deadline: .now() + Celebration.fireworksDuration) {
-            if fireworksCount == shown { fireworks = nil }
-        }
-    }
-
     /// The first lesson on the path that has not been passed yet.
-    private var next: (level: Level, step: PathLesson)? { Level.nextLesson(isPassed: isPassed) }
+    private var next: (level: Level, lesson: PathLesson)? { Level.nextLesson(isPassed: isPassed) }
 
     private func isPassed(_ step: PathLesson) -> Bool { state(for: step).progress.passed }
 
@@ -98,36 +73,19 @@ struct MusicLibraryView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     ScreenHeader(title: "Music", subtitle: "Follow the path. The next lesson is marked; every lesson is open.")
-                    if let celebrating { completionCard(celebrating, next: next) }
                     ForEach(Level.path) { section($0, next: next) }
                 }.screenContent()
             }.background(Palette.paper)
                 .accessibilityIdentifier("musicLibraryHome")
                 .screenTitle("Music")
-                .onAppear {
-                    if let level = next?.level { open.insert(level.id) }
-                    if let level = Level.newlyCompleted(celebrated: celebrated, isPassed: isPassed) {
-                        celebrating = level
-                        celebrated = Level.path.filter { $0.isComplete(isPassed: isPassed) }
-                            .reduce(celebrated) { StoredIDs.adding($1.id, to: $0) }
-                    }
-                }
+                .onAppear { if let level = next?.level { open.insert(level.id) } }
                 // A route's screen is rebuilt when the lesson bar swaps it for another of the
                 // same kind, so it never inherits the previous screen's selections.
                 .navigationDestination(for: MusicRoute.self) {
-                    destination($0).id($0).environment(\.currentPathLesson, $0.step)
+                    destination($0).id($0).environment(\.currentPathLesson, $0.pathLesson)
                 }
         }.tint(Palette.forest).environment(\.openPathLesson, open)
-            .environment(\.pathLessonIsPassed, isPassed).environment(\.celebratesResults, true)
-            .overlay { if let fireworks { FireworksView(title: fireworks).id(fireworksCount) } }
-            .onChange(of: goldParts) { old, new in
-                if Celebration.earnedGold(from: old, to: new) { celebrate("Gold") }
-            }
-            .onChange(of: completedLevels) { old, new in
-                if let level = Level.path.last(where: { new.contains($0.id) && !old.contains($0.id) }) {
-                    celebrate("Level \(level.number) complete")
-                }
-            }
+            .environment(\.pathLessonIsPassed, isPassed)
     }
 
     @ViewBuilder
@@ -178,7 +136,7 @@ struct MusicLibraryView: View {
     // MARK: Path
 
     /// One level: a compact header, and its lessons in a single card when open.
-    private func section(_ level: Level, next: (level: Level, step: PathLesson)?) -> some View {
+    private func section(_ level: Level, next: (level: Level, lesson: PathLesson)?) -> some View {
         let isOpen = open.contains(level.id)
         let done = level.passedLessons(isPassed: isPassed)
         let complete = done == level.lessons.count
@@ -205,7 +163,7 @@ struct MusicLibraryView: View {
                 VStack(spacing: 0) {
                     ForEach(Array(level.lessons.enumerated()), id: \.element) { index, step in
                         let state = state(for: step)
-                        let isNext = next?.step == step
+                        let isNext = next?.lesson == step
                         if index > 0 { Divider() }
                         NavigationLink(value: route(for: step)) {
                             PathRow(step: step, number: index + 1, state: state, isNext: isNext)
@@ -255,28 +213,6 @@ struct MusicLibraryView: View {
                                                                       passed: read)]),
                              status: read ? "Read" : "Not read yet", stars: nil)
         }
-    }
-
-    /// Shown once when a level's last lesson is passed, pointing at what comes next.
-    private func completionCard(_ level: Level, next: (level: Level, step: PathLesson)?) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Eyebrow(text: "Level \(level.number) complete", color: Palette.goldText)
-            Text(level.title).font(.title3.weight(.semibold)).foregroundStyle(Palette.ink)
-            Text(next.map { "Every lesson is passed. Next: \($0.level.title) · \($0.step.title)." }
-                 ?? "Every lesson on the path is passed. More melodies are on the way.")
-                .font(.subheadline).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: 10) {
-                if let next {
-                    Button("Continue") {
-                        celebrating = nil
-                        path.append(next.step.route)
-                    }.buttonStyle(SecondaryActionButtonStyle()).accessibilityIdentifier("levelCompleteContinue")
-                }
-                Button("Close") { celebrating = nil }.buttonStyle(SecondaryActionButtonStyle())
-            }
-        }.card().overlay {
-            RoundedRectangle(cornerRadius: Layout.cardRadius).strokeBorder(Palette.gold, lineWidth: 2)
-        }.accessibilityElement(children: .contain).accessibilityIdentifier("levelCompleteCard")
     }
 }
 

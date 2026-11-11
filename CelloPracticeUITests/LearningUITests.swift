@@ -1927,11 +1927,6 @@ final class LearningUITests: XCTestCase {
         return (matched, missed)
     }
 
-    private func visibleRecordingIDs(in app: XCUIApplication) -> Set<String> {
-        let recordings = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", "recording-"))
-        return Set(recordings.allElementsBoundByIndex.map(\.identifier))
-    }
-
     private func waitForRecord(in app: XCUIApplication) {
         let record = app.buttons["practiceRecordButton"]
         let ready = XCTNSPredicateExpectation(
@@ -1971,23 +1966,6 @@ final class LearningUITests: XCTestCase {
         }
     }
 
-    private func assertCelloExercisesAbsent(in app: XCUIApplication) {
-        for title in ["Open C string", "Open G string", "Open D string", "Open A string"] {
-            XCTAssertFalse(app.buttons[title].exists)
-        }
-    }
-
-    private func assertNoWrittenInput(in app: XCUIApplication) {
-        XCTAssertEqual(app.textFields.count, 0)
-        XCTAssertEqual(app.textViews.count, 0)
-        XCTAssertEqual(app.secureTextFields.count, 0)
-    }
-
-    private func assertNoPermissionAlerts(in app: XCUIApplication) {
-        XCTAssertEqual(app.alerts.count, 0)
-        XCTAssertEqual(XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.count, 0)
-    }
-
     /// True while a tap pad is on screen and accepting taps, read in one query.
     /// A round replaces its pad with the result the moment it ends, so reading
     /// `exists` and then `isEnabled` can straddle that and fail the test.
@@ -2004,14 +1982,6 @@ final class LearningUITests: XCTestCase {
             .withOffset(CGVector(dx: frame.midX, dy: frame.midY))
     }
 
-    private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
-        for _ in 0..<10 {
-            if element.exists && element.isHittable { return }
-            app.scrollViews.firstMatch.swipeUp()
-        }
-        XCTAssertTrue(element.exists && element.isHittable)
-    }
-
     private func scrollToPracticeTop(in app: XCUIApplication) {
         let section = app.staticTexts["practiceLessonTitle"]
         for _ in 0..<6 {
@@ -2019,12 +1989,5 @@ final class LearningUITests: XCTestCase {
             app.scrollViews.firstMatch.swipeDown()
         }
         XCTAssertTrue(section.exists && section.isHittable)
-    }
-
-    private func screenshot(_ name: String) {
-        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
-        attachment.name = name
-        attachment.lifetime = .keepAlways
-        add(attachment)
     }
 }

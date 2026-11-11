@@ -41,17 +41,16 @@ extension EnvironmentValues {
 /// The top of every lesson's screen: which level this is, the lesson's title and
 /// a plain line about what to do.
 struct LessonHeader: View {
-    let step: PathLesson
-    /// Defaults to the lesson's own title.
-    var title: String? = nil
     var subtitle: String? = nil
     var collapsesSubtitle = false
     var titleIdentifier = "screenTitle"
     var eyebrowIdentifier = "screenEyebrow"
 
+    @Environment(\.currentPathLesson) private var lesson
+
     var body: some View {
-        ScreenHeader(eyebrow: Level.position(of: step).map { "Level \($0.level.number) · \($0.level.title)" },
-                     title: title ?? step.title, subtitle: subtitle,
+        ScreenHeader(eyebrow: lesson.flatMap(Level.position).map { "Level \($0.level.number) · \($0.level.title)" },
+                     title: lesson?.title ?? "", subtitle: subtitle,
                      titleIdentifier: titleIdentifier, eyebrowIdentifier: eyebrowIdentifier,
                      collapsesSubtitle: collapsesSubtitle)
     }

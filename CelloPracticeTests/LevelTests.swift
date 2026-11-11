@@ -35,24 +35,24 @@ final class LevelTests: XCTestCase {
     }
 
     func testNextLessonIsTheFirstUnfinishedLessonOnThePath() {
-        XCTAssertEqual(Level.nextLesson { _ in false }?.step, .lesson(.steadyHum))
+        XCTAssertEqual(Level.nextLesson { _ in false }?.lesson, .lesson(.steadyHum))
         XCTAssertNil(Level.nextLesson { _ in true })
 
         let firstLevel = Set(Level.path[0].lessons)
         let afterFirstLevel = Level.nextLesson { firstLevel.contains($0) }
         XCTAssertEqual(afterFirstLevel?.level.id, "hotCrossBuns")
-        XCTAssertEqual(afterFirstLevel?.step, .listen(.hotCrossBuns))
+        XCTAssertEqual(afterFirstLevel?.lesson, .listen(.hotCrossBuns))
 
         // A later lesson done out of order does not move the suggestion past an earlier gap.
         let skippedAhead = Level.nextLesson { $0 != .lesson(.matchHum) }
-        XCTAssertEqual(skippedAhead?.step, .lesson(.matchHum))
+        XCTAssertEqual(skippedAhead?.lesson, .lesson(.matchHum))
     }
 
     func testTheCelloLevelComesLastOnThePath() {
         let beforeCello = Set(Level.path.dropLast().flatMap(\.lessons))
         let next = Level.nextLesson { beforeCello.contains($0) }
         XCTAssertEqual(next?.level.id, "cello")
-        XCTAssertEqual(next?.step, .celloIntroduction)
+        XCTAssertEqual(next?.lesson, .celloIntroduction)
     }
 
     func testALessonShowsTheWeakestBestScoreAcrossItsParts() {
@@ -87,14 +87,6 @@ final class LevelTests: XCTestCase {
         XCTAssertEqual(notes?.previous, .tap(.odeToJoy))
         XCTAssertEqual(notes?.next, .hum(.odeToJoy))
         for step in Level.path.flatMap(\.lessons) { XCTAssertNotNil(Level.position(of: step)) }
-    }
-
-    func testFireworksMarkEachNewGoldPartAndNothingElse() {
-        XCTAssertFalse(Celebration.earnedGold(from: [:], to: [:]))
-        XCTAssertFalse(Celebration.earnedGold(from: ["a": 1], to: ["a": 1, "b": 0]))
-        XCTAssertTrue(Celebration.earnedGold(from: ["a": 0], to: ["a": 1]), "A lesson turning gold")
-        XCTAssertTrue(Celebration.earnedGold(from: ["hum": 2], to: ["hum": 3]), "One more phrase turning gold")
-        XCTAssertFalse(Celebration.earnedGold(from: ["a": 1], to: ["a": 0]), "Losing nothing to celebrate")
     }
 
     func testStoredIDsAreRememberedOnceEach() {
@@ -171,19 +163,10 @@ final class LevelTests: XCTestCase {
         XCTAssertFalse(untracked.passed || untracked.gold, "A lesson with nothing to earn is never passed")
     }
 
-    func testLevelCountsPassedLessonsAndCompletesWhenAllArePassed() {
+    func testLevelCountsPassedLessons() {
         let level = Level.path[1]
         let passed: Set<PathLesson> = [.listen(.hotCrossBuns), .tap(.hotCrossBuns)]
         XCTAssertEqual(level.passedLessons { passed.contains($0) }, 2)
-        XCTAssertFalse(level.isComplete { passed.contains($0) })
-        XCTAssertTrue(level.isComplete { _ in true })
-    }
-
-    func testALevelIsCelebratedOnceAndTheFurthestOneFirst() {
-        let firstLevel = Set(Level.path[0].lessons)
-        XCTAssertNil(Level.newlyCompleted(celebrated: "") { _ in false })
-        XCTAssertEqual(Level.newlyCompleted(celebrated: "") { firstLevel.contains($0) }?.id, "firstSounds")
-        XCTAssertNil(Level.newlyCompleted(celebrated: "firstSounds") { firstLevel.contains($0) })
-        XCTAssertEqual(Level.newlyCompleted(celebrated: "firstSounds") { _ in true }?.id, "cello")
+        XCTAssertEqual(level.passedLessons { _ in true }, level.lessons.count)
     }
 }

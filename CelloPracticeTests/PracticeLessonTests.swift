@@ -55,7 +55,7 @@ final class PracticeLessonTests: XCTestCase {
         for step in Level.path[0].lessons {
             guard case .lesson(let lesson) = step else { continue }
             explained += " " + (lesson.primer?.paragraphs.joined(separator: " ").lowercased() ?? "")
-            let copy = ([lesson.purpose, lesson.shortPurpose, lesson.practicePrompt] + lesson.instructions
+            let copy = ([lesson.purpose, lesson.practicePrompt] + lesson.instructions
                         + lesson.goals.flatMap { [$0.title, $0.detail] }).joined(separator: " ").lowercased()
             for term in ["pitch", "beat", "cents", "register", "bpm", "pulse"] where copy.contains(term) {
                 XCTAssertTrue(explained.contains(term), "\(lesson.title) uses “\(term)” before a primer explains it")

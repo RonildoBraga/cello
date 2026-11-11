@@ -34,11 +34,9 @@ Every lesson's screen opens with the same header (`LessonHeader`): the level ("L
 
 Under the practice area one line reports both tiers in words: "Passed · Gold: 2 of 3 three-star takes". Inside a melody lesson the same row still offers the next phrase or note.
 
-### Celebrating
+### Moving on
 
-Celebrations are sized to the achievement. A fresh result pops its stars in one by one, with a success tap for three. When any part of a lesson turns gold, or a level's last lesson is passed, fireworks play once over the screen for about two seconds: silent, never blocking touches, and a still badge when Reduce Motion is on. The Music tab watches gold parts and finished levels, so the trigger does not depend on which screen earned it. Results opened later from Recordings show their stars without ceremony.
-
-Once a lesson is passed, Next on the lesson bar becomes a solid button ("Next: Listen & match"). At the last lesson of a level it leads into the next level.
+Once a lesson is passed, Next on the lesson bar becomes a solid button ("Next: Listen & match"). At the last lesson of a level it leads into the next level. There is no celebration animation and no level-complete card: fireworks and a star animation were tried and removed as decoration. The path's ticks, the gold mark and the highlighted Next say what happened.
 
 ### Primers
 
@@ -61,7 +59,7 @@ Progress has two tiers ([issue #50](https://github.com/RonildoBraga/cello/issues
 
 A lesson or the whole melody is one part. Tap it and Hum it roll up four phrases: the lesson shows "2 of 4 phrases passed", is passed when all four are, and is gold when all four are gold. Listen is passed once the whole melody has played to its end. A level shows how many of its lessons are passed; when the last one passes, the path shows a completion card once and points at the next lesson.
 
-No saved format changed. Two small preferences hold what no take records: the melodies heard to the end and the levels already celebrated.
+No saved format changed. Two small preferences hold what no take records: the melodies heard to the end, and the primers and introductions already read.
 
 Music, Recordings and About are the three iPhone tabs. Practice is a screen, not a tab: every activity — a lesson, a melody's Listen, Tap it or Hum it lesson, Listen & Echo — is pushed inside Music and left with Back ([issue #33](https://github.com/RonildoBraga/cello/issues/33)). Starting a lesson pushes a fresh, ready practice screen directly above the path.
 

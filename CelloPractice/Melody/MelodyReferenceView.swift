@@ -17,7 +17,7 @@ struct MelodyReferenceView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                LessonHeader(step: .listen(piece), subtitle: piece.listenIntro)
+                LessonHeader(subtitle: piece.listenIntro)
                 VStack(alignment: .leading, spacing: 12) {
                     Picker("Reference register", selection: $register) {
                         ForEach(MelodyRegister.offered) { item in

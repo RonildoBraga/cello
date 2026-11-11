@@ -75,3 +75,38 @@ extension XCUIApplication {
         }
     }
 }
+
+/// Checks and small actions every UI test class uses.
+extension XCTestCase {
+    /// Swipes up until the element can be tapped.
+    func reveal(_ element: XCUIElement, in app: XCUIApplication) {
+        for _ in 0..<10 {
+            if element.exists && element.isHittable { return }
+            app.scrollViews.firstMatch.swipeUp()
+        }
+        XCTAssertTrue(element.exists && element.isHittable)
+    }
+
+    func screenshot(_ name: String) {
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    func visibleRecordingIDs(in app: XCUIApplication) -> Set<String> {
+        let recordings = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", "recording-"))
+        return Set(recordings.allElementsBoundByIndex.map(\.identifier))
+    }
+
+    func assertNoWrittenInput(in app: XCUIApplication) {
+        XCTAssertEqual(app.textFields.count, 0)
+        XCTAssertEqual(app.textViews.count, 0)
+        XCTAssertEqual(app.secureTextFields.count, 0)
+    }
+
+    func assertNoPermissionAlerts(in app: XCUIApplication) {
+        XCTAssertEqual(app.alerts.count, 0)
+        XCTAssertEqual(XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.count, 0)
+    }
+}

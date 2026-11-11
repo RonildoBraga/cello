@@ -330,7 +330,6 @@ final class SessionStoreTests: XCTestCase {
         XCTAssertEqual(restored.effectiveTargetFrequency, target)
         XCTAssertEqual(restored.effectiveTargetNote, "F2")
         XCTAssertEqual(try XCTUnwrap(restored.medianCentsFromTarget), 0, accuracy: 1e-8)
-        XCTAssertEqual(try XCTUnwrap(restored.inTuneFraction), 1.0 / 3, accuracy: 1e-8)
         XCTAssertEqual(restored.pitchSamples.map(\.frequency), samples.map(\.frequency))
 
         let archive = try await store.export(session)

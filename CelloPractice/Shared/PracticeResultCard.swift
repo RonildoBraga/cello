@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 struct PracticeGoal {
     let title: String
@@ -24,10 +23,6 @@ struct PracticeResultCard: View {
     var unscoredSystemImage = "waveform"
     var identifiers = PracticeResultIdentifiers()
     var errorMessage: String?
-    @Environment(\.celebratesResults) private var celebrates
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// How many goal stars have appeared; fresh results reveal them one by one.
-    @State private var revealed = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
@@ -57,42 +52,24 @@ struct PracticeResultCard: View {
             }.font(.caption.weight(.medium)).foregroundStyle(Palette.muted)
             if let errorMessage { Text(errorMessage).font(.caption).foregroundStyle(.red) }
         }.card().accessibilityElement(children: .contain)
-            .onAppear(perform: revealStars)
-    }
-
-    /// A fresh result pops its stars in, with a success tap for all three.
-    private func revealStars() {
-        guard celebrates, !reduceMotion, starCount != nil else { revealed = goals.count; return }
-        // Each star is its own later update: one animated change with staggered
-        // delays would be merged into a single frame.
-        for index in goals.indices {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2 + Double(index) * 0.22) {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.5)) { revealed = max(revealed, index + 1) }
-            }
-        }
-        if starCount == CompletionRule.goldStars {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2 + Double(goals.count) * 0.22) {
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-            }
-        }
     }
 
     private func goalsRow(stacked: Bool) -> some View {
         HStack(spacing: 12) {
-            ForEach(goals.indices, id: \.self) { goal(goals[$0], stacked: stacked, shown: revealed > $0) }
+            ForEach(goals.indices, id: \.self) { goal(goals[$0], stacked: stacked) }
         }
     }
 
-    private func goal(_ goal: PracticeGoal, stacked: Bool, shown: Bool) -> some View {
+    private func goal(_ goal: PracticeGoal, stacked: Bool) -> some View {
         Group {
             if stacked {
                 VStack(spacing: 6) {
-                    star(goal.earned, shown: shown)
+                    star(goal.earned)
                     Text(goal.title).font(.caption.weight(.medium)).foregroundStyle(Palette.forest)
                 }
             } else {
                 HStack(spacing: 7) {
-                    star(goal.earned, shown: shown)
+                    star(goal.earned)
                     Text(goal.title).font(.subheadline.weight(.medium)).foregroundStyle(Palette.forest)
                 }
             }
@@ -102,9 +79,8 @@ struct PracticeResultCard: View {
             .accessibilityIdentifier(goal.identifier)
     }
 
-    private func star(_ earned: Bool, shown: Bool) -> some View {
+    private func star(_ earned: Bool) -> some View {
         Image(systemName: earned ? "star.fill" : "star").font(.title3.weight(.medium))
             .foregroundStyle(earned ? Palette.gold : Palette.muted.opacity(0.4))
-            .scaleEffect(shown || !earned ? 1 : 0.2).opacity(shown || !earned ? 1 : 0)
     }
 }

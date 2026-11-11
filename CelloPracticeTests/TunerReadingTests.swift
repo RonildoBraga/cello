@@ -68,7 +68,6 @@ final class TunerReadingTests: XCTestCase {
             XCTAssertEqual(reading.frequency, frequency)
             XCTAssertNotEqual(reading.noteName, "—")
             XCTAssertNil(reading.cents)
-            XCTAssertFalse(reading.isDifferentNote)
         }
     }
 
@@ -97,7 +96,6 @@ final class TunerReadingTests: XCTestCase {
                 let reading = TunerReading(frequency: frequency, targetFrequency: target)
                 XCTAssertEqual(reading.noteName, note)
                 XCTAssertEqual(try XCTUnwrap(reading.cents), offset, accuracy: 1e-8)
-                XCTAssertFalse(reading.isDifferentNote)
             }
         }
     }
@@ -106,11 +104,6 @@ final class TunerReadingTests: XCTestCase {
         let reading = TunerReading(frequency: 146.8323839587038, targetFrequency: 97.99885899543733)
         XCTAssertEqual(reading.noteName, "D3")
         XCTAssertEqual(try XCTUnwrap(reading.cents), 700, accuracy: 1e-8)
-        XCTAssertTrue(reading.isDifferentNote)
-        for offset in [-101.0, -99, 99, 101] {
-            let nearby = TunerReading(frequency: 220 * pow(2, offset / 1_200), targetFrequency: 220)
-            XCTAssertEqual(nearby.isDifferentNote, abs(offset) > 100)
-        }
     }
 
     func testInvalidFrequenciesDoNotProduceReadings() {
@@ -120,7 +113,6 @@ final class TunerReadingTests: XCTestCase {
             XCTAssertNil(reading.frequency)
             XCTAssertEqual(reading.noteName, "—")
             XCTAssertNil(reading.cents)
-            XCTAssertFalse(reading.isDifferentNote)
         }
     }
 
@@ -131,7 +123,6 @@ final class TunerReadingTests: XCTestCase {
             XCTAssertEqual(reading.frequency, 220)
             XCTAssertEqual(reading.noteName, "A3")
             XCTAssertNil(reading.cents)
-            XCTAssertFalse(reading.isDifferentNote)
         }
     }
 

@@ -64,17 +64,6 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
         }
     }
 
-    var shortPurpose: String {
-        switch self {
-        case .steadyHum: return "Hold one note"
-        case .matchHum: return "Listen, then hum it back"
-        case .pulse: return "Keep an even beat"
-        case .twoTaps: return "Count 1 & 2 &"
-        case .mixedRhythm: return "Count 1, 2 &, 3, 4 &"
-        case .openC, .openG, .openD, .openA: return "One string, one steady sound"
-        }
-    }
-
     /// One plain line under the title of the practice screen.
     var practicePrompt: String {
         switch self {
