@@ -10,16 +10,11 @@ struct EchoPracticeView: View {
     @Environment(\.practiceMethod) private var method
     /// The pattern on show, by its place in the level's catalogue; the method decides its register.
     @State private var patternIndex = EchoLevel.twoNotes.nextPatternIndex(excluding: nil)
-
-    private var register: MelodyRegister { method.wrappedValue.register }
-    private var context: MelodyPracticeContext {
-        // The index always comes from this level's catalogue.
-        (try? level.context(patternIndex: patternIndex, register: register))
-            ?? level.newPattern(register: register, excluding: nil).context
-    }
-
     /// A chip was tapped to switch pattern length: the new pattern plays once.
     @State private var hearOnArrival = false
+
+    private var register: MelodyRegister { method.wrappedValue.register }
+    private var context: MelodyPracticeContext { level.pattern(patternIndex, register: register) }
 
     private var levelSelection: Binding<EchoLevel> {
         Binding(get: { level }, set: { next in
@@ -30,12 +25,11 @@ struct EchoPracticeView: View {
     }
 
     var body: some View {
-        let mode = VoicePracticeMode.echo(context, level: level)
         let parts = LessonParts(EchoLevel.allCases, current: level, noun: "Part", title: \.title,
                                 passed: store.echoProgress(for: level, register: register).passed) {
             levelSelection.wrappedValue = $0
         }
-        VoicePracticeView(store: store, capture: capture, mode: mode, parts: parts,
+        VoicePracticeView(store: store, capture: capture, mode: .echo(context, level: level), parts: parts,
                           hearOnArrival: $hearOnArrival) { controls in
             VStack(alignment: .leading, spacing: 16) {
                 LessonHeader(subtitle: "Tap the pattern to hear it, then \(method.wrappedValue.verb) it back. Follow the tuning bar as you record.",
@@ -44,9 +38,7 @@ struct EchoPracticeView: View {
                 HStack(spacing: 8) {
                     PartStrip(parts: EchoLevel.allCases, selection: levelSelection, short: \.title, title: \.title,
                               progress: { store.echoProgress(for: $0, register: register) },
-                              hear: PartHearing(spoken: mode.hearSpoken, identifier: "previewTargetButton") { changed in
-                                  if changed { hearOnArrival = true } else { controls.hear() }
-                              })
+                              hear: controls.hearing)
                     Button(action: newPattern) {
                         Label("New pattern", systemImage: "shuffle").labelStyle(.iconOnly)
                     }.buttonStyle(SecondaryActionButtonStyle())

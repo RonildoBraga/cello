@@ -27,8 +27,7 @@ struct MelodyHummingView: View {
     }
 
     var body: some View {
-        let mode = VoicePracticeMode.phrase(context)
-        VoicePracticeView(store: store, capture: capture, mode: mode, parts: parts,
+        VoicePracticeView(store: store, capture: capture, mode: .phrase(context), parts: parts,
                           hearOnArrival: $hearOnArrival) { controls in
             VStack(alignment: .leading, spacing: 17) {
                 LessonHeader(subtitle: piece.hummingIntro,
@@ -37,9 +36,7 @@ struct MelodyHummingView: View {
                           leading: section == .whole ? nil : "Phrase",
                           short: { $0 == .whole ? $0.title : $0.chipLabel }, title: \.title,
                           progress: { store.melodyProgress(for: piece.humming(register: method.wrappedValue.register, section: $0)) },
-                          hear: PartHearing(spoken: mode.hearSpoken, identifier: "previewTargetButton") { changed in
-                              if changed { hearOnArrival = true } else { controls.hear() }
-                          })
+                          hear: controls.hearing)
                     .disabled(controls.locked)
                 Text("\(Int(context.duration)) seconds · \(context.tempoBPM) BPM")
                     .font(.caption).foregroundStyle(Palette.muted)

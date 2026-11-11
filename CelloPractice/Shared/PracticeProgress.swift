@@ -95,10 +95,6 @@ extension SessionProgressLedger {
                                 alreadyPassed: passedKeys?.contains(key) ?? false)
     }
 
-    func progress(forKey key: String?, sessions: [PracticeSession]) -> PracticeProgress {
-        progress(forKey: key, stars: Self.stars(in: sessions))
-    }
-
     /// Returns true when a milestone was added and the ledger needs saving.
     @discardableResult
     mutating func update(from stars: [String: [Int]]) -> Bool {
@@ -111,9 +107,6 @@ extension SessionProgressLedger {
         if !passes.isSubset(of: passedKeys ?? []) { passedKeys = (passedKeys ?? []).union(passes) }
         return completedKeys.count + (passedKeys?.count ?? 0) != known
     }
-
-    @discardableResult
-    mutating func update(from sessions: [PracticeSession]) -> Bool { update(from: Self.stars(in: sessions)) }
 
     private static func newestFirst(_ lhs: PracticeSession, _ rhs: PracticeSession) -> Bool {
         if lhs.createdAt != rhs.createdAt { return lhs.createdAt > rhs.createdAt }
@@ -132,13 +125,8 @@ struct PracticeProgressLedger: SessionProgressLedger {
         self.completedKeys = completedKeys
     }
 
-    func progress(for exercise: Exercise, targetFrequency: Double,
-                  sessions: [PracticeSession]) -> PracticeProgress {
-        progress(forKey: Self.key(exercise: exercise, targetFrequency: targetFrequency), sessions: sessions)
-    }
-
     static func key(exercise: Exercise, targetFrequency: Double) -> String? {
-        guard exercise.section != nil, targetFrequency.isFinite, targetFrequency > 0 else { return nil }
+        guard exercise.method != nil, targetFrequency.isFinite, targetFrequency > 0 else { return nil }
         // Codable round-trips this exact reference. Different targets and scoring
         // versions must never silently contribute to the same achievement.
         return "v\(PracticeRating.currentVersion)|\(exercise.rawValue)|\(String(targetFrequency.bitPattern, radix: 16))"

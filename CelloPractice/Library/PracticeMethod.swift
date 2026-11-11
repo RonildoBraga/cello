@@ -17,10 +17,10 @@ enum PracticeMethod: String, CaseIterable, Identifiable {
     var verb: String { self == .voice ? "hum" : "play" }
 }
 
-extension PracticeSession {
-    /// How this take was made.
-    var method: PracticeMethod {
-        exercise.section == .cello || melodyContext?.register == .cello ? .cello : .voice
+extension PracticeMethod {
+    /// How a take of this exercise, or of this melody, is made.
+    init(exercise: Exercise, melody: MelodyPracticeContext?) {
+        self = exercise.method == .cello || melody?.register == .cello ? .cello : .voice
     }
 }
 
@@ -37,13 +37,14 @@ extension EnvironmentValues {
     }
 }
 
-/// Voice or cello, for every recorded lesson. The cello is filmed and the voice
-/// is not, so changing method releases the microphone and camera. The switch
-/// follows only whether the controller is busy, never its ticks.
+/// Voice or cello, in the bar of every lesson that has a sound to hear or record.
+/// The cello is filmed and the voice is not, so changing method releases the
+/// microphone and camera, and stops whatever is playing. The switch follows only
+/// whether a take is recording, never the controller's ticks.
 struct PracticeMethodSwitch: View {
     let capture: CaptureController
     @Environment(\.practiceMethod) private var method
-    @State private var busy = false
+    @State private var recording = false
 
     var body: some View {
         Picker("Practise with", selection: Binding(get: { method.wrappedValue }, set: { next in
@@ -51,9 +52,8 @@ struct PracticeMethodSwitch: View {
             method.wrappedValue = next
         })) {
             ForEach(PracticeMethod.allCases) { Text($0.title).tag($0) }
-        }.pickerStyle(.segmented).frame(width: 150).disabled(busy)
+        }.pickerStyle(.segmented).frame(width: 150).disabled(recording)
             .accessibilityIdentifier("practiceMethodPicker")
-            .onReceive(capture.$isRecording.combineLatest(capture.$isPlayingReference)
-                .map { $0 || $1 }.removeDuplicates()) { busy = $0 }
+            .onReceive(capture.$isRecording) { recording = $0 }
     }
 }

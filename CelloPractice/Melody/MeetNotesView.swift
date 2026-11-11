@@ -22,8 +22,7 @@ struct MeetNotesView: View {
     }
 
     var body: some View {
-        let mode = VoicePracticeMode.phrase(context)
-        VoicePracticeView(store: store, capture: capture, mode: mode, parts: parts,
+        VoicePracticeView(store: store, capture: capture, mode: .phrase(context), parts: parts,
                           hearOnArrival: $hearOnArrival) { controls in
             VStack(alignment: .leading, spacing: 17) {
                 LessonHeader(subtitle: "This melody uses \(NoteDrill.notes(for: piece).count) notes. Tap a note to hear it, then \(method.wrappedValue.verb) it back after the count of 1–2–3–4. The bar shows how close you are.",
@@ -31,9 +30,7 @@ struct MeetNotesView: View {
                 // The chips name every note and play it, so nothing else on the screen repeats them.
                 PartStrip(parts: drills, selection: Binding(get: { drill }, set: { index = drills.firstIndex(of: $0) ?? 0 }), short: \.chipLabel, title: \.title,
                           progress: { store.melodyProgress(for: $0.context) },
-                          hear: PartHearing(spoken: mode.hearSpoken, identifier: "previewTargetButton") { changed in
-                              if changed { hearOnArrival = true } else { controls.hear() }
-                          })
+                          hear: controls.hearing)
                     .disabled(controls.locked)
             }.id("practiceTop")
         }.id(drill.id)

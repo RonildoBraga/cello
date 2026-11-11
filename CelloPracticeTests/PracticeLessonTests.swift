@@ -7,7 +7,7 @@ final class PracticeLessonTests: XCTestCase {
         XCTAssertEqual(PracticeLesson.allCases.map(\.id), ["steadyHum", "matchHum", "pulse", "twoTaps", "mixedRhythm"])
         XCTAssertEqual(PracticeLesson.allCases.map(\.activity),
                        [.recording(.steadyHum), .recording(.matchHum), .rhythm(.pulse), .rhythm(.twoTaps), .rhythm(.mixedRhythm)])
-        XCTAssertEqual(PracticeSection.allCases, [.humming, .cello])
+        XCTAssertEqual(PracticeMethod.allCases, [.voice, .cello])
     }
 
     func testEarnedCompletionSurvivesDeletedHistory() {

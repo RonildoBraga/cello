@@ -12,7 +12,7 @@ struct PartHearing {
 
 /// The parts of a lesson side by side, such as its phrases or notes: which one
 /// is on show, which are passed or gold, and a tap to switch. Where a part can
-/// be heard, tapping its chip plays it, so there is no separate Hear button: the
+/// be heard, tapping its chip plays it: the
 /// chip on show carries a speaker and plays again when tapped. A lesson with one
 /// part shows one chip.
 struct PartStrip<Part: Hashable>: View {
@@ -66,17 +66,4 @@ struct PartStrip<Part: Hashable>: View {
             .accessibilityAddTraits(selected ? .isSelected : [])
             .accessibilityIdentifier(selected ? hear?.identifier ?? "part-\(title(part))" : "part-\(title(part))")
     }
-}
-
-extension CaptureController {
-    /// Waits for the screen being left to stop its sound, so the next one can play.
-    func waitUntilQuiet() async {
-        try? await Task.sleep(for: .milliseconds(250))
-        for _ in 0..<30 where isPlayingReference { try? await Task.sleep(for: .milliseconds(50)) }
-    }
-}
-
-extension MelodySection {
-    /// On a chip: the phrase number, or "All" for the whole melody.
-    var chipLabel: String { self == .whole ? "All" : String(title.suffix(1)) }
 }

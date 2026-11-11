@@ -87,7 +87,7 @@ final class SessionStore: ObservableObject {
         let actualTarget = (melodyContext == nil ? (exercise.targetFrequency ?? targetFrequency) : nil)
             .flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
         let rating: PracticeRating?
-        if melodyContext == nil, exercise.section != nil, let actualTarget {
+        if melodyContext == nil, exercise.method != nil, let actualTarget {
             rating = await RecordingRater.rate(url: source, targetFrequency: actualTarget)
         } else {
             rating = nil
@@ -102,8 +102,8 @@ final class SessionStore: ObservableObject {
             id: UUID(), createdAt: Date(), exercise: exercise,
             duration: savedDuration,
             notes: notes, pitchSamples: validSamples, videoFilename: "recording.mov",
-            tuningTargetFrequency: exercise.usesComfortableTarget
-                ? actualTarget : nil,
+            // A hummed note has no fixed target, so the one it was sung against is kept.
+            tuningTargetFrequency: exercise.targetFrequency == nil ? actualTarget : nil,
             rating: rating, melodyContext: melodyContext, melodyRating: melodyRating
         )
         let folder = folderURL(for: session)

@@ -55,7 +55,7 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
     }
 
     /// One plain line under the title of the practice screen.
-    func practicePrompt(_ method: PracticeMethod = .voice) -> String {
+    func practicePrompt(_ method: PracticeMethod) -> String {
         switch self {
         case .steadyHum: return method == .cello ? "Play one open string steadily, then tap Stop."
             : "Hum one note for three seconds."

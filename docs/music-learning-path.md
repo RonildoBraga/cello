@@ -29,7 +29,7 @@ Every lesson uses one compact row, whatever it opens: lesson number, title, prog
 
 ### Voice or cello
 
-Humming and playing are two ways to do the same lesson, not two paths. Every lesson that records sound (Steady note, Listen & match, Listen & Echo, Meet the notes, Hum it, Whole melody) carries a Voice / Cello switch in its navigation bar (`PracticeMethod`, `PracticeMethodSwitch`). It sits apart from the chips and is drawn as a segmented control, because it is a different kind of choice: how to practise, not what to hear. The lesson, its goals and its place on the path stay the same; the reference sound, the wording, the tuner and what is recorded follow the choice. Tapping and listening lessons have no switch.
+Humming and playing are two ways to do the same lesson, not two paths. Every lesson with a sound to hear or record (Steady note, Listen & match, Listen & Echo, Listen, Meet the notes, Hum it, Whole melody) carries the same Voice / Cello switch in its navigation bar (`PracticeMethod`, `PracticeMethodSwitch`). Listen used to have a picker of its own for the same choice. It sits apart from the chips and is drawn as a segmented control, because it is a different kind of choice: how to practise, not what to hear. The lesson, its goals and its place on the path stay the same; the reference sound, the wording, the tuner and what is recorded follow the choice. Tapping lessons have no switch. The switch is live except while a take is recording; changing it stops whatever is playing.
 
 - **Single-note lessons** (Steady note, Listen & match): by voice, one hummed note; on the cello, the four open strings as chips (C, G, D, A), stepped through by the lesson bar as "String 1 of 4". Both lessons use the same four strings, so a string passed in one is passed in the other. This replaced a separate fourth level of open-string lessons.
 - **Melody lessons and Listen & Echo**: the same notes, phrases and patterns in the cello register (D major on the D string, the register the Listen lesson already offered), each with its own progress.
@@ -37,6 +37,12 @@ Humming and playing are two ways to do the same lesson, not two paths. Every les
 Progress is kept for each method under its own exercise or register, so switching loses nothing. Either method passes the lesson, and the path row shows whichever has got further. The switch starts on the method of the most recent take and stays as chosen until the app is closed; no setting is stored. A cello take is filmed; a voice take is audio only, so switching releases the microphone and camera. Meet your cello is no longer a lesson: it opens from the information button in the bar while Cello is chosen.
 
 Not yet settled: the cello plays the melodies in D major and the voice hums them in G major, which is usual in beginner cello books but worth a teacher's view; and scoring was tuned on humming and has not been checked against a real cello recording.
+
+### How the path is drawn
+
+`PathProgress` reads every lesson's progress from the stores once for each drawing of the path; the rows, Today's practice and the lesson bar share that one reading. The stores answer from an index of the takes and rounds that they rebuild only when a take is saved or deleted (`SessionProgressLedger.stars(in:)`, `MelodyRhythmStore`), so a lesson's progress is a lookup.
+
+This matters because of how it once went wrong. The path screen observed the capture controller, which publishes about twenty times a second while a take records or a reference plays. Each tick redrew the path behind the lesson, and each drawing worked out every lesson's progress several times over, each time re-encoding and hashing every saved take. With 17 takes that was about 100 ms of work per tick in a debug build: the main thread had no time left and the moving lane fell to 6–8 frames a second. Today's practice and the voice/cello choice each added to the work per drawing until it showed. Now the app owns the capture controller unobserved, the path screen never redraws on a tick, and a full reading of the path takes about 3.5 ms.
 
 ### Today's practice
 

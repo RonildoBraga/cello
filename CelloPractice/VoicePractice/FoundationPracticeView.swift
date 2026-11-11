@@ -46,17 +46,14 @@ struct FoundationPracticeView: View {
                                  hearOnArrival: $hearOnArrival) { controls in
             VStack(alignment: .leading, spacing: 17) {
                 header
-                let hearing = PartHearing(spoken: mode.hearSpoken, identifier: "previewTargetButton") { changed in
-                    if changed { hearOnArrival = true } else { controls.hear() }
-                }
                 Group {
                     if onCello {
                         PartStrip(parts: strings, selection: $string, short: { String($0.targetNote?.dropLast() ?? "") },
-                                  title: \.title, progress: progress, hear: hearing)
+                                  title: \.title, progress: progress, hear: controls.hearing)
                     } else {
                         let note = TunerReading(frequency: mode.targetFrequency, targetFrequency: nil).noteName
                         PartStrip<String>(parts: [note], selection: .constant(note), short: { $0 }, title: { $0 },
-                                          hear: hearing)
+                                          hear: controls.hearing)
                     }
                 }.disabled(controls.locked)
             }

@@ -4,9 +4,9 @@ import SwiftUI
 @MainActor
 struct MelodyReferenceView: View {
     @ObservedObject var capture: CaptureController
-    var piece: MelodyPiece = .hotCrossBuns
+    let piece: MelodyPiece
     @Environment(\.scenePhase) private var scenePhase
-    @State private var register = MelodyRegister.lowVoice
+    @Environment(\.practiceMethod) private var method
     @State private var section = MelodySection.whole
     @State private var hasRequestedPlayback = false
     @State private var isVisible = false
@@ -14,22 +14,16 @@ struct MelodyReferenceView: View {
     @State private var hearRequest = 0
     @AppStorage(StoredIDs.listenedMelodies) private var listened = ""
 
+    private var register: MelodyRegister { method.wrappedValue.register }
     private var context: MelodyPracticeContext { piece.reference(register: register, section: section) }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 LessonHeader(subtitle: piece.listenIntro)
-                VStack(alignment: .leading, spacing: 12) {
-                    Picker("Reference register", selection: $register) {
-                        ForEach(MelodyRegister.offered) { item in
-                            Text(item.title).tag(item)
-                        }
-                    }.pickerStyle(.segmented).accessibilityIdentifier("melodyRegisterPicker")
-                    Text("\(register == .cello ? "Recorded cello" : "Recorded hum") · \(register.keyName) · \(piece.rangeLabel(for: register)) · 60 BPM")
-                        .font(.caption).foregroundStyle(Palette.muted)
-                        .accessibilityIdentifier("melodyReferenceKey")
-                }
+                Text("\(register == .cello ? "Recorded cello" : "Recorded hum") · \(register.keyName) · \(piece.rangeLabel(for: register)) · 60 BPM")
+                    .font(.caption).foregroundStyle(Palette.muted)
+                    .accessibilityIdentifier("melodyReferenceKey")
                 VStack(alignment: .leading, spacing: 12) {
                     SectionTitle("Follow the notes")
                     PartStrip(parts: MelodySection.allCases, selection: $section, leading: "Phrase",
@@ -46,7 +40,7 @@ struct MelodyReferenceView: View {
                 }
             }.foregroundStyle(Palette.ink).screenContent()
         }.id(piece).background(Palette.paper)
-            .screenTitle("Listen")
+            .screenTitle("Listen", methodSwitch: capture)
             .bottomActionBar { playbackControl }
             .onChange(of: piece) { _, _ in hasRequestedPlayback = false; capture.stop() }
             .onChange(of: register) { _, _ in hasRequestedPlayback = false; capture.stop() }

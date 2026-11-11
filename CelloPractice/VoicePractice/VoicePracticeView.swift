@@ -5,10 +5,11 @@ import UIKit
 /// Recording lifecycle stays scoped to one frozen lesson/reference. SessionStore
 /// owns the durable result after this screen disappears.
 /// What a lesson's header needs from the practice screen: whether to hold its
-/// controls still, and how to play what is about to be hummed.
+/// controls still, and how its chips play. The chip on show plays again; a tap
+/// on another switches to it, and the part it shows plays once it arrives.
 struct PracticeHeaderControls {
     let locked: Bool
-    let hear: () -> Void
+    let hearing: PartHearing
 }
 
 @MainActor
@@ -46,6 +47,8 @@ struct VoicePracticeView<Header: View>: View {
     private var hasResult: Bool { latestSession?.rating != nil || latestSession?.melodyRating != nil }
 
     private let mode: VoicePracticeMode
+    /// The take's notes as bars on the lane. Worked out once: the lane is redrawn on every frame.
+    private let laneMarks: [LaneMark]
     /// Where this take sits among the lesson's phrases or notes, if it has several.
     private let parts: LessonParts?
     /// Set by a chip that has just switched to this take: play it once on arrival.
@@ -58,6 +61,7 @@ struct VoicePracticeView<Header: View>: View {
         self.store = store
         self.capture = capture
         self.mode = mode
+        laneMarks = mode.laneMarks
         self.parts = parts
         _hearOnArrival = hearOnArrival
         self.header = header
@@ -169,7 +173,10 @@ struct VoicePracticeView<Header: View>: View {
         ScrollViewReader { scroll in
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    header(PracticeHeaderControls(locked: controlsLocked || restSeconds > 0, hear: previewReference))
+                    header(PracticeHeaderControls(locked: controlsLocked || restSeconds > 0, hearing: PartHearing(
+                        spoken: mode.hearSpoken, identifier: "previewTargetButton") { changed in
+                            if changed { hearOnArrival = true } else { previewReference() }
+                        }))
                     if let session = latestSession, hasResult, showsIdleContent {
                         VStack(spacing: 16) {
                             if let rating = session.melodyRating {
@@ -277,13 +284,13 @@ struct VoicePracticeView<Header: View>: View {
                     .foregroundStyle(.white.opacity(0.85)).frame(minHeight: 22)
                     .accessibilityIdentifier("livePitchFeedback")
             }.padding(.vertical, 4)
-            if let laneZero, !saving, !mode.laneMarks.isEmpty {
+            if let laneZero, !saving, !laneMarks.isEmpty {
                 // The notes travel to the line through the count-in and the take. Between
                 // the count-in ending and the recorder starting, the first note waits at the line.
                 TimelineView(.animation) { _ in
                     let elapsed = ProcessInfo.processInfo.systemUptime - laneZero
                     BeatLane(elapsed: capture.isRecording ? elapsed : min(0, elapsed), beatInterval: mode.beatInterval,
-                             duration: mode.duration, marks: mode.laneMarks)
+                             duration: mode.duration, marks: laneMarks)
                 }.frame(height: 66)
             }
             if showsMeter {

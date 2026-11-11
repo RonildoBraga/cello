@@ -32,17 +32,15 @@ enum VoicePracticeMode: Equatable {
         }
     }
 
-    private var section: PracticeSection { exercise.section ?? .humming }
     /// Voice or cello, read from what is recorded.
-    private var method: PracticeMethod {
-        section == .cello || melodyContext?.register == .cello ? .cello : .voice
-    }
+    private var method: PracticeMethod { PracticeMethod(exercise: exercise, melody: melodyContext) }
 
     var targetFrequency: Double {
         if let context = melodyContext {
             return context.expectedEvents.compactMap { context.frequency(for: $0) }.first ?? context.tuningA4Hz
         }
-        return section.effectiveTarget(for: exercise)
+        // An open string is its own target; a hummed note matches the human example.
+        return exercise.targetFrequency ?? HummingExample.frequency
     }
 
     /// The target sounding at a moment in the take; nil during a melody's silence.
@@ -65,7 +63,8 @@ enum VoicePracticeMode: Equatable {
     /// Humming takes stop by themselves; cello takes run until Stop.
     var isTimed: Bool { melodyContext != nil || exercise == .steadyHum || exercise == .matchHum }
     var duration: TimeInterval { melodyContext?.duration ?? 3 }
-    var meterRange: Double { exercise.usesComfortableTarget ? 200 : 50 }
+    /// A voice finding its note needs a wider meter than a string being tuned.
+    var meterRange: Double { exercise.targetFrequency == nil ? 200 : 50 }
 
     // MARK: The lane
 
@@ -120,7 +119,7 @@ enum VoicePracticeMode: Equatable {
     func playReference(on capture: CaptureController) {
         // Hearing a reference needs playback only, without camera or microphone setup.
         if let context = melodyContext { capture.playMelodyReference(context) }
-        else if section == .humming { capture.playHummingExample() }
+        else if method == .voice { capture.playHummingExample() }
         else { capture.playCelloReference(frequency: targetFrequency) }
     }
 
@@ -146,7 +145,7 @@ enum VoicePracticeMode: Equatable {
 
     var hearLabel: String {
         switch self {
-        case .note: return section == .humming ? "Hear hum" : "Hear string"
+        case .note: return method == .voice ? "Hear hum" : "Hear string"
         case .phrase(let context) where context.noteDrillPiece != nil:
             return context.expectedEvents.count == 1 ? "Hear note" : "Hear notes"
         case .phrase(let context): return context.section == .whole ? "Hear melody" : "Hear phrase"
@@ -169,7 +168,7 @@ enum VoicePracticeMode: Equatable {
 
     var listenMessage: String {
         switch self {
-        case .note: return section == .humming ? "Listen to the hum" : "Listen to the string note"
+        case .note: return method == .voice ? "Listen to the hum" : "Listen to the string note"
         case .phrase(let context) where context.noteDrillPiece != nil:
             return context.expectedEvents.count == 1 ? "Listen to the note" : "Listen to the two notes"
         case .phrase(let context): return context.section == .whole ? "Listen to the melody" : "Listen to the phrase"

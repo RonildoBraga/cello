@@ -582,11 +582,12 @@ final class LearningUITests: XCTestCase {
         assertNoPermissionAlerts(in: app)
         assertNoWrittenInput(in: app)
 
-        let registers = app.segmentedControls["melodyRegisterPicker"]
-        XCTAssertFalse(registers.buttons["Higher voice"].exists, "The app offers one voice")
+        // Listen has the same Voice / Cello switch as the lessons that record.
+        let registers = app.segmentedControls["practiceMethodPicker"]
+        XCTAssertEqual(registers.buttons.count, 2, "The app offers one voice and the cello")
         registers.buttons["Cello"].tap()
         XCTAssertTrue(key.label.contains("D major") && key.label.contains("D3–F♯3"))
-        registers.buttons["Low voice"].tap()
+        registers.buttons["Voice"].tap()
         XCTAssertEqual(play.label, "Hear melody", "Changing register must not autoplay")
         screenshot("Hot Cross Buns · whole melody and comfortable registers")
 
@@ -776,7 +777,7 @@ final class LearningUITests: XCTestCase {
 
         play.tap()
         waitForMelodyButton("Stop", in: app)
-        app.segmentedControls["melodyRegisterPicker"].buttons["Cello"].tap()
+        app.segmentedControls["practiceMethodPicker"].buttons["Cello"].tap()
         waitForMelodyButton("Hear phrase", in: app)
         XCTAssertFalse(status.exists, "A register change must cancel the previous reference")
         XCTAssertTrue(app.staticTexts["melodyReferenceKey"].label.contains("D3–F♯3"))
@@ -804,7 +805,7 @@ final class LearningUITests: XCTestCase {
         let play = app.buttons["melodyPlayButton"]
         let status = app.descendants(matching: .any).matching(identifier: "melodyPlaybackStatus").firstMatch
         let key = app.staticTexts["melodyReferenceKey"]
-        let registers = app.segmentedControls["melodyRegisterPicker"]
+        let registers = app.segmentedControls["practiceMethodPicker"]
         XCTAssertTrue(app.staticTexts["Level 3 · Ode to Joy"].exists)
         XCTAssertFalse(status.exists, "Opening Listen & follow must not play a reference")
         XCTAssertTrue(key.label.contains("G major") && key.label.contains("G2–D3"))
@@ -830,7 +831,7 @@ final class LearningUITests: XCTestCase {
 
         play.tap()
         waitForMelodyButton("Stop", in: app)
-        registers.buttons["Low voice"].tap()
+        registers.buttons["Voice"].tap()
         waitForMelodyButton("Hear phrase", in: app)
         XCTAssertFalse(status.exists, "A register change cancels playback without starting a replacement")
         XCTAssertTrue(key.label.contains("G2–D3"))

@@ -15,8 +15,8 @@ final class HummingGuidanceTests: XCTestCase {
     }
 
     func testEchoBarsShowTimingOnlySoTheCountInGivesNothingAway() {
-        let pattern = EchoLevel.twoNotes.newPattern(register: .lowVoice, excluding: nil)
-        let marks = VoicePracticeMode.echo(pattern.context, level: .twoNotes).laneMarks
+        let pattern = EchoLevel.twoNotes.pattern(0, register: .lowVoice)
+        let marks = VoicePracticeMode.echo(pattern, level: .twoNotes).laneMarks
         XCTAssertEqual(marks.count, 2)
         XCTAssertEqual(marks.map(\.start), [0, 2])
         XCTAssertTrue(marks.allSatisfy { $0.label == nil && $0.level == 0.5 })
@@ -38,8 +38,8 @@ final class HummingGuidanceTests: XCTestCase {
         XCTAssertEqual(phrase.tunerTargets.first, phrase.target(at: 0), "The first note is the one chosen to begin with")
         XCTAssertTrue(VoicePracticeMode.note(.steadyHum).tunerTargets.isEmpty)
         XCTAssertTrue(VoicePracticeMode.phrase(NoteDrill.notes(for: .hotCrossBuns)[0].context).tunerTargets.isEmpty)
-        let pattern = EchoLevel.twoNotes.newPattern(register: .lowVoice, excluding: nil)
-        XCTAssertTrue(VoicePracticeMode.echo(pattern.context, level: .twoNotes).tunerTargets.isEmpty,
+        let pattern = EchoLevel.twoNotes.pattern(0, register: .lowVoice)
+        XCTAssertTrue(VoicePracticeMode.echo(pattern, level: .twoNotes).tunerTargets.isEmpty,
                       "Echo keeps its notes secret")
     }
 

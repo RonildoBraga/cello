@@ -14,7 +14,7 @@ final class LevelTests: XCTestCase {
         XCTAssertEqual(PracticeLesson.allCases.filter(\.isRecorded), [.steadyHum, .matchHum])
         // Single-note lessons: the four open strings, low to high.
         XCTAssertEqual(PracticeMethod.openStrings.map(\.targetNote), ["C2", "G2", "D3", "A3"])
-        XCTAssertTrue(PracticeMethod.openStrings.allSatisfy { $0.section == .cello })
+        XCTAssertTrue(PracticeMethod.openStrings.allSatisfy { $0.method == .cello })
         for lesson in [PracticeLesson.steadyHum, .matchHum] {
             XCTAssertNotEqual(lesson.practicePrompt(.cello), lesson.practicePrompt(.voice))
         }

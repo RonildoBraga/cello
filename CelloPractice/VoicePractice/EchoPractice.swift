@@ -16,8 +16,8 @@ enum EchoLevel: String, CaseIterable, Identifiable, Codable, Sendable {
     var noteCount: Int { self == .twoNotes ? 2 : 3 }
     var patternCount: Int { patterns.count }
 
-    // Indices into a five-note D-major source, transposed with the existing
-    // voice registers to G major. Pattern names/pitches stay hidden in practice.
+    // Indices into a five-note D-major source: the cello plays it there, and the
+    // voice hums it transposed to G major. Pattern names/pitches stay hidden in practice.
     private var patterns: [[Int]] {
         switch self {
         case .twoNotes:
@@ -45,10 +45,9 @@ enum EchoLevel: String, CaseIterable, Identifiable, Codable, Sendable {
                     gradingVersion: MelodyRating.currentVersion)
     }
 
-    /// A fresh pattern for the practice screen, in the voice's or the cello's register.
-    func newPattern(register: MelodyRegister, excluding previous: Int?) -> (index: Int, context: MelodyPracticeContext) {
-        let index = nextPatternIndex(excluding: previous)
-        return (index, build(patternIndex: index, register: register, gradingVersion: MelodyRating.currentVersion))
+    /// The pattern at a place `nextPatternIndex` gave, in the voice's or the cello's register.
+    func pattern(_ index: Int, register: MelodyRegister) -> MelodyPracticeContext {
+        build(patternIndex: index, register: register, gradingVersion: MelodyRating.currentVersion)
     }
 
     private func context(patternIndex: Int, register: MelodyRegister,
@@ -121,11 +120,6 @@ struct EchoProgressLedger: SessionProgressLedger {
     init(schemaVersion: Int = 1, completedKeys: Set<String> = []) {
         self.schemaVersion = schemaVersion
         self.completedKeys = completedKeys
-    }
-
-    func progress(for level: EchoLevel, register: MelodyRegister,
-                  sessions: [PracticeSession]) -> PracticeProgress {
-        progress(forKey: Self.key(for: level, register: register), sessions: sessions)
     }
 
     static func starCount(for session: PracticeSession) -> Int? { session.melodyRating?.starCount }
