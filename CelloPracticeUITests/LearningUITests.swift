@@ -15,6 +15,10 @@ final class LearningUITests: XCTestCase {
         for id in ["foundation-humming", "foundation-rhythm", "foundation-cello", "piece-hotCrossBuns"] {
             XCTAssertFalse(app.buttons[id].exists, "Foundations and Pieces are no longer separate lists")
         }
+        // Today's practice leads with the next lesson and opens it like its row on the path.
+        let today = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "today-"))
+        XCTAssertTrue((1...3).contains(today.count), "The next lesson and at most two to practise again")
+        XCTAssertTrue(today.firstMatch.label.hasPrefix("Continue"))
         var unfinished = false
         for (id, number, title) in [("firstSounds", 1, "First sounds"), ("hotCrossBuns", 2, "Hot Cross Buns"),
                                     ("odeToJoy", 3, "Ode to Joy"), ("cello", 4, "Cello · open strings")] {
