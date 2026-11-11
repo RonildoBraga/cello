@@ -53,8 +53,13 @@ struct MelodyRhythmAttempt: Codable, Identifiable, Equatable, Sendable {
 
     var cue: String {
         guard isScored else { return "Tap each note’s start through the whole phrase to get a score." }
+        // Only say "one beat late" when the first tap really landed a beat after the first note.
+        let beat = context.beatInterval
+        let oneBeatLate = zip(actualTapTimes.prefix(1), context.expectedTapTimes.prefix(1))
+            .contains { abs($0 - ($1 + beat)) <= beat * 0.3 }
         return TapDiagnosis.feedback(kind: .melody, expected: expectedTapCount, offsets: offsets,
-                                     extras: unexpectedTapCount, coverage: patternGoal || unexpectedTapCount > 0,
+                                     extras: unexpectedTapCount, oneBeatLate: oneBeatLate,
+                                     coverage: patternGoal || unexpectedTapCount > 0,
                                      timing: timingGoal, evenness: consistencyGoal)
     }
 

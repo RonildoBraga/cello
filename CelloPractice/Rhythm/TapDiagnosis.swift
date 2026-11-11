@@ -6,10 +6,11 @@ import Foundation
 enum TapDiagnosis {
     enum Kind { case pulse, twoTaps, mixed, melody }
 
+    /// `oneBeatLate` is true when the first tap really did land a beat after the first note.
     static func feedback(kind: Kind, expected: Int, offsets: [Int: TimeInterval], extras: Int,
-                         coverage: Bool, timing: Bool, evenness: Bool) -> String {
+                         oneBeatLate: Bool = false, coverage: Bool, timing: Bool, evenness: Bool) -> String {
         let missedFirst = offsets[0] == nil
-        if missedFirst, kind == .melody, extras > 0 {
+        if missedFirst, oneBeatLate {
             return "You started one beat late: the first note was missed and a tap landed where no note starts. "
                 + "The first tap comes on the beat right after the count of 4."
         }
@@ -56,8 +57,11 @@ enum TapDiagnosis {
                     + "Put each ‘&’ exactly halfway between two numbers."
             }
         }
-        return kind == .melody ? "The gaps drifted as the note lengths changed. Keep counting the steady beat under the notes."
-            : "The gaps between taps changed. Keep the same space between every tap."
+        switch kind {
+        case .melody: return "The gaps drifted as the note lengths changed. Keep counting the steady beat under the notes."
+        case .mixed: return "The beat drifted as you switched between one tap and two. Keep the numbers steady; only the ‘&’ is extra."
+        case .pulse, .twoTaps: return "The gaps between taps changed. Keep the same space between every tap."
+        }
     }
 
     private static func count(_ number: Int, _ noun: String) -> String {

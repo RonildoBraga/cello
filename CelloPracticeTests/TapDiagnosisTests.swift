@@ -4,16 +4,33 @@ import XCTest
 /// The cases are the mistakes found in real saved rounds.
 final class TapDiagnosisTests: XCTestCase {
     private func feedback(_ kind: TapDiagnosis.Kind, expected: Int, offsets: [Int: TimeInterval], extras: Int = 0,
+                          oneBeatLate: Bool = false,
                           coverage: Bool = true, timing: Bool = true, evenness: Bool = true) -> String {
-        TapDiagnosis.feedback(kind: kind, expected: expected, offsets: offsets, extras: extras,
+        TapDiagnosis.feedback(kind: kind, expected: expected, offsets: offsets, extras: extras, oneBeatLate: oneBeatLate,
                               coverage: coverage, timing: timing, evenness: evenness)
     }
 
     func testStartingAMelodyOneBeatLateIsNamedBeforeAnythingElse() {
         // Taps at 1.08, 2.07 and 3.04 s against notes at 0, 1 and 2 s.
-        let text = feedback(.melody, expected: 3, offsets: [1: 0.08, 2: 0.07], extras: 1, coverage: false, timing: false)
+        let text = feedback(.melody, expected: 3, offsets: [1: 0.08, 2: 0.07], extras: 1, oneBeatLate: true,
+                            coverage: false, timing: false)
         XCTAssertTrue(text.hasPrefix("You started one beat late"))
         XCTAssertTrue(text.contains("right after the count of 4"))
+        // A missed first note with an extra tap elsewhere is not called a beat late.
+        XCTAssertTrue(feedback(.melody, expected: 3, offsets: [2: 0.0], extras: 2, coverage: false)
+            .hasPrefix("You missed the first note"))
+    }
+
+    func testARealRoundStartedABeatLateIsRecognisedFromItsTapTimes() throws {
+        var late = MelodyRhythmTiming(startTime: 100, context: try .hotCrossBuns())
+        for time in [105.08, 106.07, 107.04] { late.recordTap(at: time) }
+        XCTAssertTrue(try XCTUnwrap(MelodyRhythmAttempt(timing: late, finishedAt: late.endTime)).cue
+            .hasPrefix("You started one beat late"))
+
+        var scattered = MelodyRhythmTiming(startTime: 100, context: try .hotCrossBuns())
+        for time in [106.0, 106.1, 107.0] { scattered.recordTap(at: time) }
+        XCTAssertTrue(try XCTUnwrap(MelodyRhythmAttempt(timing: scattered, finishedAt: scattered.endTime)).cue
+            .hasPrefix("You missed the first note"))
     }
 
     func testAMissedFirstTapIsNamedForEveryKind() {
@@ -58,6 +75,8 @@ final class TapDiagnosisTests: XCTestCase {
             .hasPrefix("The taps between beats came early"))
         XCTAssertTrue(feedback(.pulse, expected: 16, offsets: lateBetween, evenness: false)
             .hasPrefix("The gaps between taps changed"))
+        XCTAssertTrue(feedback(.mixed, expected: 12, offsets: lateBetween, evenness: false)
+            .hasPrefix("The beat drifted as you switched"), "Mixed rhythm's gaps are meant to differ")
     }
 
     func testACleanRoundSaysSo() {
