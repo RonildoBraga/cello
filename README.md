@@ -99,7 +99,7 @@ The bundled [privacy manifest](CelloPractice/Resources/PrivacyInfo.xcprivacy) de
 - Separate melody completion milestones: `Documents/MelodyProgress.json`; attempt ratings and frozen phrase references stay with each recording.
 - A session ZIP contains the recording, metadata, pitch CSV, a review summary and, for takes with video, up to four timestamped JPEG frames.
 
-Deleting the app removes its local data, so export important recordings first. Repository ignore rules exclude local builds, signing material, personal practice media and review artifacts. The bundled reference hum below is a licensed public recording, not a learner's practice take.
+Recordings can be deleted one at a time, or all at once from Edit → Delete all on the Recordings tab, to free space. Deleting the app removes its local data, so export important recordings first. Repository ignore rules exclude local builds, signing material, personal practice media and review artifacts. The bundled reference hum below is a licensed public recording, not a learner's practice take.
 
 ## Media attribution
 

@@ -3,6 +3,8 @@ import SwiftUI
 struct RecordingsView: View {
     @ObservedObject var store: SessionStore
     let onOpenMusic: () -> Void
+    @State private var editMode = EditMode.inactive
+    @State private var confirmsDeleteAll = false
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 0) {
@@ -62,7 +64,27 @@ struct RecordingsView: View {
                 }
             }.background(Palette.paper)
                 .screenTitle("Recordings")
-                .toolbar { if !store.sessions.isEmpty { EditButton() } }
+                .toolbar {
+                    if !store.sessions.isEmpty {
+                        if editMode.isEditing {
+                            ToolbarItem(placement: .topBarLeading) {
+                                Button("Delete all", role: .destructive) { confirmsDeleteAll = true }
+                                    .accessibilityIdentifier("recordingsDeleteAllButton")
+                            }
+                        }
+                        ToolbarItem(placement: .topBarTrailing) { EditButton() }
+                    }
+                }
+                .environment(\.editMode, $editMode)
+                .confirmationDialog("Delete all \(store.sessions.count) recordings?", isPresented: $confirmsDeleteAll,
+                                    titleVisibility: .visible) {
+                    Button("Delete all recordings", role: .destructive) {
+                        for session in store.sessions { store.delete(session) }
+                        editMode = .inactive
+                    }
+                } message: {
+                    Text("This frees their space and cannot be undone. Gold results are kept; a lesson that is passed but not yet gold will need a new take.")
+                }
                 .onAppear { store.refreshPendingRecordings() }
         }
     }
