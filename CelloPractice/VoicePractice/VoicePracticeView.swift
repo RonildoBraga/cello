@@ -4,6 +4,13 @@ import UIKit
 
 /// Recording lifecycle stays scoped to one frozen lesson/reference. SessionStore
 /// owns the durable result after this screen disappears.
+/// What a lesson's header needs from the practice screen: whether to hold its
+/// controls still, and how to play what is about to be hummed.
+struct PracticeHeaderControls {
+    let locked: Bool
+    let hear: () -> Void
+}
+
 @MainActor
 struct VoicePracticeView<Header: View>: View {
     private enum Phase: Equatable {
@@ -37,15 +44,18 @@ struct VoicePracticeView<Header: View>: View {
     private let mode: VoicePracticeMode
     /// Where this take sits among the lesson's phrases or notes, if it has several.
     private let parts: LessonParts?
-    private let header: (Bool) -> Header
+    /// Set by a chip that has just switched to this take: play it once on arrival.
+    @Binding private var hearOnArrival: Bool
+    private let header: (PracticeHeaderControls) -> Header
 
     init(store: SessionStore, capture: CaptureController, mode: VoicePracticeMode,
-         parts: LessonParts? = nil,
-         @ViewBuilder header: @escaping (Bool) -> Header) {
+         parts: LessonParts? = nil, hearOnArrival: Binding<Bool> = .constant(false),
+         @ViewBuilder header: @escaping (PracticeHeaderControls) -> Header) {
         self.store = store
         self.capture = capture
         self.mode = mode
         self.parts = parts
+        _hearOnArrival = hearOnArrival
         self.header = header
     }
 
@@ -68,6 +78,12 @@ struct VoicePracticeView<Header: View>: View {
                 }
             }
             .onAppear { isVisible = true }
+            .task {
+                guard hearOnArrival else { return }
+                hearOnArrival = false
+                await capture.waitUntilQuiet()
+                previewReference()
+            }
             .onDisappear { isVisible = false; referenceWasHeard = false; cancelFlow(stopCapture: true) }
             .onChange(of: scenePhase) { _, newPhase in
                 guard isVisible else { return }
@@ -136,8 +152,9 @@ struct VoicePracticeView<Header: View>: View {
         ScrollViewReader { scroll in
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    header(controlsLocked || (mode.requiresHearFirst && restSeconds > 0))
-                    targetControls
+                    header(PracticeHeaderControls(locked: controlsLocked || restSeconds > 0, hear: previewReference))
+                    // Echo's pattern is secret, so it is heard from a button, not from a named chip.
+                    if mode.isEcho { hearPattern }
                     if let session = latestSession, hasResult, showsIdleContent {
                         VStack(spacing: 16) {
                             if let rating = session.melodyRating, let context = session.melodyContext {
@@ -190,19 +207,9 @@ struct VoicePracticeView<Header: View>: View {
         PracticeProgressView(progress: mode.progress(in: store))
     }
 
-    private var targetControls: some View {
+    private var hearPattern: some View {
         HStack(spacing: 12) {
-            if let caption = mode.referenceCaption {
-                VStack(alignment: .leading, spacing: 3) {
-                    Eyebrow(text: caption.eyebrow)
-                    Text(caption.text).font(.subheadline.weight(.medium)).foregroundStyle(Palette.ink)
-                        .accessibilityIdentifier("currentTargetLabel")
-                        .accessibilityLabel(caption.spoken)
-                }
-            } else {
-                Label("Recorded hum", systemImage: "waveform")
-                    .font(.subheadline).foregroundStyle(Palette.muted)
-            }
+            Label("Recorded hum", systemImage: "waveform").font(.subheadline).foregroundStyle(Palette.muted)
             Spacer(minLength: 0)
             Button { previewReference() } label: {
                 Label(mode.hearLabel, systemImage: "speaker.wave.2")

@@ -58,10 +58,10 @@ final class NoteDrillTests: XCTestCase {
     func testWordingNamesTheNotesInsteadOfAPhrase() {
         let single = VoicePracticeMode.phrase(NoteDrill.notes(for: .hotCrossBuns)[0].context)
         XCTAssertEqual(single.hearLabel, "Hear note")
-        XCTAssertEqual(single.referenceCaption?.text, "G2")
+        XCTAssertEqual(single.hearSpoken, "Hear note, Reference G2")
         let pair = VoicePracticeMode.phrase(NoteDrill.drills(for: .hotCrossBuns)[3].context)
         XCTAssertEqual(pair.hearLabel, "Hear notes")
-        XCTAssertEqual(pair.referenceCaption?.text, "G2 then B2")
+        XCTAssertEqual(pair.hearSpoken, "Hear notes, Reference G2 then B2")
         XCTAssertEqual(VoicePracticeMode.phrase(MelodyPiece.hotCrossBuns.humming(register: .lowVoice, section: .phrase1)).hearLabel,
                        "Hear phrase")
     }

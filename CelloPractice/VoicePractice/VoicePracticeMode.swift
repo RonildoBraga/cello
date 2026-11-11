@@ -118,22 +118,23 @@ enum VoicePracticeMode: Equatable {
 
     // MARK: Wording
 
-    /// The reference line beside the Hear button; echo names no notes.
-    var referenceCaption: (eyebrow: String, text: String, spoken: String)? {
+    /// What is being heard, for the chip that plays it; echo names no notes.
+    var referenceSpoken: String? {
         switch self {
         case .note:
             let note = TunerReading(frequency: targetFrequency, targetFrequency: nil).noteName
-            let text = String(format: "%@ · %.1f Hz", note, targetFrequency)
-            return ("Target", text, "Target \(text)")
+            return String(format: "Target %@ · %.1f Hz", note, targetFrequency)
         case .phrase(let context) where context.noteDrillPiece != nil:
-            let notes = context.noteNames.joined(separator: " then ")
-            return ("Recorded hum", notes, "Reference \(notes)")
+            return "Reference \(context.noteNames.joined(separator: " then "))"
         case .phrase(let context):
             let range = MelodyPiece(rawValue: context.pieceID)?.rangeLabel(for: context.register) ?? context.rangeLabel
-            return ("Recorded hum", "\(context.referenceKey) · \(range)", "Reference \(context.referenceKey), \(range)")
+            return "Reference \(context.referenceKey), \(range)"
         case .echo: return nil
         }
     }
+
+    /// What the chip on show says when spoken: how to hear it and what it is.
+    var hearSpoken: String { [hearLabel, referenceSpoken].compactMap { $0 }.joined(separator: ", ") }
 
     var hearLabel: String {
         switch self {

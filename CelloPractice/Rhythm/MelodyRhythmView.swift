@@ -6,6 +6,8 @@ struct MelodyRhythmView: View {
     @ObservedObject var capture: CaptureController
     var piece: MelodyPiece = .hotCrossBuns
     @State private var section = MelodySection.phrase1
+    /// A chip was tapped to switch part: the part it shows plays once.
+    @State private var hearOnArrival = false
 
     private var context: MelodyRhythmContext { piece.rhythm(section: section) }
 
@@ -20,14 +22,19 @@ struct MelodyRhythmView: View {
         MelodyRhythmRoundView(store: store, capture: capture, context: context,
                               patternHint: piece.rhythmHint(for: section),
                               parts: LessonParts(Self.parts, current: section, noun: "Part", title: Self.title,
-                                                 passed: store.progress(for: context).passed) { section = $0 }) { locked in
+                                                 passed: store.progress(for: context).passed) { section = $0 },
+                              hearOnArrival: $hearOnArrival) { controls in
             VStack(alignment: .leading, spacing: 12) {
                 LessonHeader(subtitle: "Tap once when each note starts. Keep counting while a long note continues.",
                            collapsesSubtitle: store.progress(for: context).successfulAttempts > 0)
                 PartStrip(parts: Self.parts, selection: $section, leading: "Phrase",
-                          short: \.chipLabel, title: Self.title) {
-                    store.progress(for: piece.rhythm(section: $0))
-                }.disabled(locked)
+                          short: \.chipLabel, title: Self.title,
+                          progress: { store.progress(for: piece.rhythm(section: $0)) },
+                          hear: PartHearing(spoken: section == .whole ? "Hear melody" : "Hear phrase",
+                                            identifier: "melodyRhythmHearButton") { changed in
+                              if changed { hearOnArrival = true } else { controls.hear() }
+                          })
+                    .disabled(controls.locked)
                 Text("\(Int(context.duration)) seconds · \(context.reference.tempoBPM) BPM")
                     .font(.caption).foregroundStyle(Palette.muted)
                     .accessibilityIdentifier("melodyRhythmDuration")
@@ -51,7 +58,8 @@ private struct MelodyRhythmRoundView<Header: View>: View {
     let context: MelodyRhythmContext
     let patternHint: String
     let parts: LessonParts
-    @ViewBuilder let header: (Bool) -> Header
+    @Binding var hearOnArrival: Bool
+    @ViewBuilder let header: (PracticeHeaderControls) -> Header
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isVisible = false
@@ -70,21 +78,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
         ScrollViewReader { scroll in
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    header(locked).id("melodyRhythmTop")
-                    // Hearing the phrase comes before tapping it, so the button stays in view above the pattern.
-                    HStack {
-                        Label("Recorded hum", systemImage: "waveform").font(.caption)
-                            .foregroundStyle(Palette.muted)
-                        Spacer()
-                        Button {
-                            guard isVisible, !running, scenePhase == .active else { return }
-                            capture.playMelodyReference(context.reference)
-                        } label: {
-                            Label(context.reference.section == .whole ? "Hear melody" : "Hear phrase",
-                                  systemImage: "speaker.wave.2")
-                        }.buttonStyle(SecondaryActionButtonStyle()).disabled(locked)
-                            .accessibilityIdentifier("melodyRhythmHearButton")
-                    }
+                    header(PracticeHeaderControls(locked: locked, hear: hear)).id("melodyRhythmTop")
                     if let attempt = finishedAttempt, !capture.isPlayingReference {
                         VStack(spacing: 16) {
                             MelodyRhythmResultView(attempt: attempt, errorMessage: store.errorMessage)
@@ -131,10 +125,22 @@ private struct MelodyRhythmRoundView<Header: View>: View {
                 }.accessibilityIdentifier("melodyRhythmStartButton")
             }
             .onAppear { isVisible = true }
+            .task {
+                guard hearOnArrival else { return }
+                hearOnArrival = false
+                await capture.waitUntilQuiet()
+                hear()
+            }
             .onDisappear { isVisible = false; round.stop(); capture.stop() }
             .onChange(of: scenePhase) { _, phase in
                 if isVisible, phase != .active { round.stop(); capture.stop() }
             }
+    }
+
+    /// Plays the recorded hum of this part.
+    private func hear() {
+        guard isVisible, !running, scenePhase == .active else { return }
+        capture.playMelodyReference(context.reference)
     }
 
     private var progress: some View {

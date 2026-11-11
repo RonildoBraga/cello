@@ -169,9 +169,9 @@ final class EchoPracticeUITests: XCTestCase {
         let app = XCUIApplication.cello()
         app.launch()
         openSteadyHumPractice(in: app)
-        XCTAssertTrue(app.staticTexts["currentTargetLabel"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["previewTargetButton"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["practiceProgressText"].waitForExistence(timeout: 5))
-        let foundationTarget = app.staticTexts["currentTargetLabel"].label
+        let foundationTarget = app.buttons["previewTargetButton"].label
         let foundationProgress = app.staticTexts["practiceProgressText"].label
         app.tabBars.buttons["Recordings"].tap()
         XCTAssertTrue(app.navigationBars["Recordings"].waitForExistence(timeout: 5))
@@ -207,7 +207,7 @@ final class EchoPracticeUITests: XCTestCase {
         assertNoPermissionAlerts(in: app)
         openSteadyHumPractice(in: app)
         waitForRecord(label: "Record", enabled: true, in: app)
-        XCTAssertEqual(app.staticTexts["currentTargetLabel"].label, foundationTarget)
+        XCTAssertEqual(app.buttons["previewTargetButton"].label, foundationTarget)
         XCTAssertEqual(app.staticTexts["practiceProgressText"].label, foundationProgress)
         app.tabBars.buttons["Recordings"].tap()
         XCTAssertTrue(app.navigationBars["Recordings"].waitForExistence(timeout: 5))
