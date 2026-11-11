@@ -24,15 +24,15 @@ struct SessionDetailView: View {
                              subtitle: "\(session.createdAt.formatted(date: .long, time: .shortened)) · \(timeString(session.duration))")
                 if let rating = session.melodyRating, let context = session.melodyContext {
                     MelodyFeedbackView(rating: rating, isEcho: EchoLevel.selection(for: context) != nil)
-                    MelodyTraceView(context: context, rating: rating, duration: session.duration)
+                    MelodyTraceView(context: context, rating: rating, duration: session.duration).card()
                 } else if let rating = session.rating {
                     PracticeRatingView(rating: rating)
                         .accessibilityIdentifier("archivedRatingCard")
                 }
                 if let target = session.effectiveTargetFrequency {
-                    PitchTraceView(samples: session.pitchSamples, targetFrequency: target, duration: session.duration)
+                    PitchTraceView(samples: session.pitchSamples, targetFrequency: target, duration: session.duration).card()
                 } else if let context = session.melodyContext, session.melodyRating == nil {
-                    MelodyTraceView(context: context, samples: session.pitchSamples, duration: session.duration)
+                    MelodyTraceView(context: context, samples: session.pitchSamples, duration: session.duration).card()
                 }
                 VStack(alignment: .leading, spacing: 10) {
                     Label("Playback", systemImage: "play.rectangle")

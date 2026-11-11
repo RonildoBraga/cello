@@ -165,22 +165,26 @@ struct VoicePracticeView<Header: View>: View {
                     if mode.isEcho { hearPattern }
                     if let session = latestSession, hasResult, showsIdleContent {
                         VStack(spacing: 16) {
-                            if let rating = session.melodyRating, let context = session.melodyContext {
+                            if let rating = session.melodyRating {
                                 MelodyFeedbackView(rating: rating, isEcho: mode.isEcho)
-                                MelodyTraceView(context: context, rating: rating, duration: session.duration)
                             } else if let rating = session.rating {
                                 PracticeRatingView(rating: rating)
                                     .accessibilityIdentifier("latestRatingCard")
-                                if let target = session.effectiveTargetFrequency {
+                            }
+                            // The chart of the take and the tuner share a card: look, then try again live.
+                            VStack(alignment: .leading, spacing: 14) {
+                                if let rating = session.melodyRating, let context = session.melodyContext {
+                                    MelodyTraceView(context: context, rating: rating, duration: session.duration)
+                                } else if let target = session.effectiveTargetFrequency {
                                     PitchTraceView(samples: session.pitchSamples, targetFrequency: target, duration: session.duration)
                                 }
-                            }
+                                if !mode.isEcho {
+                                    Divider()
+                                    liveTuner
+                                }
+                            }.card()
                             lessonProgress
                         }.id("latestRating")
-                        if mode.offersTunerAfterResult {
-                            DisclosureGroup("Live tuner") { statusCard.padding(.top, 10) }
-                                .font(.subheadline.weight(.medium)).foregroundStyle(Palette.forest)
-                        }
                     } else {
                         statusCard.id("statusCard")
                         if showsIdleContent { lessonProgress }
@@ -301,29 +305,56 @@ struct VoicePracticeView<Header: View>: View {
                     Spacer()
                     Text("High")
                 }.font(.caption).foregroundStyle(.white.opacity(0.7))
-                if !capture.isRecording, mode.tunerTargets.count > 1 { tunerTargetPicker }
+                if !capture.isRecording { tunerTargetPicker(onCard: false) }
             }
         }.accessibilityElement(children: .contain)
             .accessibilityIdentifier(showsMeter ? mode.tunerIdentifier : "echoPracticeCard")
     }
 
-    /// Before a take with several notes, the learner picks which one the tuner listens for.
-    private var tunerTargetPicker: some View {
-        HStack(spacing: 8) {
-            Text("Tune to").font(.caption).foregroundStyle(.white.opacity(0.7))
-            ForEach(mode.tunerTargets, id: \.self) { target in
-                let name = TunerReading(frequency: target, targetFrequency: nil).noteName
-                let selected = target == currentTarget
-                Button(name) { tunerTarget = target }
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(selected ? Palette.forest : .white)
-                    .padding(.horizontal, 13).frame(minWidth: 44, minHeight: 44)
-                    .background(selected ? .white : .white.opacity(0.12), in: Capsule())
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Tune to \(name)")
-                    .accessibilityAddTraits(selected ? .isSelected : [])
-                    .accessibilityIdentifier("tunerTarget-\(name)")
-            }
-        }.disabled(controlsLocked)
+    /// After a take the tuner sits under its chart, so a correction can be tried at once.
+    private var liveTuner: some View {
+        VStack(spacing: 10) {
+            HStack {
+                Text("Live tuner").font(.subheadline.weight(.semibold)).foregroundStyle(Palette.ink)
+                Spacer()
+                if capture.isReady {
+                    Text(reading.cents.map { "\(reading.noteName) · " + String(format: "%+.0f cents", $0) }
+                         ?? "Hum \(TunerReading(frequency: currentTarget, targetFrequency: nil).noteName)")
+                        .font(.subheadline).monospacedDigit().foregroundStyle(Palette.muted)
+                        .accessibilityIdentifier("livePitchCents")
+                } else {
+                    Button("Turn on") { capture.start(includingCamera: mode.recordsVideo) }
+                        .font(.subheadline.weight(.semibold)).foregroundStyle(Palette.forest)
+                        .accessibilityLabel("Turn on live tuner")
+                }
+            }.frame(minHeight: 30)
+            PitchMeter(cents: reading.cents ?? 0, active: reading.cents != nil, range: mode.meterRange, onCard: true)
+                .frame(height: 30).padding(.horizontal, 6)
+            tunerTargetPicker(onCard: true)
+        }.accessibilityElement(children: .contain).accessibilityIdentifier(mode.tunerIdentifier)
+    }
+
+    /// With several notes in a take, the learner picks which one the tuner listens for.
+    @ViewBuilder private func tunerTargetPicker(onCard: Bool) -> some View {
+        let ink = onCard ? Palette.forest : Color.white
+        if mode.tunerTargets.count > 1 {
+            HStack(spacing: 8) {
+                Text("Tune to").font(.caption).foregroundStyle(onCard ? Palette.muted : .white.opacity(0.7))
+                ForEach(mode.tunerTargets, id: \.self) { target in
+                    let name = TunerReading(frequency: target, targetFrequency: nil).noteName
+                    let selected = target == currentTarget
+                    Button(name) { tunerTarget = target }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(selected ? (onCard ? .white : Palette.forest) : ink)
+                        .padding(.horizontal, 13).frame(minWidth: 44, minHeight: 44)
+                        .background(ink.opacity(selected ? 1 : onCard ? 0.07 : 0.12), in: Capsule())
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Tune to \(name)")
+                        .accessibilityAddTraits(selected ? .isSelected : [])
+                        .accessibilityIdentifier("tunerTarget-\(name)")
+                }
+            }.disabled(controlsLocked)
+        }
     }
 
     private var camera: some View {
