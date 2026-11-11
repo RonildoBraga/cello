@@ -38,7 +38,6 @@ struct MelodyRhythmAttempt: Codable, Identifiable, Equatable, Sendable {
     var expectedTapCount: Int { context.expectedTapTimes.count }
     var matchedTapCount: Int { offsets.count }
     var totalTaps: Int { actualTapTimes.count }
-    var missingTapCount: Int { max(0, expectedTapCount - matchedTapCount) }
     var isScored: Bool { rating.isScored }
     var patternGoal: Bool { rating.pattern }
     var timingGoal: Bool { rating.timing }

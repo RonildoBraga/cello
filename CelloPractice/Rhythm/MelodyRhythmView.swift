@@ -14,8 +14,7 @@ struct MelodyRhythmView: View {
                               patternHint: piece.rhythmHint(for: section),
                               next: section.next.map { next in (next.title, { section = next }) }) { locked in
             VStack(alignment: .leading, spacing: 12) {
-                StepHeader(step: .tap(piece),
-                           subtitle: "Tap once when each note starts. Keep counting while a long note continues.",
+                LessonHeader(subtitle: "Tap once when each note starts. Keep counting while a long note continues.",
                            collapsesSubtitle: store.progress(for: context).successfulAttempts > 0)
                 HStack {
                     SectionMenu(selection: $section) { store.progress(for: piece.rhythm(section: $0)).completed }
@@ -117,7 +116,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
                 }
             }
         }.background(Palette.paper)
-            .bottomActionBar(stepsLocked: locked) {
+            .bottomActionBar(lessonsLocked: locked) {
                 RhythmStartButton(round: round, listening: capture.isPlayingReference) {
                     if running { round.stop() }
                     else if capture.isPlayingReference { capture.stop() }
@@ -134,7 +133,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
     private var progress: some View {
         let saved = store.progress(for: context)
         let step = next.map {
-            NextStep.item($0.title, completed: saved.completed, identifier: "nextRhythmPhraseButton", action: $0.action)
+            NextPart.item($0.title, completed: saved.completed, identifier: "nextRhythmPhraseButton", action: $0.action)
         }
         return PracticeProgressView(progress: saved, next: step, disabled: locked, attemptNoun: "rounds")
     }

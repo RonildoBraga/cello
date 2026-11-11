@@ -154,17 +154,6 @@ struct PracticeSession: Identifiable, Codable {
         median(confidentCentsFromTarget)
     }
 
-    var medianAbsoluteCentsFromTarget: Double? {
-        median(confidentCentsFromTarget.map(abs))
-    }
-
-    /// A descriptive measurement in a rough ±10-cent band, not a pass/fail score.
-    var inTuneFraction: Double? {
-        let values = confidentCentsFromTarget
-        guard values.count >= 3 else { return nil }
-        return Double(values.filter { abs($0) <= 10 }.count) / Double(values.count)
-    }
-
     private func median(_ values: [Double]) -> Double? {
         guard values.count >= 3 else { return nil }
         let sorted = values.sorted()

@@ -1,8 +1,8 @@
 import Foundation
 
-/// One thing to do on the path. Every step opens a screen that already exists;
+/// One thing to do on the path. Every lesson opens a screen that already exists;
 /// the path only puts them in order.
-enum PathStep: Hashable, Identifiable {
+enum PathLesson: Hashable, Identifiable {
     case lesson(PracticeLesson)
     case listen(MelodyPiece)
     case tap(MelodyPiece)
@@ -16,11 +16,11 @@ enum PathStep: Hashable, Identifiable {
     var id: String {
         switch self {
         case .lesson(let lesson): return "lesson-\(lesson.id)"
-        case .listen(let piece): return "step-\(piece.rawValue)-listen"
-        case .tap(let piece): return "step-\(piece.rawValue)-tap"
-        case .meetNotes(let piece): return "step-\(piece.rawValue)-notes"
-        case .hum(let piece): return "step-\(piece.rawValue)-hum"
-        case .wholeMelody(let piece): return "step-\(piece.rawValue)-whole"
+        case .listen(let piece): return "lesson-\(piece.rawValue)-listen"
+        case .tap(let piece): return "lesson-\(piece.rawValue)-tap"
+        case .meetNotes(let piece): return "lesson-\(piece.rawValue)-notes"
+        case .hum(let piece): return "lesson-\(piece.rawValue)-hum"
+        case .wholeMelody(let piece): return "lesson-\(piece.rawValue)-whole"
         case .celloIntroduction: return "celloIntroductionLink"
         case .echo: return "echoPracticeLink"
         }
@@ -40,73 +40,77 @@ enum PathStep: Hashable, Identifiable {
     }
 }
 
-/// A numbered, titled, ordered group of steps. The levels form the path, and
-/// every step in the app belongs to one of them.
+/// A numbered, titled, ordered group of lessons. The levels form the path, and
+/// every lesson in the app belongs to one of them.
 struct Level: Identifiable {
     let id: String
     let number: Int
     let title: String
-    let steps: [PathStep]
+    let lessons: [PathLesson]
 
-    /// The path, in order. Adding a melody adds a level with the same five steps.
+    /// The path, in order. Adding a melody adds a level with the same five lessons.
     static let path: [Level] = {
         let firstSounds = Level(id: "firstSounds", number: 1, title: "First sounds",
-                                steps: [.lesson(.steadyHum), .lesson(.matchHum), .lesson(.pulse),
+                                lessons: [.lesson(.steadyHum), .lesson(.matchHum), .lesson(.pulse),
                                         .lesson(.twoTaps), .lesson(.mixedRhythm), .echo])
         let melodies = MelodyPiece.allCases.enumerated().map { index, piece in
             Level(id: piece.rawValue, number: index + 2, title: piece.title,
-                  steps: [.listen(piece), .tap(piece), .meetNotes(piece), .hum(piece), .wholeMelody(piece)])
+                  lessons: [.listen(piece), .tap(piece), .meetNotes(piece), .hum(piece), .wholeMelody(piece)])
         }
-        // Last, because it needs an instrument; like every step it can be opened at any time.
+        // Last, because it needs an instrument; like every lesson it can be opened at any time.
         let cello = Level(id: "cello", number: melodies.count + 2, title: "Cello · open strings",
-                          steps: [.celloIntroduction] + PracticeLesson.lessons(in: .cello).map(PathStep.lesson))
+                          lessons: [.celloIntroduction] + PracticeLesson.lessons(in: .cello).map(PathLesson.lesson))
         return [firstSounds] + melodies + [cello]
     }()
 
-    /// The first step on the path that has not been passed yet. It is a
-    /// suggestion: every step stays open.
-    static func nextStep(isPassed: (PathStep) -> Bool) -> (level: Level, step: PathStep)? {
+    /// The first lesson on the path that has not been passed yet. It is a
+    /// suggestion: every lesson stays open.
+    static func nextLesson(isPassed: (PathLesson) -> Bool) -> (level: Level, lesson: PathLesson)? {
         for level in path {
-            if let step = level.steps.first(where: { !isPassed($0) }) { return (level, step) }
+            if let step = level.lessons.first(where: { !isPassed($0) }) { return (level, step) }
         }
         return nil
     }
 
-    /// Where a step sits in its level, and its neighbours there.
-    static func position(of step: PathStep) -> StepPosition? {
+    /// Where a lesson sits in its level, and its neighbours there.
+    static func position(of step: PathLesson) -> LessonPosition? {
         for level in path {
-            guard let index = level.steps.firstIndex(of: step) else { continue }
-            return StepPosition(level: level, index: index,
-                                previous: index > 0 ? level.steps[index - 1] : nil,
-                                next: index + 1 < level.steps.count ? level.steps[index + 1] : nil)
+            guard let index = level.lessons.firstIndex(of: step) else { continue }
+            let nextLevel = path.first { $0.number == level.number + 1 }
+            return LessonPosition(level: level, index: index,
+                                  previous: index > 0 ? level.lessons[index - 1] : nil,
+                                  next: index + 1 < level.lessons.count ? level.lessons[index + 1] : nil,
+                                  nextLevel: index + 1 < level.lessons.count ? nil : nextLevel)
         }
         return nil
     }
 
-    func passedSteps(isPassed: (PathStep) -> Bool) -> Int { steps.filter(isPassed).count }
-
-    /// A level is complete when every one of its steps has been passed.
-    func isComplete(isPassed: (PathStep) -> Bool) -> Bool { steps.allSatisfy(isPassed) }
-
-    /// The furthest complete level whose completion has not been shown yet.
-    static func newlyCompleted(celebrated: String, isPassed: (PathStep) -> Bool) -> Level? {
-        path.last { $0.isComplete(isPassed: isPassed) && !StoredIDs.contains($0.id, in: celebrated) }
-    }
+    func passedLessons(isPassed: (PathLesson) -> Bool) -> Int { lessons.filter(isPassed).count }
 }
 
-/// A step's place in its level. Previous and next stay inside the level.
-struct StepPosition {
+/// A lesson's place in its level. Previous and next stay inside the level.
+struct LessonPosition {
     let level: Level
     let index: Int
-    let previous: PathStep?
-    let next: PathStep?
+    let previous: PathLesson?
+    let next: PathLesson?
+    /// Set at the last lesson of a level: the level that follows, if any.
+    let nextLevel: Level?
 
-    var label: String { "Step \(index + 1) of \(level.steps.count)" }
+    /// Where Next leads: the next lesson here, or the first lesson of the next level.
+    var onward: PathLesson? { next ?? nextLevel?.lessons.first }
+    /// What Next is called: a lesson's title, or the level it starts.
+    var onwardTitle: String? { next?.title ?? nextLevel?.title }
+    var onwardSpoken: String? {
+        next.map { "Next lesson, \($0.title)" } ?? nextLevel.map { "Next level, \($0.title)" }
+    }
+
+    var label: String { "Lesson \(index + 1) of \(level.lessons.count)" }
 }
 
-/// How far a step has got, rolled up from its parts: one part for a lesson or
-/// the whole melody, four for a step practised phrase by phrase.
-struct StepProgress: Equatable {
+/// How far a lesson has got, rolled up from its parts: one part for a lesson or
+/// the whole melody, four for a lesson practised phrase by phrase.
+struct LessonProgress: Equatable {
     private let parts: [PracticeProgress]
     var passedParts: Int { parts.filter(\.passed).count }
     var goldParts: Int { parts.filter(\.completed).count }
@@ -140,11 +144,9 @@ struct StepProgress: Equatable {
 
 /// A small set of identifiers kept as one preference string. The path uses it
 /// for the things no take or round records: which melodies have been heard to
-/// the end, which finished levels have been celebrated and which primers and
-/// introductions have been read.
+/// the end, and which primers and introductions have been read.
 enum StoredIDs {
     static let listenedMelodies = "listenedMelodies"
-    static let celebratedLevels = "celebratedLevels"
     static let seenPrimers = "seenPrimers"
     /// Stored with the read primers: Meet your cello is read once, like them.
     static let celloIntroduction = "celloIntroduction"

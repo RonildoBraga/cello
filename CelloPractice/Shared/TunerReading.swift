@@ -23,9 +23,4 @@ struct TunerReading {
         // Log differences avoid ratio underflow/overflow for valid finite inputs.
         return 1_200 * (log2(frequency) - log2(targetFrequency))
     }
-
-    var isDifferentNote: Bool {
-        guard let cents else { return false }
-        return abs(cents) > 100
-    }
 }

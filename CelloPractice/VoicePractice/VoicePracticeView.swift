@@ -167,7 +167,7 @@ struct VoicePracticeView<Header: View>: View {
                 }
             }
         }
-        .bottomActionBar(stepsLocked: controlsLocked || restSeconds > 0) { recordingControls }
+        .bottomActionBar(lessonsLocked: controlsLocked || restSeconds > 0) { recordingControls }
     }
 
     /// Results and progress give way to the status card while anything is in flight.
@@ -175,14 +175,14 @@ struct VoicePracticeView<Header: View>: View {
 
     private var lessonProgress: some View {
         let progress = mode.progress(in: store)
-        return PracticeProgressView(progress: progress, next: nextStep(completed: progress.completed),
+        return PracticeProgressView(progress: progress, next: nextPart(completed: progress.completed),
                                     disabled: controlsLocked || restSeconds > 0)
     }
 
-    private func nextStep(completed: Bool) -> NextStep? {
-        guard let nextPhrase, !mode.nextStepNeedsResult || hasResult else { return nil }
+    private func nextPart(completed: Bool) -> NextPart? {
+        guard let nextPhrase, !mode.nextPartNeedsResult || hasResult else { return nil }
         // A fresh echo pattern is always something to try, never a continuation.
-        return .item(nextPhrase.title, completed: completed && !mode.isEcho, identifier: mode.nextStepIdentifier) {
+        return .item(nextPhrase.title, completed: completed && !mode.isEcho, identifier: mode.nextPartIdentifier) {
             guard canStartAction else { return }
             cancelFlow(stopCapture: true)
             nextPhrase.action()

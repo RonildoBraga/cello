@@ -4,9 +4,9 @@ A native iPhone practice companion for beginners learning music while preparing 
 
 ## Practice
 
-**Music** is one path of levels, from first sounds to melodies. Each level lists its steps in order and counts the ones you have passed; the first step not yet passed is marked **Continue**. One two-star score passes a step; three 3-star scores among the last five earn its gold mark. Nothing is locked: any level and any step can be opened. Choosing a step opens its screen inside Music, with Back returning to the path. **Recordings** keeps the local history.
+**Music** is one path of levels, from first sounds to melodies. Each level lists its lessons in order and counts the ones you have passed; the first lesson not yet passed is marked **Continue**. One two-star score passes a lesson; three 3-star scores among the last five earn its gold mark. Nothing is locked: any level and any lesson can be opened. Choosing a lesson opens its screen inside Music, with Back returning to the path. **Recordings** keeps the local history.
 
-| Level | Steps |
+| Level | Lessons |
 | --- | --- |
 | 1 · First sounds | Steady hum → Listen & match → Pulse → Two taps per beat → Mixed rhythm → Listen & Echo |
 | 2 · Hot Cross Buns | Listen → Tap it → Meet the notes → Hum it → Whole melody |
@@ -15,7 +15,7 @@ A native iPhone practice companion for beginners learning music while preparing 
 
 Each Level 1 lesson opens the first time with a short primer that explains its new idea in plain words: a note, higher and lower, a beat, two taps per beat.
 
-Every step belongs to a level, and every step uses the same compact row: its place in the level, its title, how far it has got and its best score. The cello level comes last because it needs an instrument. The **About** tab holds the long-term goal (Bach’s Cello Suite No. 1), who built the app, where every sound comes from and what informed the lessons. See [the path design](https://github.com/RonildoBraga/cello/issues/53).
+Every lesson belongs to a level, and every lesson uses the same compact row: its place in the level, its title, how far it has got and its best score. The cello level comes last because it needs an instrument. The **About** tab holds the long-term goal (Bach’s Cello Suite No. 1), who built the app, where every sound comes from and what informed the lessons. See [the path design](https://github.com/RonildoBraga/cello/issues/53).
 
 The lessons include:
 

@@ -70,7 +70,8 @@ final class EchoPracticeUITests: XCTestCase {
         XCTAssertFalse(app.buttons["echoNextLevelButton"].exists, "One success is not a completed level")
         assertRecordNeedsHear(in: app)
         assertNoTargetHints(in: app)
-        assertNoWrittenInputOrPermissionAlerts(in: app)
+        assertNoWrittenInput(in: app)
+        assertNoPermissionAlerts(in: app)
         screenshot("Listen and Echo · saved higher-voice progress without target hints")
     }
 
@@ -78,7 +79,7 @@ final class EchoPracticeUITests: XCTestCase {
         let app = XCUIApplication.cello()
         app.launch()
         let summary = firstLevelSummary(in: app)
-        XCTAssertTrue(summary.contains("of 6 steps done"))
+        XCTAssertTrue(summary.contains("of 6 lessons done"))
         openEcho(in: app)
         let duration = app.staticTexts["echoDuration"]
         let levels = app.segmentedControls["echoLevelPicker"]
@@ -97,9 +98,10 @@ final class EchoPracticeUITests: XCTestCase {
         levels.buttons["Two notes"].tap()
         XCTAssertTrue(duration.label.contains("4 seconds"))
         assertRecordNeedsHear(in: app)
-        assertNoWrittenInputOrPermissionAlerts(in: app)
+        assertNoWrittenInput(in: app)
+        assertNoPermissionAlerts(in: app)
         app.navigationBars["Listen & Echo"].buttons.firstMatch.tap()
-        XCTAssertEqual(firstLevelSummary(in: app), summary, "Opening Echo without a take earns no step")
+        XCTAssertEqual(firstLevelSummary(in: app), summary, "Opening Echo without a take earns no lesson")
         for id in ["steadyHum", "matchHum"] { XCTAssertTrue(app.pathRow("lesson-\(id)").isEnabled) }
     }
 
@@ -129,7 +131,8 @@ final class EchoPracticeUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["echoDuration"].label.contains("6 seconds"))
         assertRecordNeedsHear(in: app)
         assertNoTargetHints(in: app)
-        assertNoWrittenInputOrPermissionAlerts(in: app)
+        assertNoWrittenInput(in: app)
+        assertNoPermissionAlerts(in: app)
     }
 
     func testEchoRecordDoesNotAutoplayOrInventFeedbackWhenCaptureIsUnavailable() {
@@ -157,7 +160,8 @@ final class EchoPracticeUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["melodyRatingUnclear"].exists)
         XCTAssertFalse(app.staticTexts["LISTEN"].exists, "Record must never replay the reference")
         assertNoTargetHints(in: app)
-        assertNoWrittenInputOrPermissionAlerts(in: app)
+        assertNoWrittenInput(in: app)
+        assertNoPermissionAlerts(in: app)
         screenshot("Listen and Echo · unavailable capture without fabricated feedback")
     }
 
@@ -199,7 +203,8 @@ final class EchoPracticeUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts["practiceProgressText"].label, echoProgress)
         XCTAssertFalse(app.staticTexts["melodyRatingStars"].exists)
         assertNoTargetHints(in: app)
-        assertNoWrittenInputOrPermissionAlerts(in: app)
+        assertNoWrittenInput(in: app)
+        assertNoPermissionAlerts(in: app)
         openSteadyHumPractice(in: app)
         waitForRecord(label: "Record", enabled: true, in: app)
         XCTAssertEqual(app.staticTexts["currentTargetLabel"].label, foundationTarget)
@@ -211,21 +216,21 @@ final class EchoPracticeUITests: XCTestCase {
 
     /// From anywhere, opens Steady hum's practice screen.
     private func openSteadyHumPractice(in app: XCUIApplication) {
-        app.pathStep("lesson-steadyHum").tap()
+        app.pathLesson("lesson-steadyHum").tap()
         let start = app.buttons["startLessonButton"]
         XCTAssertTrue(start.waitForExistence(timeout: 5))
         start.tap()
         XCTAssertTrue(app.staticTexts["practiceLessonTitle"].waitForExistence(timeout: 5))
     }
 
-    /// Level 1's spoken summary on the path, including its count of finished steps.
+    /// Level 1's spoken summary on the path, including its count of finished lessons.
     private func firstLevelSummary(in app: XCUIApplication) -> String {
         app.returnToPath()
         return app.buttons["level-firstSounds"].label
     }
 
     private func openEcho(in app: XCUIApplication) {
-        app.pathStep("echoPracticeLink").tap()
+        app.pathLesson("echoPracticeLink").tap()
         XCTAssertTrue(app.navigationBars["Listen & Echo"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "echoPracticeCard").firstMatch.exists)
         assertRecordNeedsHear(in: app)
@@ -276,33 +281,5 @@ final class EchoPracticeUITests: XCTestCase {
         let notes = app.staticTexts.matching(NSPredicate(format: "label MATCHES %@", "^[A-G][♯♭#]?[0-9]$"))
         XCTAssertEqual(notes.count, 0, "Reference note hints remain hidden before recording")
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "echoPracticeStatus").firstMatch.exists)
-    }
-
-    private func assertNoWrittenInputOrPermissionAlerts(in app: XCUIApplication) {
-        XCTAssertEqual(app.textFields.count, 0)
-        XCTAssertEqual(app.textViews.count, 0)
-        XCTAssertEqual(app.secureTextFields.count, 0)
-        XCTAssertEqual(app.alerts.count, 0)
-        XCTAssertEqual(XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.count, 0)
-    }
-
-    private func visibleRecordingIDs(in app: XCUIApplication) -> Set<String> {
-        let recordings = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", "recording-"))
-        return Set(recordings.allElementsBoundByIndex.map(\.identifier))
-    }
-
-    private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
-        for _ in 0..<10 {
-            if element.exists && element.isHittable { return }
-            app.scrollViews.firstMatch.swipeUp()
-        }
-        XCTAssertTrue(element.exists && element.isHittable)
-    }
-
-    private func screenshot(_ name: String) {
-        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
-        attachment.name = name
-        attachment.lifetime = .keepAlways
-        add(attachment)
     }
 }

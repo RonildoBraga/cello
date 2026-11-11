@@ -39,16 +39,6 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
         allCases.filter { $0.area == area }
     }
 
-    /// Retain the original foundation numbers and route across Humming/Rhythm.
-    /// Moving a lesson into a navigation area never changes its saved identity.
-    private var progression: [PracticeLesson] {
-        Self.allCases.filter { ($0.area == .cello) == (area == .cello) }
-    }
-
-    var number: Int {
-        progression.firstIndex(of: self)! + 1
-    }
-
     var title: String {
         switch activity {
         case .recording(let exercise): return exercise.title
@@ -71,17 +61,6 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
         case .twoTaps: return "Keep the slow beat and add an even tap between beats."
         case .mixedRhythm: return "Switch between one tap and two taps while the beat stays steady."
         case .openC, .openG, .openD, .openA: return "Play one open string with an even, steady sound."
-        }
-    }
-
-    var shortPurpose: String {
-        switch self {
-        case .steadyHum: return "Hold one note"
-        case .matchHum: return "Listen, then hum it back"
-        case .pulse: return "Keep an even beat"
-        case .twoTaps: return "Count 1 & 2 &"
-        case .mixedRhythm: return "Count 1, 2 &, 3, 4 &"
-        case .openC, .openG, .openD, .openA: return "One string, one steady sound"
         }
     }
 

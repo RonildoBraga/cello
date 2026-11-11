@@ -2,6 +2,18 @@
 
 House rules for changing Cello, whether you are a person or an AI assistant. They describe what the code already does; keep it that way unless an issue says otherwise.
 
+## Words
+
+One vocabulary, on screen, in code, in tests and in docs:
+
+- **Level**: a numbered stage of the path (First sounds, Hot Cross Buns, Ode to Joy, Cello).
+- **Lesson**: one item in a level, shown as "Lesson 1 of 6". Not "step", "exercise" or "activity".
+- **Part**: a piece of a lesson that has several, such as a phrase or a single note.
+- **Take**: one recording. **Round**: one tapping attempt.
+- **Passed**: one scored take or round with two stars or more. **Gold**: three 3-star takes or rounds among the last five.
+
+A lesson's number is its place in its level. Saved data keeps its own stable IDs and never shows them.
+
 ## Before you open a pull request
 
 ```sh
@@ -18,11 +30,12 @@ Simulator checks do not establish microphone, speaker, camera or haptic behaviou
 - **Scoring versions are frozen.** A saved rating keeps the grade it was given. A changed rubric or threshold needs a new version, not an edit to the old one.
 - **Unreadable files are preserved.** If a user file cannot be decoded, keep it, show a message and do not overwrite it.
 - **Earned completion stays earned.** Later attempts, deleted recordings or a failed write must not remove a milestone.
-- **Lesson IDs and numbers are stable.** They key saved progress and appear in the interface.
+- **Lesson IDs are stable.** They key saved progress. A lesson's number on screen is only its place in its level.
 - **Nothing leaves the device.** No accounts, analytics or network calls. New files in `Documents` are listed under "Data and privacy" in the README.
 
 ## Code
 
+- **Less is more.** Every screen element and every line needs a reason to exist. Leave out effects that only decorate, such as celebration animations. When something stops being used, delete it in the same change: the property, the helper, its tests and its docs.
 - **No third-party dependencies** without discussing it in an issue first. Apple frameworks and the local `Packages/CelloPitch` package are enough today.
 - **Reuse before you copy.** A new activity should configure the existing practice screen, rhythm round, result card, chart and progress ledger. If one of them does not fit, extend it; do not add a parallel version.
 - **Shared look.** Use the components in `DesignSystem.swift` for cards, buttons, headers and rows instead of inline radii, paddings and font sizes.

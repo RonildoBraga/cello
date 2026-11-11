@@ -16,9 +16,9 @@ struct PracticeRatingView: View {
     }
 }
 
-/// The suggested next part inside a step: the next phrase, note or pattern.
-/// Moving between steps is the step bar's job.
-struct NextStep {
+/// The suggested next part inside a lesson: the next phrase, note or pattern.
+/// Moving between lessons is the lesson bar's job.
+struct NextPart {
     /// "Try" before the current goal is reached, "Continue to" after.
     let caption: String
     let title: String
@@ -26,17 +26,17 @@ struct NextStep {
     let identifier: String
     let action: () -> Void
 
-    static func item(_ title: String, completed: Bool, identifier: String, action: @escaping () -> Void) -> NextStep {
+    static func item(_ title: String, completed: Bool, identifier: String, action: @escaping () -> Void) -> NextPart {
         let verb = completed ? "Continue to" : "Try"
-        return NextStep(caption: verb, title: title, spokenLabel: "\(verb) \(title)",
+        return NextPart(caption: verb, title: title, spokenLabel: "\(verb) \(title)",
                         identifier: identifier, action: action)
     }
 }
 
-/// Progress towards this activity's goal, with the suggested next step beside it.
+/// Progress towards this activity's goal, with the suggested next lesson beside it.
 struct PracticeProgressView: View {
     let progress: PracticeProgress
-    var next: NextStep? = nil
+    var next: NextPart? = nil
     var disabled = false
     var attemptNoun = "takes"
 

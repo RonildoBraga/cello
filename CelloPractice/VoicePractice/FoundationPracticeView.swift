@@ -20,7 +20,7 @@ struct FoundationPracticeView: View {
     }
 
     private var header: some View {
-        StepHeader(step: .lesson(lesson), subtitle: lesson.practicePrompt,
+        LessonHeader(subtitle: lesson.practicePrompt,
                    titleIdentifier: "practiceLessonTitle", eyebrowIdentifier: "practiceLessonArea")
             .id("practiceTop")
     }
