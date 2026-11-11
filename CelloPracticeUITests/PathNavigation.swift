@@ -1,5 +1,14 @@
 import XCTest
 
+/// Ten tests replay private recordings and saved histories that are not in the
+/// repository. They say so first, so an ordinary run skips them at once instead
+/// of launching the app to find the data missing. After copying the fixtures
+/// into the Simulator, run with TEST_RUNNER_CELLO_RECORDING_FIXTURES=1.
+func requireRecordingFixtures() throws {
+    try XCTSkipUnless(ProcessInfo.processInfo.environment["CELLO_RECORDING_FIXTURES"] == "1",
+                      "Needs private recording fixtures; set TEST_RUNNER_CELLO_RECORDING_FIXTURES=1 once they are in the Simulator")
+}
+
 /// Finding a step on the Music path, shared by every UI test.
 extension XCUIApplication {
     /// The app as a returning learner sees it: every primer already read, so a

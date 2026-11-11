@@ -6,6 +6,7 @@ final class EchoPracticeUITests: XCTestCase {
     }
 
     func testLegacyEchoArchiveKeepsItsFrozenStarsAndPitchChart() throws {
+        try requireRecordingFixtures()
         let app = XCUIApplication.cello()
         app.launch()
         app.tabBars.buttons["Recordings"].tap()
@@ -32,6 +33,7 @@ final class EchoPracticeUITests: XCTestCase {
     }
 
     func testArchivedEchoResultAndVoiceSpecificProgressUseSavedPattern() throws {
+        try requireRecordingFixtures()
         let app = XCUIApplication.cello()
         app.launch()
         app.tabBars.buttons["Recordings"].tap()

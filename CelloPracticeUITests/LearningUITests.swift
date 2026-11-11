@@ -117,6 +117,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testEarnedRhythmCompletionDoesNotInventAPiecePerformance() throws {
+        try requireRecordingFixtures()
         let app = XCUIApplication.cello()
         launchPractice(in: app)
         let hummingProgress = app.staticTexts["practiceProgressText"].label
@@ -141,6 +142,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testArchivedProductionRatingAndCompletedProgressSurviveRelaunch() throws {
+        try requireRecordingFixtures()
         let app = XCUIApplication.cello()
         launchPractice(in: app)
         app.tabBars.buttons["Recordings"].tap()
@@ -205,6 +207,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testArchivedPartialAndUnclearRatingsRenderDistinctStates() throws {
+        try requireRecordingFixtures()
         let app = XCUIApplication.cello()
         launchPractice(in: app)
         app.tabBars.buttons["Recordings"].tap()
@@ -247,6 +250,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testArchivedMelodyFeedbackChartAndCompletionStaySeparateFromFoundations() throws {
+        try requireRecordingFixtures()
         let app = XCUIApplication.cello()
         launchPractice(in: app)
         let foundationTarget = app.staticTexts["currentTargetLabel"].label
@@ -321,6 +325,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testArchivedTakeShowsPitchTraceWithoutChangingItsRatingOrPlayback() throws {
+        try requireRecordingFixtures()
         let app = XCUIApplication.cello()
         launchPractice(in: app)
         app.tabBars.buttons["Recordings"].tap()
@@ -368,6 +373,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testArchivedTakeShowsTwentyTwoPitchObservationsAndTwoStarLessonScores() throws {
+        try requireRecordingFixtures()
         let app = XCUIApplication.cello()
         launchPractice(in: app)
         app.tabBars.buttons["Recordings"].tap()
@@ -1444,6 +1450,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testArchivedCompletedPulseCanContinueToLessonFourWithoutChangingEarlierProgress() throws {
+        try requireRecordingFixtures()
         let app = XCUIApplication.cello()
         launchPractice(in: app)
         let voiceTarget = app.staticTexts["currentTargetLabel"].label
@@ -1592,6 +1599,7 @@ final class LearningUITests: XCTestCase {
     }
 
     func testArchivedCompletedLessonFourCanContinueToMixedRhythm() throws {
+        try requireRecordingFixtures()
         let app = XCUIApplication.cello()
         launchPractice(in: app)
         startLesson("Two taps per beat", in: app)
