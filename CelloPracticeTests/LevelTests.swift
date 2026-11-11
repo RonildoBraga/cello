@@ -148,6 +148,47 @@ final class LevelTests: XCTestCase {
         XCTAssertEqual(shown, ["Phrase 2", "Phrase 2"])
     }
 
+    func testEitherMethodPassesALessonAndThePathShowsTheOneThatLeads() {
+        let none = LessonProgress([PracticeProgress(stars: [])])
+        let tried = LessonProgress([PracticeProgress(stars: [1])], started: true)
+        let passed = LessonProgress([PracticeProgress(stars: [2])])
+        let gold = LessonProgress([PracticeProgress(stars: [3, 3, 3])])
+
+        XCTAssertFalse(LessonSummary(voice: passed, cello: tried).onCello, "A pass by voice stands")
+        XCTAssertFalse(LessonSummary(voice: tried, cello: tried).onCello, "Level pegging stays with the voice")
+        XCTAssertFalse(LessonSummary(voice: gold, cello: passed).onCello)
+        XCTAssertFalse(LessonSummary(voice: passed).onCello, "A lesson without a cello side")
+
+        let started = LessonSummary(voice: none, cello: tried)
+        XCTAssertTrue(started.onCello, "Only the cello has been tried")
+        XCTAssertFalse(started.progress.passed)
+        let celloPassed = LessonSummary(voice: tried, cello: passed)
+        XCTAssertTrue(celloPassed.onCello && celloPassed.progress.passed, "A pass on the cello passes the lesson")
+        XCTAssertEqual(celloPassed.stars, 2)
+        XCTAssertEqual(LessonSummary(voice: passed, cello: none, voiceStars: 1).stars, 1,
+                       "A foundation lesson keeps its own best score")
+    }
+
+    @MainActor
+    func testThePathReadsEveryLessonOnceFromTheStores() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("CelloPath-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let progress = PathProgress(store: SessionStore(directory: root.appendingPathComponent("PracticeSessions")),
+                                    rhythmStores: RhythmStores(directory: root),
+                                    melodyRhythmStore: MelodyRhythmStore(directory: root), listened: "hotCrossBuns")
+        for lesson in Level.path.flatMap(\.lessons) where lesson != .listen(.hotCrossBuns) {
+            XCTAssertFalse(progress.isPassed(lesson))
+            XCTAssertFalse(progress[lesson].onCello)
+        }
+        XCTAssertTrue(progress.isPassed(.listen(.hotCrossBuns)))
+        XCTAssertEqual(progress[.listen(.hotCrossBuns)].status, "Listened")
+        XCTAssertNil(progress[.listen(.odeToJoy)].stars, "Listen is not scored")
+        XCTAssertEqual(progress[.hum(.hotCrossBuns)].status, "0 of 4 phrases passed")
+        XCTAssertEqual(progress[.meetNotes(.odeToJoy)].status, "0 of 5 notes passed")
+        XCTAssertEqual(progress.next?.lesson, .lesson(.steadyHum))
+        XCTAssertEqual(progress.today, [.lesson(.steadyHum)])
+    }
+
     func testStoredIDsAreRememberedOnceEach() {
         var stored = ""
         XCTAssertFalse(StoredIDs.contains("hotCrossBuns", in: stored))

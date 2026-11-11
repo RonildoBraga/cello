@@ -139,18 +139,26 @@ struct EchoProgressLedger: SessionProgressLedger {
         return key(for: selection.level, register: context.register)
     }
 
-    private static func key(for level: EchoLevel, register: MelodyRegister) -> String? {
-        // Full canonical catalogue captures level, voice, pitch/timing, key,
-        // tuning and both versions, while deliberately aggregating its patterns.
-        let contexts = (0..<level.patternCount).compactMap {
-            try? level.context(patternIndex: $0, register: register)
-        }
-        guard contexts.count == level.patternCount else { return nil }
+    static func key(for level: EchoLevel, register: MelodyRegister) -> String? {
+        keys["\(level.rawValue)|\(register.rawValue)"]
+    }
+
+    /// Every level and register's key, derived once: each hashes a whole catalogue.
+    /// The full canonical catalogue captures level, voice, pitch/timing, key, tuning
+    /// and both versions, while deliberately aggregating its patterns.
+    private static let keys: [String: String] = {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
-        guard let data = try? encoder.encode(contexts) else { return nil }
-        return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-    }
+        var keys: [String: String] = [:]
+        for level in EchoLevel.allCases {
+            for register in MelodyRegister.allCases {
+                let contexts = (0..<level.patternCount).compactMap { try? level.context(patternIndex: $0, register: register) }
+                guard contexts.count == level.patternCount, let data = try? encoder.encode(contexts) else { continue }
+                keys["\(level.rawValue)|\(register.rawValue)"] = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+            }
+        }
+        return keys
+    }()
 }
 
 /// Feedback describes the observed performance, not a measurement of memory.

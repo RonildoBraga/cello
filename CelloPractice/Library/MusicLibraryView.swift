@@ -51,7 +51,9 @@ extension PathLesson {
 @MainActor
 struct MusicLibraryView: View {
     @ObservedObject var store: SessionStore
-    @ObservedObject var capture: CaptureController
+    /// Passed on to the lessons. The path shows nothing of a take in progress, so
+    /// it does not observe the controller: its ticks must not redraw the path.
+    let capture: CaptureController
     @ObservedObject var rhythmStores: RhythmStores
     @ObservedObject var melodyRhythmStore: MelodyRhythmStore
     @State private var path: [MusicRoute] = []
@@ -63,19 +65,17 @@ struct MusicLibraryView: View {
     /// Voice or cello, once chosen in a lesson. Until then, the way the last take was made.
     @State private var chosenMethod: PracticeMethod?
 
-    /// The first lesson on the path that has not been passed yet.
-    private var next: (level: Level, lesson: PathLesson)? { Level.nextLesson(isPassed: isPassed) }
-
-    private func isPassed(_ step: PathLesson) -> Bool { state(for: step).progress.passed }
-
     var body: some View {
-        let next = next
+        // Read once per drawing: every row, Today's practice and the lesson bar share it.
+        let progress = PathProgress(store: store, rhythmStores: rhythmStores,
+                                    melodyRhythmStore: melodyRhythmStore, listened: listened)
+        let next = progress.next
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     ScreenHeader(title: "Music")
-                    today(next: next)
-                    ForEach(Level.path) { section($0, next: next) }
+                    today(progress, next: next)
+                    ForEach(Level.path) { section($0, progress, next: next) }
                 }.screenContent()
             }.background(Palette.paper)
                 .accessibilityIdentifier("musicLibraryHome")
@@ -89,7 +89,7 @@ struct MusicLibraryView: View {
         }.tint(Palette.forest).environment(\.openPathLesson, open)
             .environment(\.practiceMethod, Binding(get: { chosenMethod ?? store.sessions.first?.method ?? .voice },
                                                    set: { chosenMethod = $0 }))
-            .environment(\.pathLessonIsPassed, isPassed)
+            .environment(\.pathLessonIsPassed, progress.isPassed)
     }
 
     @ViewBuilder
@@ -132,45 +132,19 @@ struct MusicLibraryView: View {
         lesson.primer != nil && !StoredIDs.contains(lesson.id, in: seenPrimers)
     }
 
-    private func route(for step: PathLesson) -> MusicRoute {
+    private func route(for step: PathLesson, _ progress: PathProgress) -> MusicRoute {
         guard case .lesson(let lesson) = step else { return step.route }
         if needsPrimer(lesson) { return .primer(lesson) }
         // The lesson page describes humming; a lesson practised on the cello opens straight into practice.
-        return celloLeads(lesson) != nil ? .practice(lesson) : step.route
-    }
-
-    /// The four open strings: the cello's side of a single-note lesson.
-    private var openStrings: LessonProgress {
-        LessonProgress(PracticeMethod.openStrings.map {
-            store.progress(for: $0, targetFrequency: VoicePracticeMode.note($0).targetFrequency)
-        }, partNoun: "strings")
-    }
-
-    /// The cello's progress in a recorded foundation lesson, when it has got further than the voice's.
-    private func celloLeads(_ lesson: PracticeLesson) -> LessonProgress? {
-        guard lesson.isRecorded else { return nil }
-        let voice = LessonState(lesson: lesson, store: store, rhythmStores: rhythmStores).step
-        let cello = openStrings
-        return leading(voice: voice, cello: cello) == cello && cello.started ? cello : nil
-    }
-
-    /// Either method passes a lesson, and the path shows the one that has got further.
-    private func leading(voice: LessonProgress, cello: LessonProgress) -> LessonProgress {
-        cello.passed && !voice.gold || cello.started && !voice.started ? cello : voice
-    }
-
-    /// A melody lesson's progress in the method that has got further.
-    private func leading(_ parts: (MelodyRegister) -> [PracticeProgress], partNoun: String = "phrases") -> LessonProgress {
-        leading(voice: LessonProgress(parts(.lowVoice), partNoun: partNoun),
-                cello: LessonProgress(parts(.cello), partNoun: partNoun))
+        return progress[step].onCello ? .practice(lesson) : step.route
     }
 
     // MARK: Path
 
     /// One level: a compact header, and its lessons in a single card when open.
-    private func section(_ level: Level, next: (level: Level, lesson: PathLesson)?) -> some View {
+    private func section(_ level: Level, _ progress: PathProgress, next: (level: Level, lesson: PathLesson)?) -> some View {
         let isOpen = open.contains(level.id)
-        let done = level.passedLessons(isPassed: isPassed)
+        let done = level.passedLessons(isPassed: progress.isPassed)
         let complete = done == level.lessons.count
         return VStack(alignment: .leading, spacing: 8) {
             Button { open.formSymmetricDifference([level.id]) } label: {
@@ -194,10 +168,10 @@ struct MusicLibraryView: View {
             if isOpen {
                 VStack(spacing: 0) {
                     ForEach(Array(level.lessons.enumerated()), id: \.element) { index, step in
-                        let state = state(for: step)
+                        let state = progress[step]
                         let isNext = next?.lesson == step
                         if index > 0 { Divider() }
-                        NavigationLink(value: route(for: step)) {
+                        NavigationLink(value: route(for: step, progress)) {
                             PathRow(step: step, number: index + 1, state: state, isNext: isNext)
                         }.buttonStyle(.plain)
                             .accessibilityIdentifier(step.id)
@@ -212,19 +186,19 @@ struct MusicLibraryView: View {
 
     /// A few minutes of practice chosen for today: the next lesson and the weakest passed ones.
     @ViewBuilder
-    private func today(next: (level: Level, lesson: PathLesson)?) -> some View {
-        let lessons = Level.today(isPassed: isPassed) { state(for: $0).stars }
+    private func today(_ progress: PathProgress, next: (level: Level, lesson: PathLesson)?) -> some View {
+        let lessons = progress.today
         if !lessons.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 Eyebrow(text: "Today’s practice", color: Palette.goldText).accessibilityAddTraits(.isHeader)
                 VStack(spacing: 0) {
                     ForEach(Array(lessons.enumerated()), id: \.element) { index, step in
-                        let state = state(for: step)
+                        let state = progress[step]
                         if let position = Level.position(of: step) {
                             if index > 0 { Divider() }
-                            NavigationLink(value: route(for: step)) {
+                            NavigationLink(value: route(for: step, progress)) {
                                 PathRow(step: step, number: position.index + 1,
-                                        state: PathRowState(progress: state.progress,
+                                        state: LessonSummary(progress: state.progress,
                                                             status: "\(next?.lesson == step ? "Next" : "Again") · \(position.level.title)",
                                                             stars: state.stars),
                                         isNext: false)
@@ -239,62 +213,6 @@ struct MusicLibraryView: View {
             }
         }
     }
-
-    private func state(for step: PathLesson) -> PathRowState {
-        switch step {
-        case .lesson(let lesson):
-            if let cello = celloLeads(lesson) { return PathRowState(progress: cello) }
-            let lesson = LessonState(lesson: lesson, store: store, rhythmStores: rhythmStores)
-            return PathRowState(progress: lesson.step, stars: lesson.bestStars ?? 0)
-        case .listen(let piece):
-            let heard = StoredIDs.contains(piece.rawValue, in: listened)
-            return PathRowState(progress: LessonProgress([PracticeProgress(successfulAttempts: 0, completed: false,
-                                                                      passed: heard)]),
-                             status: heard ? "Listened" : "Not heard yet", stars: nil)
-        case .tap(let piece):
-            return PathRowState(progress: LessonProgress(MelodySection.phrases.map {
-                melodyRhythmStore.progress(for: piece.rhythm(section: $0))
-            }))
-        case .meetNotes(let piece):
-            // Every note needs a passing take; the two pairs are extra practice.
-            return PathRowState(progress: leading({ register in
-                NoteDrill.notes(for: piece, register: register).map { store.melodyProgress(for: $0.context) }
-            }, partNoun: "notes"))
-        case .hum(let piece):
-            return PathRowState(progress: leading { register in
-                MelodySection.phrases.map { store.melodyProgress(for: piece.humming(register: register, section: $0)) }
-            })
-        case .wholeMelody(let piece):
-            return PathRowState(progress: leading { register in
-                [store.melodyProgress(for: piece.humming(register: register, section: .whole))]
-            })
-        case .echo:
-            return PathRowState(progress: leading { [store.echoProgress(for: .twoNotes, register: $0)] })
-        }
-    }
-}
-
-/// What a path row shows about its lesson.
-private struct PathRowState {
-    let progress: LessonProgress
-    let status: String
-    /// The best score out of three; nil for lessons that are not scored, such as Listen.
-    let stars: Int?
-
-    init(progress: LessonProgress, status: String? = nil, stars: Int?) {
-        self.progress = progress
-        self.status = status ?? progress.status
-        self.stars = stars
-    }
-
-    /// A scored lesson shows the weakest best score across its parts.
-    init(progress: LessonProgress) {
-        self.init(progress: progress, stars: progress.bestStars)
-    }
-
-    var spokenScore: String? {
-        stars.map { $0 > 0 ? "Best score \($0) of 3 stars" : "No score yet" }
-    }
 }
 
 /// One lesson on the path. Every lesson uses this row, whatever it opens: its
@@ -302,7 +220,7 @@ private struct PathRowState {
 private struct PathRow: View {
     let step: PathLesson
     let number: Int
-    let state: PathRowState
+    let state: LessonSummary
     let isNext: Bool
 
     private var lessonID: String {
@@ -352,35 +270,6 @@ private struct TierLabel: View {
             Text(text).foregroundStyle(Palette.muted)
         }
     }
-}
-
-@MainActor
-struct LessonState {
-    let progress: PracticeProgress
-    let bestStars: Int?
-    let latestStars: Int?
-    let hasAttempts: Bool
-
-    init(lesson: PracticeLesson, store: SessionStore, rhythmStores: RhythmStores) {
-        switch lesson.activity {
-        case .recording(let exercise):
-            let target = VoicePracticeMode.note(exercise).targetFrequency
-            progress = store.progress(for: exercise, targetFrequency: target)
-            let scores = LessonScoreSummary(exercise: exercise, targetFrequency: target,
-                                            sessions: store.sessions, completed: progress.completed)
-            bestStars = progress.bestStars
-            latestStars = scores.latestStars
-            hasAttempts = scores.hasAttempts
-        case .rhythm(let exercise):
-            let rhythmStore = rhythmStores.store(for: exercise)
-            progress = rhythmStore.progress
-            bestStars = rhythmStore.bestStars
-            latestStars = rhythmStore.attempts.compactMap(\.starCount).first
-            hasAttempts = !rhythmStore.attempts.isEmpty || progress.completed
-        }
-    }
-
-    var step: LessonProgress { LessonProgress([progress], started: hasAttempts) }
 }
 
 @MainActor

@@ -57,8 +57,7 @@ struct RecordingsView: View {
                                 .listRowBackground(Palette.paper)
                                 .listRowSeparatorTint(Palette.forest.opacity(0.1))
                         }.onDelete { offsets in
-                            let sessions = offsets.map { store.sessions[$0] }
-                            for session in sessions { store.delete(session) }
+                            store.delete(offsets.map { store.sessions[$0] })
                         }
                     }.listStyle(.plain).scrollContentBackground(.hidden)
                 }
@@ -79,7 +78,7 @@ struct RecordingsView: View {
                 .confirmationDialog("Delete all \(store.sessions.count) recordings?", isPresented: $confirmsDeleteAll,
                                     titleVisibility: .visible) {
                     Button("Delete all recordings", role: .destructive) {
-                        for session in store.sessions { store.delete(session) }
+                        store.delete(store.sessions)
                         editMode = .inactive
                     }
                 } message: {

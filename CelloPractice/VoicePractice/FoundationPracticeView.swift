@@ -5,7 +5,7 @@ import SwiftUI
 struct FoundationPracticeView: View {
     let lesson: PracticeLesson
     @ObservedObject var store: SessionStore
-    @ObservedObject var capture: CaptureController
+    let capture: CaptureController
     let rhythmStores: RhythmStores
     @Environment(\.practiceMethod) private var method
     /// The open string on show when the lesson is practised on the cello.

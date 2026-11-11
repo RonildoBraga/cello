@@ -79,30 +79,41 @@ protocol SessionProgressLedger: Codable {
 }
 
 extension SessionProgressLedger {
-    static func succeeded(_ session: PracticeSession) -> Bool { starCount(for: session) == CompletionRule.goldStars }
+    /// The stars of every take that counts, under its achievement, newest first.
+    /// Working out which achievement a take counts towards is costly (a melody
+    /// take hashes its whole score), so this is built when the takes change and
+    /// never while a screen is being drawn.
+    static func stars(in sessions: [PracticeSession]) -> [String: [Int]] {
+        sessions.sorted(by: newestFirst).reduce(into: [:]) { stars, session in
+            if let key = eligibleKey(for: session) { stars[key, default: []].append(starCount(for: session) ?? 0) }
+        }
+    }
+
+    func progress(forKey key: String?, stars: [String: [Int]]) -> PracticeProgress {
+        guard let key else { return PracticeProgress(successfulAttempts: 0, completed: false) }
+        return PracticeProgress(stars: stars[key] ?? [], alreadyCompleted: completedKeys.contains(key),
+                                alreadyPassed: passedKeys?.contains(key) ?? false)
+    }
 
     func progress(forKey key: String?, sessions: [PracticeSession]) -> PracticeProgress {
-        guard let key else { return PracticeProgress(successfulAttempts: 0, completed: false) }
-        let recent = sessions.filter { Self.eligibleKey(for: $0) == key }.sorted(by: Self.newestFirst)
-        return PracticeProgress(stars: recent.map { Self.starCount(for: $0) ?? 0 },
-                                alreadyCompleted: completedKeys.contains(key),
-                                alreadyPassed: passedKeys?.contains(key) ?? false)
+        progress(forKey: key, stars: Self.stars(in: sessions))
     }
 
     /// Returns true when a milestone was added and the ledger needs saving.
     @discardableResult
-    mutating func update(from sessions: [PracticeSession]) -> Bool {
-        let attempts = sessions.sorted { Self.newestFirst($1, $0) }.compactMap { session in
-            Self.eligibleKey(for: session).map { (key: $0, success: Self.succeeded(session)) }
-        }
-        let passes = Set(sessions.compactMap { session in
-            (Self.starCount(for: session) ?? 0) >= CompletionRule.passingStars ? Self.eligibleKey(for: session) : nil
-        })
+    mutating func update(from stars: [String: [Int]]) -> Bool {
         let known = completedKeys.count + (passedKeys?.count ?? 0)
-        completedKeys.formUnion(CompletionRule.earnedKeys(attempts))
+        // Each achievement's takes are replayed oldest first.
+        completedKeys.formUnion(CompletionRule.earnedKeys(stars.flatMap { key, stars in
+            stars.reversed().map { (key: key, success: $0 == CompletionRule.goldStars) }
+        }))
+        let passes = Set(stars.filter { CompletionRule.passed($0.value) }.keys)
         if !passes.isSubset(of: passedKeys ?? []) { passedKeys = (passedKeys ?? []).union(passes) }
         return completedKeys.count + (passedKeys?.count ?? 0) != known
     }
+
+    @discardableResult
+    mutating func update(from sessions: [PracticeSession]) -> Bool { update(from: Self.stars(in: sessions)) }
 
     private static func newestFirst(_ lhs: PracticeSession, _ rhs: PracticeSession) -> Bool {
         if lhs.createdAt != rhs.createdAt { return lhs.createdAt > rhs.createdAt }
@@ -126,7 +137,7 @@ struct PracticeProgressLedger: SessionProgressLedger {
         progress(forKey: Self.key(exercise: exercise, targetFrequency: targetFrequency), sessions: sessions)
     }
 
-    private static func key(exercise: Exercise, targetFrequency: Double) -> String? {
+    static func key(exercise: Exercise, targetFrequency: Double) -> String? {
         guard exercise.section != nil, targetFrequency.isFinite, targetFrequency > 0 else { return nil }
         // Codable round-trips this exact reference. Different targets and scoring
         // versions must never silently contribute to the same achievement.

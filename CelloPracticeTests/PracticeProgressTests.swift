@@ -87,6 +87,29 @@ final class PracticeProgressTests: XCTestCase {
         XCTAssertFalse(old.progress(for: .steadyHum, targetFrequency: HummingExample.frequency, sessions: []).passed)
     }
 
+    func testTheTakesAreReadIntoStarsPerAchievementNewestFirst() {
+        // success: three stars; otherwise two. Unrated and other-version takes count for nothing.
+        let takes = [session(at: 0, success: true), session(at: 2, success: false), session(at: 1, success: true),
+                     session(at: 3, success: true, exercise: .matchHum),
+                     session(at: 4, success: true, status: .unclear),
+                     session(at: 5, success: true, version: PracticeRating.currentVersion + 1)]
+        let stars = PracticeProgressLedger.stars(in: takes)
+        XCTAssertEqual(stars.count, 2, "One entry for each achievement that has a counted take")
+        XCTAssertEqual(Set(stars.values), [[2, 3, 3], [3]])
+
+        // Progress read from the stars is the progress read from the takes.
+        var ledger = PracticeProgressLedger()
+        ledger.update(from: stars)
+        let target = HummingExample.frequency
+        for exercise in [Exercise.steadyHum, .matchHum, .openG] {
+            let key = PracticeProgressLedger.key(exercise: exercise, targetFrequency: target)
+            XCTAssertEqual(ledger.progress(forKey: key, stars: stars),
+                           ledger.progress(for: exercise, targetFrequency: target, sessions: takes))
+        }
+        XCTAssertEqual(ledger.progress(for: .steadyHum, targetFrequency: target, sessions: takes).successfulAttempts, 2)
+        XCTAssertEqual(ledger.passedKeys?.count, 2)
+    }
+
     func testRatingMustAgreeWithTheSavedReference() {
         let target = HummingExample.frequency
         let mismatches = (0..<3).map { index in

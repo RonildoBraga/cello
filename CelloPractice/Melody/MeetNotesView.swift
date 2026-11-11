@@ -5,7 +5,7 @@ import SwiftUI
 @MainActor
 struct MeetNotesView: View {
     @ObservedObject var store: SessionStore
-    @ObservedObject var capture: CaptureController
+    let capture: CaptureController
     let piece: MelodyPiece
     @Environment(\.practiceMethod) private var method
     /// Which of the lesson's notes is on show; the method decides its register.

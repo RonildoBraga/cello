@@ -122,6 +122,8 @@ final class MelodyRhythmStore: ObservableObject {
 
     private let fileURL: URL
     private var completedKeys: Set<String> = []
+    /// Every round's stars under its phrase, newest first; nil for a round that was not scored.
+    private var stars: [String: [Int?]] = [:]
     private var fileIsUnreadable = false
 
     init(directory: URL? = nil) {
@@ -140,6 +142,7 @@ final class MelodyRhythmStore: ObservableObject {
             guard document.completedKeys.isSubset(of: earned) else { throw StorageError.invalidHistory }
             attempts = document.attempts
             completedKeys = earned
+            index()
         } catch {
             fileIsUnreadable = true
             errorMessage = "Saved melody rhythm progress could not be read. Its file has been preserved."
@@ -150,17 +153,16 @@ final class MelodyRhythmStore: ObservableObject {
         guard let key = Self.key(for: context) else {
             return PracticeProgress(successfulAttempts: 0, completed: false)
         }
-        return PracticeProgress(stars: recentAttempts(for: context).map { $0.starCount ?? 0 },
+        return PracticeProgress(stars: (stars[key] ?? []).compactMap { $0 },
                                 alreadyCompleted: completedKeys.contains(key))
     }
 
     func bestStars(for context: MelodyRhythmContext) -> Int? {
-        recentAttempts(for: context).compactMap(\.starCount).max()
+        Self.key(for: context).flatMap { stars[$0] }?.compactMap { $0 }.max()
     }
 
     func latestStars(for context: MelodyRhythmContext) -> Int? {
-        guard let key = Self.key(for: context) else { return nil }
-        return attempts.first { Self.key(for: $0.context) == key }?.starCount
+        Self.key(for: context).flatMap { stars[$0]?.first } ?? nil
     }
 
     @discardableResult
@@ -183,6 +185,7 @@ final class MelodyRhythmStore: ObservableObject {
             try JSONEncoder().encode(document).write(to: fileURL, options: .atomic)
             attempts = updated
             completedKeys = earned
+            index()
             errorMessage = nil
         } catch {
             errorMessage = "This rhythm result could not be saved. Please try again."
@@ -190,9 +193,12 @@ final class MelodyRhythmStore: ObservableObject {
         return attempt
     }
 
-    private func recentAttempts(for context: MelodyRhythmContext) -> [MelodyRhythmAttempt] {
-        guard let key = Self.key(for: context) else { return [] }
-        return attempts.filter { $0.isScored && Self.key(for: $0.context) == key }
+    /// Reads the rounds again. Hashing a round's phrase is costly, so it happens
+    /// here, when the rounds change, and never while a screen is being drawn.
+    private func index() {
+        stars = attempts.reduce(into: [:]) { stars, attempt in
+            if let key = Self.key(for: attempt.context) { stars[key, default: []].append(attempt.starCount) }
+        }
     }
 
     /// Attempts are stored newest first; the rule replays them in recorded order.

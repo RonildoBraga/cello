@@ -38,10 +38,12 @@ extension EnvironmentValues {
 }
 
 /// Voice or cello, for every recorded lesson. The cello is filmed and the voice
-/// is not, so changing method releases the microphone and camera.
+/// is not, so changing method releases the microphone and camera. The switch
+/// follows only whether the controller is busy, never its ticks.
 struct PracticeMethodSwitch: View {
-    @ObservedObject var capture: CaptureController
+    let capture: CaptureController
     @Environment(\.practiceMethod) private var method
+    @State private var busy = false
 
     var body: some View {
         Picker("Practise with", selection: Binding(get: { method.wrappedValue }, set: { next in
@@ -49,8 +51,9 @@ struct PracticeMethodSwitch: View {
             method.wrappedValue = next
         })) {
             ForEach(PracticeMethod.allCases) { Text($0.title).tag($0) }
-        }.pickerStyle(.segmented).frame(width: 150)
-            .disabled(capture.isRecording || capture.isPlayingReference)
+        }.pickerStyle(.segmented).frame(width: 150).disabled(busy)
             .accessibilityIdentifier("practiceMethodPicker")
+            .onReceive(capture.$isRecording.combineLatest(capture.$isPlayingReference)
+                .map { $0 || $1 }.removeDuplicates()) { busy = $0 }
     }
 }

@@ -3,7 +3,7 @@ import SwiftUI
 struct ContentView: View {
     private enum Tab: Hashable { case music, recordings, about }
     @ObservedObject var store: SessionStore
-    @StateObject private var capture = CaptureController()
+    let capture: CaptureController
     @StateObject private var rhythmStores = RhythmStores()
     @StateObject private var melodyRhythmStore = MelodyRhythmStore()
     @State private var selectedTab = Tab.music

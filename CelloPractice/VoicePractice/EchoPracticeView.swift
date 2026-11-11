@@ -4,7 +4,7 @@ import SwiftUI
 @MainActor
 struct EchoPracticeView: View {
     @ObservedObject var store: SessionStore
-    @ObservedObject var capture: CaptureController
+    let capture: CaptureController
 
     @State private var level = EchoLevel.twoNotes
     @Environment(\.practiceMethod) private var method
