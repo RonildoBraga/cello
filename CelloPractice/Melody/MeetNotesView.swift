@@ -29,7 +29,6 @@ struct MeetNotesView: View {
                 StepHeader(step: .meetNotes(piece),
                              subtitle: "This melody uses \(NoteDrill.notes(for: piece).count) notes. Hear one, then hum it back after 3–2–1. The bar shows how close you are.",
                              collapsesSubtitle: store.melodyProgress(for: context).successfulAttempts > 0)
-                    .disabled(locked)
                 HStack {
                     ChoiceMenu(choices: drills, selection: $drill, name: "Note", title: \.title) {
                         store.melodyProgress(for: $0.context).completed

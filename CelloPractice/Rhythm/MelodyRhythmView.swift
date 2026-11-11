@@ -17,7 +17,6 @@ struct MelodyRhythmView: View {
                 StepHeader(step: .tap(piece),
                            subtitle: "Tap once when each note starts. Keep counting while a long note continues.",
                            collapsesSubtitle: store.progress(for: context).successfulAttempts > 0)
-                    .disabled(locked)
                 HStack {
                     SectionMenu(selection: $section) { store.progress(for: piece.rhythm(section: $0)).completed }
                         .disabled(locked).accessibilityIdentifier("melodyRhythmSectionPicker")
@@ -118,7 +117,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
                 }
             }
         }.background(Palette.paper)
-            .bottomActionBar {
+            .bottomActionBar(stepsLocked: locked) {
                 RhythmStartButton(round: round, listening: capture.isPlayingReference) {
                     if running { round.stop() }
                     else if capture.isPlayingReference { capture.stop() }

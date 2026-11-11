@@ -26,7 +26,6 @@ struct MelodyHummingView: View {
             VStack(alignment: .leading, spacing: 17) {
                 StepHeader(step: step, subtitle: piece.hummingIntro,
                            collapsesSubtitle: store.melodyProgress(for: context).successfulAttempts > 0)
-                    .disabled(locked)
                 HStack {
                     SectionMenu(selection: $section) {
                         store.melodyProgress(for: piece.humming(register: .lowVoice, section: $0)).completed

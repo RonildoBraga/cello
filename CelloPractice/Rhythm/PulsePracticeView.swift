@@ -35,7 +35,7 @@ struct PulsePracticeView<Header: View>: View {
                     scroll.scrollTo(id == nil ? "pulseTop" : "pulseResult", anchor: .top)
                 }
             }
-        }.bottomActionBar {
+        }.bottomActionBar(stepsLocked: round.running) {
             RhythmStartButton(round: round) {
                 if round.running { round.stop() } else { start() }
             }

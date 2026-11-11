@@ -13,8 +13,21 @@ extension EnvironmentValues {
     }
 }
 
-/// The top of every step's screen: which level this is, the step's title, a
-/// plain line about what to do, and the bar that moves between steps.
+private struct CurrentPathStepKey: EnvironmentKey {
+    static let defaultValue: PathStep? = nil
+}
+
+extension EnvironmentValues {
+    /// The step the screen on show belongs to. The Music tab sets it for each
+    /// step's screen, and the bottom action bar reads it to show the step bar.
+    var currentPathStep: PathStep? {
+        get { self[CurrentPathStepKey.self] }
+        set { self[CurrentPathStepKey.self] = newValue }
+    }
+}
+
+/// The top of every step's screen: which level this is, the step's title and
+/// a plain line about what to do.
 struct StepHeader: View {
     let step: PathStep
     /// Defaults to the step's own title.
@@ -25,19 +38,16 @@ struct StepHeader: View {
     var eyebrowIdentifier = "screenEyebrow"
 
     var body: some View {
-        let position = Level.position(of: step)
-        VStack(alignment: .leading, spacing: 12) {
-            ScreenHeader(eyebrow: position.map { "Level \($0.level.number) · \($0.level.title)" },
-                         title: title ?? step.title, subtitle: subtitle,
-                         titleIdentifier: titleIdentifier, eyebrowIdentifier: eyebrowIdentifier,
-                         collapsesSubtitle: collapsesSubtitle)
-            if let position { StepBar(position: position) }
-        }
+        ScreenHeader(eyebrow: Level.position(of: step).map { "Level \($0.level.number) · \($0.level.title)" },
+                     title: title ?? step.title, subtitle: subtitle,
+                     titleIdentifier: titleIdentifier, eyebrowIdentifier: eyebrowIdentifier,
+                     collapsesSubtitle: collapsesSubtitle)
     }
 }
 
 /// "‹  Step 1 of 6  Listen & match ›": back to the previous step of the level
-/// or on to the next. The arrows fade at the first and last step.
+/// or on to the next. The arrows fade at the first and last step. It sits at
+/// the bottom of a step's screen, just above the main button.
 struct StepBar: View {
     let position: StepPosition
     @Environment(\.openPathStep) private var open

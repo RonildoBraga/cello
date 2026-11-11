@@ -16,6 +16,23 @@ enum MusicRoute: Hashable {
     case pieceReference(MelodyPiece)
 }
 
+extension MusicRoute {
+    /// The step whose screen this is. Primers and lesson pages lead into a
+    /// step and show no step bar.
+    var step: PathStep? {
+        switch self {
+        case .primer, .lesson: return nil
+        case .practice(let lesson): return .lesson(lesson)
+        case .celloIntroduction: return .celloIntroduction
+        case .echo: return .echo
+        case .pieceHumming(let piece, let section): return section == .whole ? .wholeMelody(piece) : .hum(piece)
+        case .pieceRhythm(let piece): return .tap(piece)
+        case .pieceNotes(let piece): return .meetNotes(piece)
+        case .pieceReference(let piece): return .listen(piece)
+        }
+    }
+}
+
 extension PathStep {
     var route: MusicRoute {
         switch self {
@@ -75,7 +92,9 @@ struct MusicLibraryView: View {
                 }
                 // A route's screen is rebuilt when the step bar swaps it for another of the
                 // same kind, so it never inherits the previous screen's selections.
-                .navigationDestination(for: MusicRoute.self) { destination($0).id($0) }
+                .navigationDestination(for: MusicRoute.self) {
+                    destination($0).id($0).environment(\.currentPathStep, $0.step)
+                }
         }.tint(Palette.forest).environment(\.openPathStep, open)
     }
 
@@ -391,7 +410,7 @@ private struct LessonDetailView: View {
                 TierLabel(progress: state.step, text: state.step.status,
                           goldIdentifier: "lessonCompletion-\(lesson.id)")
                 Spacer(minLength: 5)
-                Text("\(state.progress.successfulAttempts)/\(state.progress.requiredAttempts) successful \(lesson.attemptNoun)")
+                Text("Gold: \(state.progress.successfulAttempts) of \(state.progress.requiredAttempts)")
                     .font(.caption).foregroundStyle(Palette.muted)
             }.font(.subheadline.weight(.semibold))
 
