@@ -63,9 +63,11 @@ struct PracticeResultCard: View {
     /// A fresh result pops its stars in, with a success tap for all three.
     private func revealStars() {
         guard celebrates, !reduceMotion, starCount != nil else { revealed = goals.count; return }
+        // Each star is its own later update: one animated change with staggered
+        // delays would be merged into a single frame.
         for index in goals.indices {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.5).delay(0.2 + Double(index) * 0.22)) {
-                revealed = index + 1
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2 + Double(index) * 0.22) {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.5)) { revealed = max(revealed, index + 1) }
             }
         }
         if starCount == CompletionRule.goldStars {
