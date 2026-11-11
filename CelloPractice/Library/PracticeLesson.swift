@@ -80,13 +80,13 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
         switch self {
         case .steadyHum:
             return [
-                "Tap Hear hum to listen to the human voice you’ll match.",
+                "Tap the note at the top to hear the human voice you’ll match.",
                 "Keep your lips softly together and your jaw relaxed. Take an easy breath.",
                 "Tap Record, count 1–2–3–4, then hum gently for three seconds. Aim towards the centre of the bar; pause between tries."
             ]
         case .matchHum:
             return [
-                "Tap Hear hum whenever you want to hear the human example.",
+                "Tap the note at the top whenever you want to hear the human example.",
                 "Tap Record, count 1–2–3–4, then hum the same note for three seconds. Record does not play the example.",
                 "Keep your lips softly together and your voice gentle. The bar follows the same note you heard."
             ]
@@ -119,7 +119,7 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
             }
             return [
                 "Settle your cello and bow using the position your teacher shows you.",
-                "Play the \(string) string alone, without pressing it with a finger. Hear string plays its reference note.",
+                "Play the \(string) string alone, without pressing it with a finger. Tap the note at the top to hear its reference.",
                 "Tap Record, count 1–2–3–4, then play an even note. Tap Stop to finish."
             ]
         }
