@@ -39,16 +39,6 @@ enum PracticeLesson: String, CaseIterable, Identifiable {
         allCases.filter { $0.area == area }
     }
 
-    /// Retain the original foundation numbers and route across Humming/Rhythm.
-    /// Moving a lesson into a navigation area never changes its saved identity.
-    private var progression: [PracticeLesson] {
-        Self.allCases.filter { ($0.area == .cello) == (area == .cello) }
-    }
-
-    var number: Int {
-        progression.firstIndex(of: self)! + 1
-    }
-
     var title: String {
         switch activity {
         case .recording(let exercise): return exercise.title

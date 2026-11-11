@@ -1,6 +1,6 @@
 import Foundation
 
-/// One item of a level's Meet the notes step: a single note to hum back, or two
+/// One item of a level's Meet the notes lesson: a single note to hum back, or two
 /// of the melody's notes to compare. Each is a small frozen melody context, so
 /// the recorder, rater, chart and ledger are the ones phrases already use.
 struct NoteDrill: Hashable, Identifiable {

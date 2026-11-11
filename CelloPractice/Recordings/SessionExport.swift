@@ -159,7 +159,7 @@ enum SessionExport {
 
         ## Suggested review
 
-        Use the stated exercise, measurements and selected frames to suggest one or two manageable next steps. Separate visible observations from hypotheses. Selected frames cannot show every movement, and these files do not establish bow pressure, internal tension, or the cause of an uneven sound. Review the recording only through tools that actually support its media; do not assume access to a live microphone or camera.
+        Use the stated exercise, measurements and selected frames to suggest one or two manageable next lessons. Separate visible observations from hypotheses. Selected frames cannot show every movement, and these files do not establish bow pressure, internal tension, or the cause of an uneven sound. Review the recording only through tools that actually support its media; do not assume access to a live microphone or camera.
         """
         return result + "\n"
     }

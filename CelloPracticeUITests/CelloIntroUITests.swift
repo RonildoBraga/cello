@@ -27,7 +27,7 @@ final class CelloIntroUITests: XCTestCase {
         app.scrollViews.firstMatch.swipeUp()
         let browse = app.buttons["celloIntroBrowseLessons"]
         XCTAssertTrue(browse.isHittable && browse.isEnabled)
-        screenshot("Meet your cello · next steps before playing")
+        screenshot("Meet your cello · next lessons before playing")
         browse.tap()
         XCTAssertTrue(app.buttons["level-cello"].waitForExistence(timeout: 5), "The lessons are on the path")
         XCTAssertEqual(celloLessonSummary(in: app), summary,
@@ -124,7 +124,7 @@ final class CelloIntroUITests: XCTestCase {
     }
 
     private func openIntroduction(in app: XCUIApplication) {
-        app.pathStep("celloIntroductionLink").tap()
+        app.pathLesson("celloIntroductionLink").tap()
         XCTAssertTrue(app.navigationBars["Meet your cello"].waitForExistence(timeout: 5))
     }
 

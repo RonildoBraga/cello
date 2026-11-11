@@ -42,7 +42,7 @@ cello_xcode_test() {
 # level, Meet the notes, one real tapping round, primers, About, Echo and the
 # cello introduction. The full suite repeats these with every edge case.
 cello_smoke_tests=(
-  CelloUITests/LearningUITests/testMusicShowsOnePathOfLevelsWithOneContinueStep
+  CelloUITests/LearningUITests/testMusicShowsOnePathOfLevelsWithOneContinueLesson
   CelloUITests/LearningUITests/testLessonsOpenBothGuidedHummingActivities
   CelloUITests/LearningUITests/testMelodyLevelOpensWholeMelodyAndLessonsWithoutInventingScores
   CelloUITests/LearningUITests/testMeetTheNotesListsThePieceNotesAndPlaysOneOnRequest

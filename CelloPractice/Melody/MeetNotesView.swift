@@ -26,7 +26,7 @@ struct MeetNotesView: View {
         VoicePracticeView(store: store, capture: capture, mode: .phrase(context),
                           nextPhrase: next.map { next in (next.title, { drill = next }) }) { locked in
             VStack(alignment: .leading, spacing: 17) {
-                StepHeader(step: .meetNotes(piece),
+                LessonHeader(step: .meetNotes(piece),
                              subtitle: "This melody uses \(NoteDrill.notes(for: piece).count) notes. Hear one, then hum it back after 3–2–1. The bar shows how close you are.",
                              collapsesSubtitle: store.melodyProgress(for: context).successfulAttempts > 0)
                 HStack {

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Every screen the Music tab can push. Practice is one of them: you choose a
-/// step on the path, practise, and go back.
+/// lesson on the path, practise, and go back.
 enum MusicRoute: Hashable {
     /// The idea a lesson introduces, shown before it the first time.
     case primer(PracticeLesson)
@@ -17,9 +17,9 @@ enum MusicRoute: Hashable {
 }
 
 extension MusicRoute {
-    /// The step whose screen this is. Primers and lesson pages lead into a
-    /// step and show no step bar.
-    var step: PathStep? {
+    /// The lesson whose screen this is. Primers and lesson pages lead into a
+    /// lesson and show no lesson bar.
+    var step: PathLesson? {
         switch self {
         case .primer, .lesson: return nil
         case .practice(let lesson): return .lesson(lesson)
@@ -33,7 +33,7 @@ extension MusicRoute {
     }
 }
 
-extension PathStep {
+extension PathLesson {
     var route: MusicRoute {
         switch self {
         case .lesson(let lesson): return .lesson(lesson)
@@ -61,21 +61,21 @@ struct MusicLibraryView: View {
     @AppStorage(StoredIDs.seenPrimers) private var seenPrimers = ""
     /// The level whose completion is being shown. It appears once.
     @State private var celebrating: Level?
-    /// The levels showing their steps. The level holding the next step opens
+    /// The levels showing their lessons. The level holding the next lesson opens
     /// each time the path comes into view.
     @State private var open: Set<String> = []
 
-    /// The first step on the path that has not been passed yet.
-    private var next: (level: Level, step: PathStep)? { Level.nextStep(isPassed: isPassed) }
+    /// The first lesson on the path that has not been passed yet.
+    private var next: (level: Level, step: PathLesson)? { Level.nextLesson(isPassed: isPassed) }
 
-    private func isPassed(_ step: PathStep) -> Bool { state(for: step).progress.passed }
+    private func isPassed(_ step: PathLesson) -> Bool { state(for: step).progress.passed }
 
     var body: some View {
         let next = next
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    ScreenHeader(title: "Music", subtitle: "Follow the path. The next step is marked; every step is open.")
+                    ScreenHeader(title: "Music", subtitle: "Follow the path. The next lesson is marked; every lesson is open.")
                     if let celebrating { completionCard(celebrating, next: next) }
                     ForEach(Level.path) { section($0, next: next) }
                 }.screenContent()
@@ -90,12 +90,12 @@ struct MusicLibraryView: View {
                             .reduce(celebrated) { StoredIDs.adding($1.id, to: $0) }
                     }
                 }
-                // A route's screen is rebuilt when the step bar swaps it for another of the
+                // A route's screen is rebuilt when the lesson bar swaps it for another of the
                 // same kind, so it never inherits the previous screen's selections.
                 .navigationDestination(for: MusicRoute.self) {
-                    destination($0).id($0).environment(\.currentPathStep, $0.step)
+                    destination($0).id($0).environment(\.currentPathLesson, $0.step)
                 }
-        }.tint(Palette.forest).environment(\.openPathStep, open)
+        }.tint(Palette.forest).environment(\.openPathLesson, open)
     }
 
     @ViewBuilder
@@ -128,8 +128,8 @@ struct MusicLibraryView: View {
         path = needsPrimer(lesson) ? [.primer(lesson)] : [.practice(lesson)]
     }
 
-    /// Moves to another step from the step bar, replacing the current screen.
-    private func open(_ step: PathStep) {
+    /// Moves to another lesson from the lesson bar, replacing the current screen.
+    private func open(_ step: PathLesson) {
         if case .lesson(let lesson) = step { practise(lesson) } else { path = [step.route] }
     }
 
@@ -138,18 +138,18 @@ struct MusicLibraryView: View {
         lesson.primer != nil && !StoredIDs.contains(lesson.id, in: seenPrimers)
     }
 
-    private func route(for step: PathStep) -> MusicRoute {
+    private func route(for step: PathLesson) -> MusicRoute {
         if case .lesson(let lesson) = step, needsPrimer(lesson) { return .primer(lesson) }
         return step.route
     }
 
     // MARK: Path
 
-    /// One level: a compact header, and its steps in a single card when open.
-    private func section(_ level: Level, next: (level: Level, step: PathStep)?) -> some View {
+    /// One level: a compact header, and its lessons in a single card when open.
+    private func section(_ level: Level, next: (level: Level, step: PathLesson)?) -> some View {
         let isOpen = open.contains(level.id)
-        let done = level.passedSteps(isPassed: isPassed)
-        let complete = done == level.steps.count
+        let done = level.passedLessons(isPassed: isPassed)
+        let complete = done == level.lessons.count
         return VStack(alignment: .leading, spacing: 8) {
             Button { open.formSymmetricDifference([level.id]) } label: {
                 HStack(spacing: 10) {
@@ -158,7 +158,7 @@ struct MusicLibraryView: View {
                         Text(level.title).font(.title3.weight(.semibold)).foregroundStyle(Palette.ink)
                     }
                     Spacer(minLength: 0)
-                    Label("\(done) of \(level.steps.count)", systemImage: complete ? "checkmark.circle.fill" : "circle")
+                    Label("\(done) of \(level.lessons.count)", systemImage: complete ? "checkmark.circle.fill" : "circle")
                         .labelStyle(.titleAndIcon).font(.caption.weight(.medium))
                         .foregroundStyle(complete ? Palette.forest : Palette.muted)
                     Image(systemName: isOpen ? "chevron.up" : "chevron.down")
@@ -166,20 +166,20 @@ struct MusicLibraryView: View {
                 }.frame(minHeight: 44).contentShape(Rectangle())
             }.buttonStyle(.plain)
                 .accessibilityIdentifier("level-\(level.id)")
-                .accessibilityLabel("Level \(level.number), \(level.title), \(done) of \(level.steps.count) steps done")
+                .accessibilityLabel("Level \(level.number), \(level.title), \(done) of \(level.lessons.count) lessons done")
                 .accessibilityValue(isOpen ? "Expanded" : "Collapsed")
                 .accessibilityAddTraits(.isHeader)
             if isOpen {
                 VStack(spacing: 0) {
-                    ForEach(Array(level.steps.enumerated()), id: \.element) { index, step in
+                    ForEach(Array(level.lessons.enumerated()), id: \.element) { index, step in
                         let state = state(for: step)
                         let isNext = next?.step == step
                         if index > 0 { Divider() }
                         NavigationLink(value: route(for: step)) {
-                            StepRow(step: step, number: index + 1, state: state, isNext: isNext)
+                            PathRow(step: step, number: index + 1, state: state, isNext: isNext)
                         }.buttonStyle(.plain)
                             .accessibilityIdentifier(step.id)
-                            .accessibilityLabel([isNext ? "Continue" : nil, "Step \(index + 1)",
+                            .accessibilityLabel([isNext ? "Continue" : nil, "Lesson \(index + 1)",
                                                  step.title, state.status, state.spokenScore]
                                 .compactMap { $0 }.joined(separator: ", "))
                     }
@@ -188,50 +188,50 @@ struct MusicLibraryView: View {
         }
     }
 
-    private func state(for step: PathStep) -> StepState {
+    private func state(for step: PathLesson) -> PathRowState {
         switch step {
         case .lesson(let lesson):
             let lesson = LessonState(lesson: lesson, store: store, rhythmStores: rhythmStores)
-            return StepState(progress: lesson.step, stars: lesson.bestStars ?? 0)
+            return PathRowState(progress: lesson.step, stars: lesson.bestStars ?? 0)
         case .listen(let piece):
             let heard = StoredIDs.contains(piece.rawValue, in: listened)
-            return StepState(progress: StepProgress([PracticeProgress(successfulAttempts: 0, completed: false,
+            return PathRowState(progress: LessonProgress([PracticeProgress(successfulAttempts: 0, completed: false,
                                                                       passed: heard)]),
                              status: heard ? "Listened" : "Not heard yet", stars: nil)
         case .tap(let piece):
-            return StepState(progress: StepProgress(MelodySection.phrases.map {
+            return PathRowState(progress: LessonProgress(MelodySection.phrases.map {
                 melodyRhythmStore.progress(for: piece.rhythm(section: $0))
             }))
         case .meetNotes(let piece):
             // Every note needs a passing take; the two pairs are extra practice.
-            return StepState(progress: StepProgress(NoteDrill.notes(for: piece).map {
+            return PathRowState(progress: LessonProgress(NoteDrill.notes(for: piece).map {
                 store.melodyProgress(for: $0.context)
             }, partNoun: "notes"))
         case .hum(let piece):
-            return StepState(progress: StepProgress(MelodySection.phrases.map {
+            return PathRowState(progress: LessonProgress(MelodySection.phrases.map {
                 store.melodyProgress(for: piece.humming(register: .lowVoice, section: $0))
             }))
         case .wholeMelody(let piece):
-            return StepState(progress: StepProgress([
+            return PathRowState(progress: LessonProgress([
                 store.melodyProgress(for: piece.humming(register: .lowVoice, section: .whole))
             ]))
         case .echo:
-            return StepState(progress: StepProgress([store.echoProgress(for: .twoNotes, register: .lowVoice)]))
+            return PathRowState(progress: LessonProgress([store.echoProgress(for: .twoNotes, register: .lowVoice)]))
         case .celloIntroduction:
             let read = StoredIDs.contains(StoredIDs.celloIntroduction, in: seenPrimers)
-            return StepState(progress: StepProgress([PracticeProgress(successfulAttempts: 0, completed: false,
+            return PathRowState(progress: LessonProgress([PracticeProgress(successfulAttempts: 0, completed: false,
                                                                       passed: read)]),
                              status: read ? "Read" : "Not read yet", stars: nil)
         }
     }
 
-    /// Shown once when a level's last step is passed, pointing at what comes next.
-    private func completionCard(_ level: Level, next: (level: Level, step: PathStep)?) -> some View {
+    /// Shown once when a level's last lesson is passed, pointing at what comes next.
+    private func completionCard(_ level: Level, next: (level: Level, step: PathLesson)?) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Eyebrow(text: "Level \(level.number) complete", color: Palette.goldText)
             Text(level.title).font(.title3.weight(.semibold)).foregroundStyle(Palette.ink)
-            Text(next.map { "Every step is passed. Next: \($0.level.title) · \($0.step.title)." }
-                 ?? "Every step on the path is passed. More melodies are on the way.")
+            Text(next.map { "Every lesson is passed. Next: \($0.level.title) · \($0.step.title)." }
+                 ?? "Every lesson on the path is passed. More melodies are on the way.")
                 .font(.subheadline).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 10) {
                 if let next {
@@ -248,21 +248,21 @@ struct MusicLibraryView: View {
     }
 }
 
-/// What a path row shows about its step.
-private struct StepState {
-    let progress: StepProgress
+/// What a path row shows about its lesson.
+private struct PathRowState {
+    let progress: LessonProgress
     let status: String
-    /// The best score out of three; nil for steps that are not scored, such as Listen.
+    /// The best score out of three; nil for lessons that are not scored, such as Listen.
     let stars: Int?
 
-    init(progress: StepProgress, status: String? = nil, stars: Int?) {
+    init(progress: LessonProgress, status: String? = nil, stars: Int?) {
         self.progress = progress
         self.status = status ?? progress.status
         self.stars = stars
     }
 
-    /// A scored step shows the weakest best score across its parts.
-    init(progress: StepProgress) {
+    /// A scored lesson shows the weakest best score across its parts.
+    init(progress: LessonProgress) {
         self.init(progress: progress, stars: progress.bestStars)
     }
 
@@ -271,12 +271,12 @@ private struct StepState {
     }
 }
 
-/// One step on the path. Every step uses this row, whatever it opens: its
+/// One lesson on the path. Every lesson uses this row, whatever it opens: its
 /// place in the level, its title, how far it has got and its best score.
-private struct StepRow: View {
-    let step: PathStep
+private struct PathRow: View {
+    let step: PathLesson
     let number: Int
-    let state: StepState
+    let state: PathRowState
     let isNext: Bool
 
     private var lessonID: String {
@@ -310,9 +310,9 @@ private struct StepRow: View {
     }
 }
 
-/// A step's progress in words, with a gold star for gold and a tick for passed.
+/// A lesson's progress in words, with a gold star for gold and a tick for passed.
 private struct TierLabel: View {
-    let progress: StepProgress
+    let progress: LessonProgress
     let text: String
     let goldIdentifier: String
 
@@ -354,7 +354,7 @@ private struct LessonState {
         }
     }
 
-    var step: StepProgress { StepProgress([progress], started: hasAttempts) }
+    var step: LessonProgress { LessonProgress([progress], started: hasAttempts) }
 }
 
 @MainActor
@@ -396,7 +396,7 @@ private struct LessonDetailView: View {
                 }
             }.screenContent()
         }.background(Palette.paper)
-            .screenTitle("Lesson \(lesson.number)")
+            .screenTitle(lesson.title)
             .bottomActionBar {
                 Button(state.hasAttempts ? "Practise again" : "Start lesson") { onStartLesson(lesson) }
                     .buttonStyle(PrimaryActionButtonStyle())
@@ -425,7 +425,7 @@ private struct LessonDetailView: View {
 
             Text(state.progress.completed
                  ? "Gold stays earned. You can return to this lesson any time."
-                 : "One two-star score passes this step. Three 3-star \(lesson.attemptNoun) among your last five scored attempts earn gold. Every lesson is available now.")
+                 : "One two-star score passes this lesson. Three 3-star \(lesson.attemptNoun) among your last five scored attempts earn gold. Every lesson is available now.")
                 .font(.footnote).foregroundStyle(Palette.muted)
                 .fixedSize(horizontal: false, vertical: true)
         }.card()

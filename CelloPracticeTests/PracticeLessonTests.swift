@@ -3,31 +3,23 @@ import XCTest
 @testable import Cello
 
 final class PracticeLessonTests: XCTestCase {
-    func testLessonBookSeparatesAreasAndPreservesExistingNumbersAndIDs() {
+    func testLessonBookSeparatesAreasAndPreservesExistingIDs() {
         let humming = PracticeLesson.lessons(in: .humming)
-        XCTAssertEqual(humming.map(\.number), [1, 2])
         XCTAssertEqual(humming.map(\.id), ["steadyHum", "matchHum"])
         XCTAssertTrue(humming.allSatisfy { $0.area == .humming })
         XCTAssertEqual(humming.map(\.activity), [.recording(.steadyHum), .recording(.matchHum)])
 
         let rhythm = PracticeLesson.lessons(in: .rhythm)
-        XCTAssertEqual(rhythm.map(\.number), [3, 4, 5])
         XCTAssertEqual(rhythm.map(\.id), ["pulse", "twoTaps", "mixedRhythm"])
         XCTAssertTrue(rhythm.allSatisfy { $0.area == .rhythm })
         XCTAssertEqual(rhythm.map(\.activity), [.rhythm(.pulse), .rhythm(.twoTaps), .rhythm(.mixedRhythm)])
 
         let cello = PracticeLesson.lessons(in: .cello)
-        XCTAssertEqual(cello.map(\.number), [1, 2, 3, 4])
         XCTAssertEqual(cello.map(\.id), ["openC", "openG", "openD", "openA"])
         XCTAssertEqual(cello.map(\.activity), [.recording(.openC), .recording(.openG),
                                                  .recording(.openD), .recording(.openA)])
         XCTAssertTrue(cello.allSatisfy { $0.area == .cello })
         XCTAssertEqual(humming.count + rhythm.count + cello.count, PracticeLesson.allCases.count)
-    }
-
-    func testLessonNumbersStayStableWithinTheirOriginalSequences() {
-        XCTAssertEqual([PracticeLesson.steadyHum, .matchHum, .pulse, .twoTaps, .mixedRhythm].map(\.number), [1, 2, 3, 4, 5])
-        XCTAssertEqual([PracticeLesson.openC, .openG, .openD, .openA].map(\.number), [1, 2, 3, 4])
     }
 
     func testEarnedCompletionSurvivesDeletedHistory() {
@@ -45,7 +37,7 @@ final class PracticeLessonTests: XCTestCase {
     func testOnlyTheFirstLevelLessonsHavePrimersAndEachHasSomethingToHearOrFeel() {
         let withPrimers = PracticeLesson.allCases.filter { $0.primer != nil }
         XCTAssertEqual(withPrimers, [.steadyHum, .matchHum, .pulse, .twoTaps])
-        XCTAssertEqual(withPrimers.map(PathStep.lesson), Array(Level.path[0].steps.prefix(4)),
+        XCTAssertEqual(withPrimers.map(PathLesson.lesson), Array(Level.path[0].lessons.prefix(4)),
                        "Each new idea in Level 1 is explained before the lesson that needs it")
         XCTAssertEqual(PracticeLesson.steadyHum.primer?.demo, .hum)
         XCTAssertEqual(PracticeLesson.matchHum.primer?.demo, .twoNotes)
@@ -60,7 +52,7 @@ final class PracticeLessonTests: XCTestCase {
 
     func testNoLevelOneLessonUsesATermBeforeAPrimerHasExplainedIt() {
         var explained = ""
-        for step in Level.path[0].steps {
+        for step in Level.path[0].lessons {
             guard case .lesson(let lesson) = step else { continue }
             explained += " " + (lesson.primer?.paragraphs.joined(separator: " ").lowercased() ?? "")
             let copy = ([lesson.purpose, lesson.shortPurpose, lesson.practicePrompt] + lesson.instructions

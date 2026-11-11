@@ -53,24 +53,24 @@ extension View {
             }
     }
 
-    /// Pins a screen's primary action above the tab bar. On a step's screen the
-    /// step bar sits just above it, within reach of the thumb; `stepsLocked`
+    /// Pins a screen's primary action above the tab bar. On a lesson's screen the
+    /// lesson bar sits just above it, within reach of the thumb; `lessonsLocked`
     /// holds it still while a take or round is in flight.
-    func bottomActionBar<Bar: View>(stepsLocked: Bool = false, @ViewBuilder _ bar: @escaping () -> Bar) -> some View {
-        modifier(BottomActionBar(stepsLocked: stepsLocked, bar: bar))
+    func bottomActionBar<Bar: View>(lessonsLocked: Bool = false, @ViewBuilder _ bar: @escaping () -> Bar) -> some View {
+        modifier(BottomActionBar(lessonsLocked: lessonsLocked, bar: bar))
     }
 }
 
 private struct BottomActionBar<Bar: View>: ViewModifier {
-    let stepsLocked: Bool
+    let lessonsLocked: Bool
     @ViewBuilder let bar: () -> Bar
-    @Environment(\.currentPathStep) private var step
+    @Environment(\.currentPathLesson) private var step
 
     func body(content: Content) -> some View {
         content.safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 10) {
                 if let step, let position = Level.position(of: step) {
-                    StepBar(position: position).disabled(stepsLocked)
+                    LessonBar(position: position).disabled(lessonsLocked)
                 }
                 bar()
             }.padding(.horizontal, Layout.gutter).padding(.vertical, 12)

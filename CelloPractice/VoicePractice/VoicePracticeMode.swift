@@ -71,7 +71,7 @@ enum VoicePracticeMode: Equatable {
         return false
     }
     /// Echo offers a new pattern only once the current one has a result.
-    var nextStepNeedsResult: Bool { isEcho }
+    var nextPartNeedsResult: Bool { isEcho }
 
     @MainActor
     func progress(in store: SessionStore) -> PracticeProgress {
@@ -119,7 +119,7 @@ enum VoicePracticeMode: Equatable {
         }
     }
 
-    var nextStepIdentifier: String { isEcho ? "nextEchoPatternButton" : "nextMelodyPhraseButton" }
+    var nextPartIdentifier: String { isEcho ? "nextEchoPatternButton" : "nextMelodyPhraseButton" }
 
     var idleLabel: String { isEcho ? "READY" : "LIVE TUNER" }
     var idleTitle: String { isEcho ? "Your turn" : "Ready" }

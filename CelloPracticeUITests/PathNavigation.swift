@@ -9,7 +9,7 @@ func requireRecordingFixtures() throws {
                       "Needs private recording fixtures; set TEST_RUNNER_CELLO_RECORDING_FIXTURES=1 once they are in the Simulator")
 }
 
-/// Finding a step on the Music path, shared by every UI test.
+/// Finding a lesson on the Music path, shared by every UI test.
 extension XCUIApplication {
     /// The app as a returning learner sees it: every primer already read, so a
     /// lesson opens on its own page. Pass `seenPrimers: ""` for a first visit.
@@ -34,14 +34,14 @@ extension XCUIApplication {
         XCTAssertTrue(firstLevel.waitForExistence(timeout: 5))
     }
 
-    /// Returns to the path and opens the step's level if it is closed. The row
-    /// can then be read; use `pathStep` to tap it. Steps are named by their
+    /// Returns to the path and opens the lesson's level if it is closed. The row
+    /// can then be read; use `pathLesson` to tap it. Lessons are named by their
     /// accessibility identifier.
     func pathRow(_ identifier: String) -> XCUIElement {
         returnToPath()
         let step = buttons[identifier]
         if !step.exists {
-            let level = buttons["level-\(Self.level(forStep: identifier))"]
+            let level = buttons["level-\(Self.level(forLesson: identifier))"]
             scroll(to: level)
             level.tap()
             XCTAssertTrue(step.waitForExistence(timeout: 5))
@@ -49,8 +49,8 @@ extension XCUIApplication {
         return step
     }
 
-    /// The step's row, scrolled into reach for a tap.
-    func pathStep(_ identifier: String) -> XCUIElement {
+    /// The lesson's row, scrolled into reach for a tap.
+    func pathLesson(_ identifier: String) -> XCUIElement {
         let step = pathRow(identifier)
         scroll(to: step)
         return step
@@ -66,11 +66,11 @@ extension XCUIApplication {
         XCTAssertTrue(element.isHittable)
     }
 
-    private static func level(forStep identifier: String) -> String {
+    private static func level(forLesson identifier: String) -> String {
         switch identifier {
         case "lesson-steadyHum", "lesson-matchHum", "lesson-pulse", "lesson-twoTaps",
              "lesson-mixedRhythm", "echoPracticeLink": return "firstSounds"
-        case _ where identifier.hasPrefix("step-"): return String(identifier.split(separator: "-")[1])
+        case _ where identifier.hasPrefix("lesson-hotCrossBuns-") || identifier.hasPrefix("lesson-odeToJoy-"): return String(identifier.split(separator: "-")[1])
         default: return "cello"
         }
     }

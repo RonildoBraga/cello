@@ -5,82 +5,82 @@ final class LevelTests: XCTestCase {
     func testPathIsFirstSoundsThenOneLevelPerMelodyThenTheCello() {
         XCTAssertEqual(Level.path.map(\.id), ["firstSounds", "hotCrossBuns", "odeToJoy", "cello"])
         XCTAssertEqual(Level.path.map(\.number), [1, 2, 3, 4])
-        XCTAssertEqual(Level.path[0].steps, [.lesson(.steadyHum), .lesson(.matchHum), .lesson(.pulse),
+        XCTAssertEqual(Level.path[0].lessons, [.lesson(.steadyHum), .lesson(.matchHum), .lesson(.pulse),
                                              .lesson(.twoTaps), .lesson(.mixedRhythm), .echo])
-        XCTAssertEqual(Level.path[3].steps, [.celloIntroduction, .lesson(.openC), .lesson(.openG),
+        XCTAssertEqual(Level.path[3].lessons, [.celloIntroduction, .lesson(.openC), .lesson(.openG),
                                              .lesson(.openD), .lesson(.openA)])
     }
 
-    func testEveryMelodyLevelHasTheSameStepsInTheSameOrder() {
+    func testEveryMelodyLevelHasTheSameLessonsInTheSameOrder() {
         XCTAssertEqual(Level.path.count, MelodyPiece.allCases.count + 2)
         for (level, piece) in zip(Level.path.dropFirst(), MelodyPiece.allCases) {
             XCTAssertEqual(level.title, piece.title)
-            XCTAssertEqual(level.steps, [.listen(piece), .tap(piece), .meetNotes(piece), .hum(piece), .wholeMelody(piece)])
-            XCTAssertEqual(level.steps.map(\.title), ["Listen", "Tap it", "Meet the notes", "Hum it", "Whole melody"])
+            XCTAssertEqual(level.lessons, [.listen(piece), .tap(piece), .meetNotes(piece), .hum(piece), .wholeMelody(piece)])
+            XCTAssertEqual(level.lessons.map(\.title), ["Listen", "Tap it", "Meet the notes", "Hum it", "Whole melody"])
         }
     }
 
-    func testEveryStepBelongsToALevelAndEveryLessonAppearsExactlyOnce() {
-        let steps = Level.path.flatMap(\.steps)
-        let lessons = steps.compactMap { step -> PracticeLesson? in
-            if case .lesson(let lesson) = step { return lesson }
+    func testEveryLessonBelongsToExactlyOneLevel() {
+        let all = Level.path.flatMap(\.lessons)
+        let foundation = all.compactMap { item -> PracticeLesson? in
+            if case .lesson(let lesson) = item { return lesson }
             return nil
         }
-        XCTAssertEqual(lessons.count, PracticeLesson.allCases.count)
-        XCTAssertEqual(Set(lessons), Set(PracticeLesson.allCases), "No lesson may be lost when the libraries merge")
-        XCTAssertEqual(Set(steps.map(\.id)).count, steps.count)
+        XCTAssertEqual(foundation.count, PracticeLesson.allCases.count)
+        XCTAssertEqual(Set(foundation), Set(PracticeLesson.allCases), "No lesson may be lost when the libraries merge")
+        XCTAssertEqual(Set(all.map(\.id)).count, all.count)
         // Lesson rows keep the identifier they had in the old libraries.
-        XCTAssertEqual(PathStep.lesson(.pulse).id, "lesson-pulse")
-        XCTAssertTrue(steps.contains(.echo) && steps.contains(.celloIntroduction), "Nothing sits outside the levels")
+        XCTAssertEqual(PathLesson.lesson(.pulse).id, "lesson-pulse")
+        XCTAssertTrue(all.contains(.echo) && all.contains(.celloIntroduction), "Nothing sits outside the levels")
     }
 
-    func testNextStepIsTheFirstUnfinishedStepOnThePath() {
-        XCTAssertEqual(Level.nextStep { _ in false }?.step, .lesson(.steadyHum))
-        XCTAssertNil(Level.nextStep { _ in true })
+    func testNextLessonIsTheFirstUnfinishedLessonOnThePath() {
+        XCTAssertEqual(Level.nextLesson { _ in false }?.step, .lesson(.steadyHum))
+        XCTAssertNil(Level.nextLesson { _ in true })
 
-        let firstLevel = Set(Level.path[0].steps)
-        let afterFirstLevel = Level.nextStep { firstLevel.contains($0) }
+        let firstLevel = Set(Level.path[0].lessons)
+        let afterFirstLevel = Level.nextLesson { firstLevel.contains($0) }
         XCTAssertEqual(afterFirstLevel?.level.id, "hotCrossBuns")
         XCTAssertEqual(afterFirstLevel?.step, .listen(.hotCrossBuns))
 
-        // A later step done out of order does not move the suggestion past an earlier gap.
-        let skippedAhead = Level.nextStep { $0 != .lesson(.matchHum) }
+        // A later lesson done out of order does not move the suggestion past an earlier gap.
+        let skippedAhead = Level.nextLesson { $0 != .lesson(.matchHum) }
         XCTAssertEqual(skippedAhead?.step, .lesson(.matchHum))
     }
 
     func testTheCelloLevelComesLastOnThePath() {
-        let beforeCello = Set(Level.path.dropLast().flatMap(\.steps))
-        let next = Level.nextStep { beforeCello.contains($0) }
+        let beforeCello = Set(Level.path.dropLast().flatMap(\.lessons))
+        let next = Level.nextLesson { beforeCello.contains($0) }
         XCTAssertEqual(next?.level.id, "cello")
         XCTAssertEqual(next?.step, .celloIntroduction)
     }
 
-    func testAStepShowsTheWeakestBestScoreAcrossItsParts() {
-        XCTAssertEqual(StepProgress([PracticeProgress(stars: [1, 2])]).bestStars, 2)
-        XCTAssertEqual(StepProgress([PracticeProgress(stars: [3]), PracticeProgress(stars: [2, 1])]).bestStars, 2)
-        XCTAssertEqual(StepProgress([PracticeProgress(stars: [3]), PracticeProgress(stars: [])]).bestStars, 0,
-                       "An untried phrase keeps the step's stars empty")
+    func testALessonShowsTheWeakestBestScoreAcrossItsParts() {
+        XCTAssertEqual(LessonProgress([PracticeProgress(stars: [1, 2])]).bestStars, 2)
+        XCTAssertEqual(LessonProgress([PracticeProgress(stars: [3]), PracticeProgress(stars: [2, 1])]).bestStars, 2)
+        XCTAssertEqual(LessonProgress([PracticeProgress(stars: [3]), PracticeProgress(stars: [])]).bestStars, 0,
+                       "An untried phrase keeps the lesson's stars empty")
         XCTAssertEqual(PracticeProgress(stars: [], alreadyCompleted: true).bestStars, 3)
         XCTAssertNil(PracticeProgress(stars: []).bestStars)
     }
 
-    func testAStepKnowsItsPlaceAndItsNeighboursInsideItsLevel() {
+    func testALessonKnowsItsPlaceAndItsNeighboursInsideItsLevel() {
         let first = Level.position(of: .lesson(.steadyHum))
-        XCTAssertEqual(first?.label, "Step 1 of 6")
-        XCTAssertNil(first?.previous, "The first step of a level has no previous step")
+        XCTAssertEqual(first?.label, "Lesson 1 of 6")
+        XCTAssertNil(first?.previous, "The first lesson of a level has no previous lesson")
         XCTAssertEqual(first?.next, .lesson(.matchHum))
 
         let last = Level.position(of: .echo)
-        XCTAssertEqual(last?.label, "Step 6 of 6")
+        XCTAssertEqual(last?.label, "Lesson 6 of 6")
         XCTAssertEqual(last?.previous, .lesson(.mixedRhythm))
-        XCTAssertNil(last?.next, "The step bar stays inside the level")
+        XCTAssertNil(last?.next, "The lesson bar stays inside the level")
 
         let notes = Level.position(of: .meetNotes(.odeToJoy))
         XCTAssertEqual(notes?.level.id, "odeToJoy")
-        XCTAssertEqual(notes?.label, "Step 3 of 5")
+        XCTAssertEqual(notes?.label, "Lesson 3 of 5")
         XCTAssertEqual(notes?.previous, .tap(.odeToJoy))
         XCTAssertEqual(notes?.next, .hum(.odeToJoy))
-        for step in Level.path.flatMap(\.steps) { XCTAssertNotNil(Level.position(of: step)) }
+        for step in Level.path.flatMap(\.lessons) { XCTAssertNotNil(Level.position(of: step)) }
     }
 
     func testStoredIDsAreRememberedOnceEach() {
@@ -121,52 +121,52 @@ final class LevelTests: XCTestCase {
         XCTAssertEqual(kept.successfulAttempts, CompletionRule.requiredSuccesses)
     }
 
-    func testPhraseStepRollsUpItsFourPhrases() {
+    func testPhraseLessonRollsUpItsFourPhrases() {
         let none = PracticeProgress(stars: [])
         let tried = PracticeProgress(stars: [1])
         let passed = PracticeProgress(stars: [2])
         let gold = PracticeProgress(stars: [3, 3, 3])
 
-        let untouched = StepProgress([none, none, none, none])
+        let untouched = LessonProgress([none, none, none, none])
         XCTAssertEqual(untouched.status, "0 of 4 phrases passed")
-        XCTAssertEqual(StepProgress([none, passed, none], partNoun: "notes").status, "1 of 3 notes passed")
+        XCTAssertEqual(LessonProgress([none, passed, none], partNoun: "notes").status, "1 of 3 notes passed")
         XCTAssertFalse(untouched.passed || untouched.started)
 
-        let partial = StepProgress([gold, passed, tried, none])
+        let partial = LessonProgress([gold, passed, tried, none])
         XCTAssertEqual(partial.status, "2 of 4 phrases passed")
         XCTAssertTrue(partial.started)
         XCTAssertFalse(partial.passed)
 
-        let allPassed = StepProgress([gold, passed, passed, gold])
+        let allPassed = LessonProgress([gold, passed, passed, gold])
         XCTAssertTrue(allPassed.passed)
         XCTAssertFalse(allPassed.gold, "Gold needs every phrase's gold")
         XCTAssertEqual(allPassed.status, "Passed")
 
-        let allGold = StepProgress([gold, gold, gold, gold])
+        let allGold = LessonProgress([gold, gold, gold, gold])
         XCTAssertTrue(allGold.gold && allGold.passed)
         XCTAssertEqual(allGold.status, "Gold")
     }
 
-    func testSingleStepStatusAndStepsWithoutProgress() {
-        XCTAssertEqual(StepProgress([PracticeProgress(stars: [])]).status, "Not started")
-        XCTAssertEqual(StepProgress([PracticeProgress(stars: [])], started: true).status, "In progress")
-        XCTAssertEqual(StepProgress([PracticeProgress(stars: [1])]).status, "Not started",
+    func testSingleLessonStatusAndLessonsWithoutProgress() {
+        XCTAssertEqual(LessonProgress([PracticeProgress(stars: [])]).status, "Not started")
+        XCTAssertEqual(LessonProgress([PracticeProgress(stars: [])], started: true).status, "In progress")
+        XCTAssertEqual(LessonProgress([PracticeProgress(stars: [1])]).status, "Not started",
                        "A one-star attempt alone is reported by the caller as started")
-        XCTAssertEqual(StepProgress([PracticeProgress(stars: [2])]).status, "Passed")
-        let untracked = StepProgress([])
-        XCTAssertFalse(untracked.passed || untracked.gold, "A step with nothing to earn is never passed")
+        XCTAssertEqual(LessonProgress([PracticeProgress(stars: [2])]).status, "Passed")
+        let untracked = LessonProgress([])
+        XCTAssertFalse(untracked.passed || untracked.gold, "A lesson with nothing to earn is never passed")
     }
 
-    func testLevelCountsPassedStepsAndCompletesWhenAllArePassed() {
+    func testLevelCountsPassedLessonsAndCompletesWhenAllArePassed() {
         let level = Level.path[1]
-        let passed: Set<PathStep> = [.listen(.hotCrossBuns), .tap(.hotCrossBuns)]
-        XCTAssertEqual(level.passedSteps { passed.contains($0) }, 2)
+        let passed: Set<PathLesson> = [.listen(.hotCrossBuns), .tap(.hotCrossBuns)]
+        XCTAssertEqual(level.passedLessons { passed.contains($0) }, 2)
         XCTAssertFalse(level.isComplete { passed.contains($0) })
         XCTAssertTrue(level.isComplete { _ in true })
     }
 
     func testALevelIsCelebratedOnceAndTheFurthestOneFirst() {
-        let firstLevel = Set(Level.path[0].steps)
+        let firstLevel = Set(Level.path[0].lessons)
         XCTAssertNil(Level.newlyCompleted(celebrated: "") { _ in false })
         XCTAssertEqual(Level.newlyCompleted(celebrated: "") { firstLevel.contains($0) }?.id, "firstSounds")
         XCTAssertNil(Level.newlyCompleted(celebrated: "firstSounds") { firstLevel.contains($0) })
