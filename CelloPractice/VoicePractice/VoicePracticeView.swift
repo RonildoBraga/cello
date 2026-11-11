@@ -177,6 +177,11 @@ struct VoicePracticeView<Header: View>: View {
                         spoken: mode.hearSpoken, identifier: "previewTargetButton") { changed in
                             if changed { hearOnArrival = true } else { previewReference() }
                         }))
+                    if let hint = mode.quickNotesHint {
+                        Text(hint).font(.footnote).foregroundStyle(Palette.ink)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("quickNotesHint")
+                    }
                     if let session = latestSession, hasResult, showsIdleContent {
                         VStack(spacing: 16) {
                             if let rating = session.melodyRating {

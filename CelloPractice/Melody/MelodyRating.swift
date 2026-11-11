@@ -84,6 +84,24 @@ struct MelodyRating: Codable, Equatable, Sendable {
                : "Change as its bar reaches the line.")
     }
 
+    /// Names the first note whose pitch was off and which way to move it.
+    var notesAdvice: String? {
+        guard let note = noteResults.first(where: { $0.expectedFrequency != nil && !$0.matched }),
+              let expected = note.expectedFrequency, let observed = note.observedFrequency else { return nil }
+        let position = noteResults.filter { $0.expectedFrequency != nil }.firstIndex(of: note) ?? 0
+        let name = "\(position == 0 ? "The first note" : "Note \(position + 1)") (\(NoteName.frequency(expected)))"
+        let cents = 1_200 * log2(observed / expected)
+        guard abs(cents) >= 60 else {
+            // Near enough on the whole. A note heard clearly for most of its length missed
+            // because it moved about; one that was not may only have been cut short, and
+            // the saved result cannot tell, so the general advice stays.
+            return note.clear ? "\(name) wavered. Find it, then keep it steady." : nil
+        }
+        let amount = abs(cents) < 120 ? "a little too" : "too"
+        return "\(name) was \(amount) \(cents < 0 ? "low" : "high"). "
+            + (position == 0 ? "Hear the start again and begin on its pitch." : "Aim \(cents < 0 ? "higher" : "lower") on that note.")
+    }
+
     /// One next action, rather than several competing instructions.
     var feedback: String {
         switch status {
@@ -93,9 +111,9 @@ struct MelodyRating: Codable, Equatable, Sendable {
             return "The sound was not clear enough to score. Try again gently, in a quieter spot."
         case .rated:
             if octaveMismatch { return "That was in a different octave. Hear the reference again and match its first note." }
-            if !notes { return "Listen to this phrase again and follow each note as it changes." }
+            if !notes { return notesAdvice ?? "Listen to this phrase again and follow each note as it changes." }
             if !timing {
-                return timingAdvice ?? "Start as the first bar reaches the line, then follow the note lengths. Separate the quick repeated notes gently."
+                return timingAdvice ?? "Start as the first bar reaches the line, then follow the note lengths. Give each quick note a clear start and keep it going until the next."
             }
             if !clarity { return "Keep a gentle, clear sound going through each note." }
             return "All three goals reached. Try this phrase again, then move to the next one."

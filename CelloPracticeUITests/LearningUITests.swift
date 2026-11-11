@@ -721,19 +721,30 @@ final class LearningUITests: XCTestCase {
         waitForRecord(in: app, timeout: 10)
         XCTAssertFalse(app.staticTexts["melodyRatingStars"].exists, "Hearing a note is not a take")
 
+        // A note the melody repeats quickly is met on its own, with advice on how to start it afresh.
+        XCTAssertFalse(app.staticTexts["quickNotesHint"].exists, "A held note needs no such advice")
+        XCTAssertTrue(app.buttons["part-A2 · 8 quick notes"].exists)
+        app.buttons["part-G2 · 8 quick notes"].tap()
+        let quick = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Cancel"), object: record)
+        XCTAssertEqual(XCTWaiter.wait(for: [quick], timeout: 4), .completed, "Choosing the quick notes plays them")
+        XCTAssertTrue(hear.label.hasPrefix("G2 · 8 quick notes"))
+        XCTAssertTrue(app.staticTexts["quickNotesHint"].label.contains("doo-doo-doo-doo"))
+        waitForRecord(in: app, timeout: 10)
+        screenshot("Hot Cross Buns · eight quick notes")
+
         // The same lesson on the cello: the same notes in the cello's key, with its own chips.
         let method = app.segmentedControls["practiceMethodPicker"]
         XCTAssertTrue(method.buttons["Voice"].isSelected)
         XCTAssertFalse(app.buttons["celloIntroductionLink"].exists)
         method.buttons["Cello"].tap()
         XCTAssertTrue(app.buttons["part-F♯3"].waitForExistence(timeout: 5))
-        // The note on show keeps its place: A2, the second note, becomes E3.
-        XCTAssertTrue(hear.label.hasPrefix("E3"))
+        // What is on show keeps its place: the quick G2's become the cello's quick D3's.
+        XCTAssertTrue(hear.label.hasPrefix("D3 · 8 quick notes"))
         XCTAssertTrue(app.buttons["celloIntroductionLink"].exists, "On the cello, Meet your cello is one tap away")
         screenshot("Hot Cross Buns · meet the notes on the cello")
         method.buttons["Voice"].tap()
         XCTAssertTrue(app.buttons["part-B2"].waitForExistence(timeout: 5))
-        XCTAssertTrue(hear.label.hasPrefix("A2"))
+        XCTAssertTrue(hear.label.hasPrefix("G2 · 8 quick notes"))
         assertNoWrittenInput(in: app)
         assertNoPermissionAlerts(in: app)
     }

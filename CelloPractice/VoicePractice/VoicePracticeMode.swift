@@ -34,6 +34,8 @@ enum VoicePracticeMode: Equatable {
 
     /// Voice or cello, read from what is recorded.
     private var method: PracticeMethod { PracticeMethod(exercise: exercise, melody: melodyContext) }
+    /// What the learner does: "hum" or "play", or "sing" where quick notes need a syllable.
+    private var verb: String { quickNotesHint != nil && method == .voice ? "sing" : method.verb }
 
     var targetFrequency: Double {
         if let context = melodyContext {
@@ -132,6 +134,7 @@ enum VoicePracticeMode: Equatable {
             let note = NoteName.frequency(targetFrequency)
             return String(format: "Target %@ · %.1f Hz", note, targetFrequency)
         case .phrase(let context) where context.noteDrillPiece != nil:
+            if let repeated = context.repeatedNote { return "Reference \(repeated.name), \(repeated.count) quick notes" }
             return "Reference \(context.noteNames.joined(separator: " then "))"
         case .phrase(let context):
             let range = MelodyPiece(rawValue: context.pieceID)?.rangeLabel(for: context.register) ?? context.rangeLabel
@@ -156,13 +159,13 @@ enum VoicePracticeMode: Equatable {
     var idleLabel: String { isEcho ? "READY" : "LIVE TUNER" }
     var idleTitle: String { isEcho ? "Your turn" : "Ready" }
     /// Shown while recording before any pitch is heard.
-    var recordingTitle: String { method.verb.capitalized }
+    var recordingTitle: String { verb.capitalized }
 
     func idleMessage(referenceHeard: Bool) -> String {
         switch self {
         case .note: return "Record counts 1–2–3–4 first"
-        case .phrase(let context): return "1–2–3–4, then \(method.verb) for \(Int(context.duration)) seconds"
-        case .echo: return referenceHeard ? "Tap Record, then \(method.verb) after 1–2–3–4." : "Tap the pattern above to hear it first."
+        case .phrase(let context): return "1–2–3–4, then \(verb) for \(Int(context.duration)) seconds"
+        case .echo: return referenceHeard ? "Tap Record, then \(verb) after 1–2–3–4." : "Tap the pattern above to hear it first."
         }
     }
 
@@ -170,10 +173,20 @@ enum VoicePracticeMode: Equatable {
         switch self {
         case .note: return method == .voice ? "Listen to the hum" : "Listen to the string note"
         case .phrase(let context) where context.noteDrillPiece != nil:
+            if context.repeatedNote != nil { return "Listen to the quick notes" }
             return context.expectedEvents.count == 1 ? "Listen to the note" : "Listen to the two notes"
         case .phrase(let context): return context.section == .whole ? "Listen to the melody" : "Listen to the phrase"
         case .echo: return "Remember the notes and their rhythm."
         }
+    }
+
+    /// Shown with a take that repeats a note quickly. A closed-lip hum has nothing
+    /// to restart a note with, and gaps between the notes cost their timing and clarity.
+    var quickNotesHint: String? {
+        guard !isEcho, melodyContext?.repeatsQuickNotes == true else { return nil }
+        return method == .voice
+            ? "Quick notes: sing “doo-doo-doo-doo” instead of humming, and keep each note going until the next one starts."
+            : "Quick notes: play each one separately, and let it sound until the next one starts."
     }
 
     private var echoCountdownMessage: String { "Start \(method == .cello ? "playing" : "humming") when the countdown ends." }
@@ -181,7 +194,7 @@ enum VoicePracticeMode: Equatable {
         isEcho ? echoCountdownMessage : recordsVideo ? "Preparing camera & microphone…" : "Preparing microphone…"
     }
     var countInMessage: String {
-        isEcho ? echoCountdownMessage : "Get ready to \(method.verb)"
+        isEcho ? echoCountdownMessage : "Get ready to \(verb)"
     }
     var startingMessage: String { isEcho ? echoCountdownMessage : "Starting recording…" }
     var reviewingMessage: String {
@@ -196,12 +209,12 @@ enum VoicePracticeMode: Equatable {
             return reading.frequency == nil ? (isTimed ? "Hum one gentle note" : "Play one steady note") : nil
         case .phrase(let context):
             let hint = context.noteDrillPiece == nil ? " · follow the phrase" : ""
-            return note.map { "\(method.verb.capitalized) \($0)\(hint)" } ?? "Rest"
+            return note.map { "\(verb.capitalized) \($0)\(hint)" } ?? "Rest"
         case .echo:
             guard let note else { return "Pattern finished" }
-            guard let cents = reading.cents else { return "\(method.verb.capitalized) \(note) · aim for the centre" }
+            guard let cents = reading.cents else { return "\(verb.capitalized) \(note) · aim for the centre" }
             if abs(cents) <= 10 { return "Close to \(note)" }
-            return cents < 0 ? "Below \(note) · \(method.verb) higher" : "Above \(note) · \(method.verb) lower"
+            return cents < 0 ? "Below \(note) · \(verb) higher" : "Above \(note) · \(verb) lower"
         }
     }
 
