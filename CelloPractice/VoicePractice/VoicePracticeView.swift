@@ -31,20 +31,15 @@ struct VoicePracticeView<Header: View>: View {
     private var hasResult: Bool { latestSession?.rating != nil || latestSession?.melodyRating != nil }
 
     private let mode: VoicePracticeMode
-    private let nextLesson: PracticeLesson?
-    private let onStartLesson: ((PracticeLesson) -> Void)?
     private let nextPhrase: (title: String, action: () -> Void)?
     private let header: (Bool) -> Header
 
     init(store: SessionStore, capture: CaptureController, mode: VoicePracticeMode,
-         nextLesson: PracticeLesson? = nil, onStartLesson: ((PracticeLesson) -> Void)? = nil,
          nextPhrase: (title: String, action: () -> Void)? = nil,
          @ViewBuilder header: @escaping (Bool) -> Header) {
         self.store = store
         self.capture = capture
         self.mode = mode
-        self.nextLesson = nextLesson
-        self.onStartLesson = onStartLesson
         self.nextPhrase = nextPhrase
         self.header = header
     }
@@ -185,9 +180,6 @@ struct VoicePracticeView<Header: View>: View {
     }
 
     private func nextStep(completed: Bool) -> NextStep? {
-        if let nextLesson, onStartLesson != nil {
-            return .lesson(nextLesson, completed: completed) { startLesson(nextLesson) }
-        }
         guard let nextPhrase, !mode.nextStepNeedsResult || hasResult else { return nil }
         // A fresh echo pattern is always something to try, never a continuation.
         return .item(nextPhrase.title, completed: completed && !mode.isEcho, identifier: mode.nextStepIdentifier) {
@@ -351,12 +343,6 @@ struct VoicePracticeView<Header: View>: View {
     private var canStartAction: Bool {
         isVisible && phase == .idle && !capture.isRecording && !capture.isPlayingReference
             && !saving && restSeconds == 0
-    }
-
-    private func startLesson(_ lesson: PracticeLesson) {
-        guard canStartAction else { return }
-        cancelFlow(stopCapture: true)
-        onStartLesson?(lesson)
     }
 
     private func previewReference() {

@@ -16,7 +16,7 @@ Music (the path)
   Level 2 · Hot Cross Buns    Listen → Tap it → Meet the notes → Hum it → Whole melody
   Level 3 · Ode to Joy        Listen → Tap it → Meet the notes → Hum it → Whole melody
   Level 4 · Cello             Meet your cello → Open C → Open G → Open D → Open A
-  (info button)               long-term goal, further reading, recording credits
+About → long-term goal, who built it, sound sources and licences, lesson references
 Recordings → existing local audio/video history
 ```
 
@@ -24,9 +24,15 @@ The path replaced separate Foundations and Pieces libraries ([issue #49](https:/
 
 The level holding the first unfinished step opens when the path appears, and that step is marked Continue. It is a suggestion only: every level can be opened and every step tapped.
 
-Everything belongs to a level. An earlier version kept the cello lessons, Mixed rhythm, Listen & Echo, a note about Bach and the credits below the levels; on the phone that read as clutter with no place in the journey. Mixed rhythm and Listen & Echo now close Level 1, the cello is the last level because it needs an instrument, and the Bach note and credits moved behind an info button. Listen & Echo is passed by a passing two-note take; Meet your cello is passed by reading it.
+Everything belongs to a level. An earlier version kept the cello lessons, Mixed rhythm, Listen & Echo, a note about Bach and the credits below the levels; on the phone that read as clutter with no place in the journey. Mixed rhythm and Listen & Echo now close Level 1, the cello is the last level because it needs an instrument, and the Bach note and credits moved to an About tab beside Music and Recordings (an info button on Music was tried first and took too much room). Listen & Echo is passed by a passing two-note take; Meet your cello is passed by reading it.
 
 Every step uses one compact row, whatever it opens: step number, title, progress in words and the best score out of three. A step made of phrases or notes shows the weakest best score across them, so three stars means every part reached three. Listen and Meet your cello are not scored and show no stars. A level's steps share one card, so a whole level fits on a screen.
+
+### Inside a step
+
+Every step's screen opens with the same header (`StepHeader`): the level ("Level 1 · First sounds"), the step's title, one plain line about what to do, and a step bar, "‹ Step 1 of 6 · Listen & match ›". The arrows move to the previous and next step of the level and fade at its first and last step. Moving with the bar replaces the screen, so Back always returns to Music. A lesson's page, with instructions and scores, is what a tap on the path opens; its Start button also leads to a practice screen directly above the path.
+
+Under the practice area one line reports both tiers in words: "Passed · Gold: 2 of 3 three-star takes". Inside a melody step the same row still offers the next phrase or note.
 
 ### Primers
 
@@ -51,7 +57,7 @@ A lesson or the whole melody is one part. Tap it and Hum it roll up four phrases
 
 No saved format changed. Two small preferences hold what no take records: the melodies heard to the end and the levels already celebrated.
 
-Music and Recordings are the two iPhone tabs. Practice is a screen, not a tab: every activity — a lesson, a melody's Listen, Tap it or Hum it step, Listen & Echo — is pushed inside Music and left with Back ([issue #33](https://github.com/RonildoBraga/cello/issues/33)). Starting a foundation lesson pushes a fresh, ready practice screen above that lesson's page; "Try lesson N" replaces it with the next lesson's page and practice screen, so Back always matches what is on screen.
+Music, Recordings and About are the three iPhone tabs. Practice is a screen, not a tab: every activity — a lesson, a melody's Listen, Tap it or Hum it step, Listen & Echo — is pushed inside Music and left with Back ([issue #33](https://github.com/RonildoBraga/cello/issues/33)). Starting a lesson pushes a fresh, ready practice screen directly above the path.
 
 An earlier release had a separate Practice tab with its own area and lesson pickers. It was removed because it duplicated the Music tab's lists, could fall out of step with the Music tab, and could not host piece or Echo practice.
 
@@ -61,7 +67,7 @@ This is a design choice informed by [Apple’s sidebar guidance](https://develop
 
 - Each existing lesson appears exactly once, on the path or below it.
 - Original lesson IDs and lesson numbers stay stable: Humming 1–2, Rhythm 3–5 and Cello 1–4. The path shows a step's place in its level; lesson pages keep the lesson number. Saved ratings, raw media, references and earned completion are unchanged.
-- The path and next actions share the same lesson-opening action. Humming Lesson 2 can still recommend Rhythm Lesson 3.
+- The path, the lesson page and the step bar share the same lesson-opening action.
 - A navigation area never supplies a recording pitch target. Existing voice/cello target rules stay separate from the new `LearningArea` model.
 - Leaving practice cancels unfinished rounds/count-ins. A take already finishing saves under its original exercise and reference.
 - A melody level shows only steps that work today. It has no inactive control and no fabricated readiness percentage.

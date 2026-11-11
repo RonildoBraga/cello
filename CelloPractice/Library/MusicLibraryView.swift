@@ -47,7 +47,6 @@ struct MusicLibraryView: View {
     /// The levels showing their steps. The level holding the next step opens
     /// each time the path comes into view.
     @State private var open: Set<String> = []
-    @State private var showsAbout = false
 
     /// The first step on the path that has not been passed yet.
     private var next: (level: Level, step: PathStep)? { Level.nextStep(isPassed: isPassed) }
@@ -66,13 +65,6 @@ struct MusicLibraryView: View {
             }.background(Palette.paper)
                 .accessibilityIdentifier("musicLibraryHome")
                 .screenTitle("Music")
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button { showsAbout = true } label: { Image(systemName: "info.circle") }
-                            .accessibilityLabel("About this path").accessibilityIdentifier("aboutButton")
-                    }
-                }
-                .sheet(isPresented: $showsAbout) { AboutPathView() }
                 .onAppear {
                     if let level = next?.level { open.insert(level.id) }
                     if let level = Level.newlyCompleted(celebrated: celebrated, isPassed: isPassed) {
@@ -81,8 +73,10 @@ struct MusicLibraryView: View {
                             .reduce(celebrated) { StoredIDs.adding($1.id, to: $0) }
                     }
                 }
-                .navigationDestination(for: MusicRoute.self) { destination($0) }
-        }.tint(Palette.forest)
+                // A route's screen is rebuilt when the step bar swaps it for another of the
+                // same kind, so it never inherits the previous screen's selections.
+                .navigationDestination(for: MusicRoute.self) { destination($0).id($0) }
+        }.tint(Palette.forest).environment(\.openPathStep, open)
     }
 
     @ViewBuilder
@@ -98,8 +92,7 @@ struct MusicLibraryView: View {
         case .lesson(let lesson):
             LessonDetailView(lesson: lesson, store: store, rhythmStores: rhythmStores, onStartLesson: practise)
         case .practice(let lesson):
-            FoundationPracticeView(lesson: lesson, store: store, capture: capture, rhythmStores: rhythmStores,
-                                   onStartLesson: practise).id(lesson)
+            FoundationPracticeView(lesson: lesson, store: store, capture: capture, rhythmStores: rhythmStores)
         case .celloIntroduction: CelloIntroductionView(capture: capture)
         case .echo: EchoPracticeView(store: store, capture: capture)
         case .pieceHumming(let piece, let section):
@@ -110,10 +103,15 @@ struct MusicLibraryView: View {
         }
     }
 
-    /// Opens a lesson's practice screen above its own lesson page, so Back
-    /// always leads somewhere that matches what is on screen.
+    /// Opens a lesson's practice screen directly above the path, so Back
+    /// always returns to Music.
     private func practise(_ lesson: PracticeLesson) {
-        path = needsPrimer(lesson) ? [.primer(lesson)] : [.lesson(lesson), .practice(lesson)]
+        path = needsPrimer(lesson) ? [.primer(lesson)] : [.practice(lesson)]
+    }
+
+    /// Moves to another step from the step bar, replacing the current screen.
+    private func open(_ step: PathStep) {
+        if case .lesson(let lesson) = step { practise(lesson) } else { path = [step.route] }
     }
 
     /// A lesson's new idea is explained once, before the lesson is first opened.
@@ -352,7 +350,7 @@ private struct LessonDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 25) {
-                ScreenHeader(eyebrow: "Lesson \(String(format: "%02d", lesson.number)) · \(lesson.area.title)",
+                ScreenHeader(eyebrow: Level.position(of: .lesson(lesson)).map { "Level \($0.level.number) · \($0.label)" },
                              title: lesson.title, subtitle: lesson.purpose, titleIdentifier: "lessonDetailTitle")
 
                 if let primer = lesson.primer {

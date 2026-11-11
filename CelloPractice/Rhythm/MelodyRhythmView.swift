@@ -14,9 +14,10 @@ struct MelodyRhythmView: View {
                               patternHint: piece.rhythmHint(for: section),
                               next: section.next.map { next in (next.title, { section = next }) }) { locked in
             VStack(alignment: .leading, spacing: 12) {
-                ScreenHeader(eyebrow: piece.title, title: "Tap it",
-                             subtitle: "Tap once when each note starts. Keep counting while a long note continues.",
-                             collapsesSubtitle: store.progress(for: context).successfulAttempts > 0)
+                StepHeader(step: .tap(piece),
+                           subtitle: "Tap once when each note starts. Keep counting while a long note continues.",
+                           collapsesSubtitle: store.progress(for: context).successfulAttempts > 0)
+                    .disabled(locked)
                 HStack {
                     SectionMenu(selection: $section) { store.progress(for: piece.rhythm(section: $0)).completed }
                         .disabled(locked).accessibilityIdentifier("melodyRhythmSectionPicker")
@@ -65,17 +66,7 @@ private struct MelodyRhythmRoundView<Header: View>: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     header(locked).id("melodyRhythmTop")
-                    if let attempt = finishedAttempt, !capture.isPlayingReference {
-                        VStack(spacing: 16) {
-                            MelodyRhythmResultView(attempt: attempt, errorMessage: store.errorMessage)
-                            progress
-                            MelodyRhythmTimingChart(attempt: attempt)
-                        }.id("melodyRhythmResult")
-                    } else {
-                        pattern
-                        tapCard
-                        if !running { progress }
-                    }
+                    // Hearing the phrase comes before tapping it, so the button stays in view above the pattern.
                     HStack {
                         Label("Recorded hum", systemImage: "waveform").font(.caption)
                             .foregroundStyle(Palette.muted)
@@ -88,6 +79,17 @@ private struct MelodyRhythmRoundView<Header: View>: View {
                                   systemImage: "speaker.wave.2")
                         }.buttonStyle(SecondaryActionButtonStyle()).disabled(locked)
                             .accessibilityIdentifier("melodyRhythmHearButton")
+                    }
+                    if let attempt = finishedAttempt, !capture.isPlayingReference {
+                        VStack(spacing: 16) {
+                            MelodyRhythmResultView(attempt: attempt, errorMessage: store.errorMessage)
+                            progress
+                            MelodyRhythmTimingChart(attempt: attempt)
+                        }.id("melodyRhythmResult")
+                    } else {
+                        pattern
+                        tapCard
+                        if !running { progress }
                     }
                     if finishedAttempt == nil, let error = store.errorMessage {
                         Text(error).font(.footnote).foregroundStyle(.red)

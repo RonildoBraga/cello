@@ -25,33 +25,20 @@ final class PracticeLessonTests: XCTestCase {
         XCTAssertEqual(humming.count + rhythm.count + cello.count, PracticeLesson.allCases.count)
     }
 
-    func testOriginalFoundationRecommendationsContinueAcrossAreasAndStopAtEachPathEnd() {
-        let transitions: [(PracticeLesson, PracticeLesson)] = [
-            (.steadyHum, .matchHum), (.matchHum, .pulse), (.pulse, .twoTaps), (.twoTaps, .mixedRhythm),
-            (.openC, .openG), (.openG, .openD), (.openD, .openA)
-        ]
-        for (current, expected) in transitions {
-            XCTAssertEqual(current.next, expected)
-            XCTAssertEqual(expected.number, current.number + 1)
-        }
-        XCTAssertEqual(PracticeLesson.matchHum.area, .humming)
-        XCTAssertEqual(PracticeLesson.matchHum.next?.area, .rhythm)
-        XCTAssertNil(PracticeLesson.mixedRhythm.next)
-        XCTAssertNil(PracticeLesson.openA.next)
+    func testLessonNumbersStayStableWithinTheirOriginalSequences() {
+        XCTAssertEqual([PracticeLesson.steadyHum, .matchHum, .pulse, .twoTaps, .mixedRhythm].map(\.number), [1, 2, 3, 4, 5])
+        XCTAssertEqual([PracticeLesson.openC, .openG, .openD, .openA].map(\.number), [1, 2, 3, 4])
     }
 
-    func testNextLessonStaysAvailableBeforeCompletionAndAfterDeletedHistory() {
-        let lesson = PracticeLesson.matchHum
+    func testEarnedCompletionSurvivesDeletedHistory() {
         var ledger = PracticeProgressLedger()
         XCTAssertFalse(ledger.progress(for: .matchHum, targetFrequency: HummingExample.frequency,
                                        sessions: []).completed)
-        XCTAssertEqual(lesson.next, .pulse)
         let successes = (0..<3).map { session(at: $0, stars: 3, exercise: .matchHum) }
         XCTAssertTrue(ledger.update(from: successes))
         for history in [successes, []] {
             XCTAssertTrue(ledger.progress(for: .matchHum, targetFrequency: HummingExample.frequency,
                                           sessions: history).completed)
-            XCTAssertEqual(lesson.next, .pulse)
         }
     }
 

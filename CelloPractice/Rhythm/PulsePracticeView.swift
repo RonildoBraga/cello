@@ -2,19 +2,14 @@ import SwiftUI
 
 struct PulsePracticeView<Header: View>: View {
     @ObservedObject var store: PulsePracticeStore
-    let nextLesson: PracticeLesson?
-    let onNext: ((PracticeLesson) -> Void)?
     private let header: Header
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var round = RhythmRound<PulseTiming>()
     @State private var finishedAttempt: PulseAttempt?
 
-    init(store: PulsePracticeStore, nextLesson: PracticeLesson? = nil,
-         onNext: ((PracticeLesson) -> Void)? = nil, @ViewBuilder header: () -> Header) {
+    init(store: PulsePracticeStore, @ViewBuilder header: () -> Header) {
         self.store = store
-        self.nextLesson = nextLesson
-        self.onNext = onNext
         self.header = header()
     }
 
@@ -51,11 +46,7 @@ struct PulsePracticeView<Header: View>: View {
     }
 
     private var progress: some View {
-        let saved = store.progress
-        let next = nextLesson.flatMap { lesson in
-            onNext.map { open in NextStep.lesson(lesson, completed: saved.completed) { open(lesson) } }
-        }
-        return PracticeProgressView(progress: saved, next: next, attemptNoun: "rounds")
+        PracticeProgressView(progress: store.progress, attemptNoun: "rounds")
     }
 
     private var tapCard: some View {

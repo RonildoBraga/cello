@@ -15,7 +15,7 @@ A native iPhone practice companion for beginners learning music while preparing 
 
 Each Level 1 lesson opens the first time with a short primer that explains its new idea in plain words: a note, higher and lower, a beat, two taps per beat.
 
-Every step belongs to a level, and every step uses the same compact row: its place in the level, its title, how far it has got and its best score. The cello level comes last because it needs an instrument. The info button on Music opens the long-term goal (Bach’s Cello Suite No. 1), further reading and the recording credits. See [the path design](https://github.com/RonildoBraga/cello/issues/53).
+Every step belongs to a level, and every step uses the same compact row: its place in the level, its title, how far it has got and its best score. The cello level comes last because it needs an instrument. The **About** tab holds the long-term goal (Bach’s Cello Suite No. 1), who built the app, where every sound comes from and what informed the lessons. See [the path design](https://github.com/RonildoBraga/cello/issues/53).
 
 The lessons include:
 

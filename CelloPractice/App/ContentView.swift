@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    private enum Tab: Hashable { case music, recordings }
+    private enum Tab: Hashable { case music, recordings, about }
     @ObservedObject var store: SessionStore
     @StateObject private var capture = CaptureController()
     @StateObject private var rhythmStores = RhythmStores()
@@ -17,6 +17,9 @@ struct ContentView: View {
             RecordingsView(store: store, onOpenMusic: { selectedTab = .music })
                 .tabItem { Label("Recordings", systemImage: "play.rectangle.on.rectangle") }
                 .tag(Tab.recordings)
+            AboutView()
+                .tabItem { Label("About", systemImage: "info.circle") }
+                .tag(Tab.about)
         }
     }
 }

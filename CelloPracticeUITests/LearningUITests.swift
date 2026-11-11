@@ -10,7 +10,7 @@ final class LearningUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.navigationBars["Music"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.tabBars.buttons["Music"].isSelected)
-        for tab in ["Music", "Recordings"] { XCTAssertTrue(app.tabBars.buttons[tab].isHittable) }
+        for tab in ["Music", "Recordings", "About"] { XCTAssertTrue(app.tabBars.buttons[tab].isHittable) }
         XCTAssertFalse(app.tabBars.buttons["Practice"].exists, "Practice is a screen pushed from Music, not a tab")
         for id in ["foundation-humming", "foundation-rhythm", "foundation-cello", "piece-hotCrossBuns"] {
             XCTAssertFalse(app.buttons[id].exists, "Foundations and Pieces are no longer separate lists")
@@ -50,19 +50,34 @@ final class LearningUITests: XCTestCase {
         // With every level open, one step at most is marked as the next one.
         let marked = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Continue, Step"))
         XCTAssertEqual(marked.count, unfinished ? 1 : 0, "Exactly one step is highlighted as Continue")
-        // The long-term goal and the credits sit behind the info button, off the path.
+        // The long-term goal and the credits live on the About tab, off the path.
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "pathDestinationNote").firstMatch.exists)
-        app.buttons["aboutButton"].tap()
-        let note = app.descendants(matching: .any).matching(identifier: "pathDestinationNote").firstMatch
-        XCTAssertTrue(note.waitForExistence(timeout: 5))
-        XCTAssertTrue(note.label.contains("Bach"))
-        XCTAssertTrue(app.buttons["Creative Commons Attribution 3.0"].exists
-                      || app.links["Creative Commons Attribution 3.0"].exists, "Recording credits stay available")
-        screenshot("Music · about this path")
-        app.buttons["aboutDoneButton"].tap()
-        XCTAssertTrue(app.buttons["level-firstSounds"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["aboutButton"].exists, "Music has no info button")
         assertNoWrittenInput(in: app)
         assertNoPermissionAlerts(in: app)
+    }
+
+    func testAboutTabCreditsTheBuildersAndEverySoundSource() {
+        let app = XCUIApplication.cello()
+        app.launch()
+        app.tabBars.buttons["About"].tap()
+        XCTAssertTrue(app.staticTexts["aboutTitle"].waitForExistence(timeout: 5))
+        for text in ["Ronildo Braga", "Claude, by Anthropic", "“Deep Humming Noise” by retropttam", "VSCO 2 Community Edition"] {
+            let credit = app.staticTexts[text]
+            app.scroll(to: credit)
+        }
+        for link in ["Original recording on Freesound", "Creative Commons Attribution 3.0", "Creative Commons CC0 1.0"] {
+            XCTAssertTrue(app.buttons[link].exists || app.links[link].exists, "\(link) should stay available")
+        }
+        screenshot("About · sound sources")
+        let version = app.staticTexts["aboutVersion"]
+        app.scroll(to: version)
+        XCTAssertTrue(version.label.hasPrefix("Cello "))
+        XCTAssertFalse(app.buttons["practiceRecordButton"].exists)
+        assertNoWrittenInput(in: app)
+        assertNoPermissionAlerts(in: app)
+        app.tabBars.buttons["Music"].tap()
+        XCTAssertTrue(app.buttons["level-firstSounds"].waitForExistence(timeout: 5))
     }
 
     func testMelodyLevelOpensWholeMelodyAndLessonsWithoutInventingScores() {
@@ -77,6 +92,22 @@ final class LearningUITests: XCTestCase {
         app.pathStep("step-hotCrossBuns-hum").tap()
         XCTAssertTrue(app.navigationBars["Hot Cross Buns"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.staticTexts["screenTitle"].label, "Hum it")
+        XCTAssertEqual(app.buttons["melodyHummingSectionPicker"].label, "Section: Phrase 1")
+
+        // Choosing another section stays in this step, so the step bar still
+        // leads somewhere: on to Whole melody, and back again at phrase 1.
+        selectMelodyHummingSection("Whole melody", in: app)
+        XCTAssertEqual(app.staticTexts["stepPosition"].label, "Step 4 of 5")
+        app.buttons["nextStepButton"].tap()
+        let position = app.staticTexts["stepPosition"]
+        let onWhole = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Step 5 of 5"), object: position)
+        XCTAssertEqual(XCTWaiter.wait(for: [onWhole], timeout: 5), .completed)
+        XCTAssertEqual(app.staticTexts["screenTitle"].label, "Whole melody")
+        XCTAssertFalse(app.buttons["nextStepButton"].isEnabled, "The last step of a level has no next step")
+        selectMelodyHummingSection("Phrase 2", in: app)
+        app.buttons["previousStepButton"].tap()
+        let onHum = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Step 4 of 5"), object: position)
+        XCTAssertEqual(XCTWaiter.wait(for: [onHum], timeout: 5), .completed)
         XCTAssertEqual(app.buttons["melodyHummingSectionPicker"].label, "Section: Phrase 1")
         openLesson("pulse", title: "Pulse", in: app)
         app.buttons["startLessonButton"].tap()
@@ -148,7 +179,7 @@ final class LearningUITests: XCTestCase {
         let progress = app.staticTexts["practiceProgressText"]
         XCTAssertTrue(progress.waitForExistence(timeout: 5))
         XCTAssertTrue(progress.label.contains("Goal reached"), "Three rated successes should complete the Steady hum goal")
-        XCTAssertTrue(app.buttons["nextExerciseButton"].isEnabled)
+        XCTAssertTrue(app.buttons["nextStepButton"].isEnabled)
         screenshot("Humming · completed goal from three rated takes")
         let completed = progress.label
         app.terminate()
@@ -397,7 +428,7 @@ final class LearningUITests: XCTestCase {
         let app = XCUIApplication.cello()
         launchPractice(in: app)
         XCTAssertTrue(app.navigationBars["Humming"].exists)
-        XCTAssertEqual(app.staticTexts["practiceLessonArea"].label, "Humming")
+        XCTAssertEqual(app.staticTexts["practiceLessonArea"].label, "Level 1 · First sounds")
         assertReadyToRecord(in: app)
         let target = app.staticTexts["currentTargetLabel"]
         let hummingTarget = target.label
@@ -728,7 +759,7 @@ final class LearningUITests: XCTestCase {
         let status = app.descendants(matching: .any).matching(identifier: "melodyPlaybackStatus").firstMatch
         let key = app.staticTexts["melodyReferenceKey"]
         let registers = app.segmentedControls["melodyRegisterPicker"]
-        XCTAssertTrue(app.staticTexts["Ode to Joy"].exists)
+        XCTAssertTrue(app.staticTexts["Level 3 · Ode to Joy"].exists)
         XCTAssertFalse(status.exists, "Opening Listen & follow must not play a reference")
         XCTAssertTrue(key.label.contains("G major") && key.label.contains("G2–D3"))
         registers.buttons["Cello"].tap()
@@ -1202,7 +1233,7 @@ final class LearningUITests: XCTestCase {
         screenshot("Lessons · steady hum instructions")
         app.buttons["startLessonButton"].tap()
         XCTAssertTrue(app.navigationBars["Humming"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.staticTexts["practiceLessonArea"].label, "Humming")
+        XCTAssertEqual(app.staticTexts["practiceLessonArea"].label, "Level 1 · First sounds")
         XCTAssertEqual(app.staticTexts["practiceLessonTitle"].label, "Steady hum")
         XCTAssertEqual(app.staticTexts["currentTargetLabel"].label, target)
         assertReadyToRecord(in: app)
@@ -1213,18 +1244,30 @@ final class LearningUITests: XCTestCase {
         screenshot("Lessons · listening and matching instructions")
         app.buttons["startLessonButton"].tap()
         XCTAssertTrue(app.navigationBars["Humming"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.staticTexts["practiceLessonArea"].label, "Humming")
+        XCTAssertEqual(app.staticTexts["practiceLessonArea"].label, "Level 1 · First sounds")
         XCTAssertEqual(app.staticTexts["practiceLessonTitle"].label, "Listen & match")
         XCTAssertEqual(app.staticTexts["currentTargetLabel"].label, target)
         assertReadyToRecord(in: app)
         assertNoWrittenInput(in: app)
         screenshot("Humming · listen and match")
 
-        // Back from practice leads to that lesson's page, and from there to the path.
+        // The step bar moves back and forward inside the level.
+        XCTAssertEqual(app.staticTexts["stepPosition"].label, "Step 2 of 6")
+        let previous = app.buttons["previousStepButton"]
+        XCTAssertEqual(previous.label, "Previous step, Steady hum")
+        previous.tap()
+        let title = app.staticTexts["practiceLessonTitle"]
+        let onFirst = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Steady hum"), object: title)
+        XCTAssertEqual(XCTWaiter.wait(for: [onFirst], timeout: 5), .completed)
+        XCTAssertEqual(app.staticTexts["stepPosition"].label, "Step 1 of 6")
+        XCTAssertFalse(previous.isEnabled, "The first step of a level has no previous step")
+        XCTAssertEqual(app.staticTexts["currentTargetLabel"].label, target)
+        screenshot("Steady hum · step bar at the first step")
+
+        // Back from practice returns straight to the path.
         app.navigationBars["Humming"].buttons.firstMatch.tap()
-        XCTAssertEqual(app.staticTexts["lessonDetailTitle"].label, "Listen & match")
-        app.navigationBars["Lesson 2"].buttons.firstMatch.tap()
         XCTAssertTrue(app.buttons["level-firstSounds"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["lessonDetailTitle"].exists)
     }
 
     func testPathKeepsEveryLessonOpenWithItsOwnTarget() {
@@ -1253,7 +1296,7 @@ final class LearningUITests: XCTestCase {
         openLesson("openC", title: "Open C string", in: app)
         app.buttons["startLessonButton"].tap()
         XCTAssertTrue(app.navigationBars["Cello"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.staticTexts["practiceLessonArea"].label, "Cello")
+        XCTAssertEqual(app.staticTexts["practiceLessonArea"].label, "Level 4 · Cello · open strings")
         let celloTarget = app.staticTexts["currentTargetLabel"].label
         XCTAssertTrue(celloTarget.contains("C2") && celloTarget.contains("65.4"))
         assertReadyToRecord(in: app)
@@ -1342,7 +1385,7 @@ final class LearningUITests: XCTestCase {
         screenshot("Pulse · ready after cancelling a fresh retry")
 
         startLesson("Steady hum", in: app)
-        XCTAssertEqual(app.staticTexts["practiceLessonArea"].label, "Humming")
+        XCTAssertEqual(app.staticTexts["practiceLessonArea"].label, "Level 1 · First sounds")
         XCTAssertEqual(app.staticTexts["currentTargetLabel"].label, target)
         assertReadyToRecord(in: app)
     }
@@ -1357,22 +1400,23 @@ final class LearningUITests: XCTestCase {
         guard !progress.label.contains("Goal reached") else {
             throw XCTSkip("Requires Listen & match to be incomplete to verify advancing before completion")
         }
-        let next = app.buttons["nextExerciseButton"]
-        reveal(next, in: app)
+        let next = app.buttons["nextStepButton"]
+        app.scroll(to: next)
         XCTAssertTrue(next.isEnabled)
-        XCTAssertTrue(next.label.contains("Lesson 3") && next.label.contains("Pulse"))
+        XCTAssertEqual(next.label, "Next step, Pulse")
         next.tap()
         assertInlinePulseReady(in: app)
         XCTAssertFalse(app.staticTexts["currentTargetLabel"].exists)
         screenshot("Rhythm · next action from humming")
 
-        // Back during a count-in leaves the round; the lesson page starts a fresh one.
+        // Back during a count-in leaves the round and returns to the path; the
+        // lesson starts a fresh one.
         app.buttons["Start"].tap()
         XCTAssertTrue(app.buttons["Stop"].waitForExistence(timeout: 5))
         app.navigationBars["Rhythm"].buttons.firstMatch.tap()
-        XCTAssertEqual(app.staticTexts["lessonDetailTitle"].label, "Pulse",
-                       "Continuing to a lesson keeps its own page behind the practice screen")
-        app.buttons["startLessonButton"].tap()
+        XCTAssertTrue(app.buttons["level-firstSounds"].waitForExistence(timeout: 5),
+                      "Back from practice returns to the path")
+        startLesson("Pulse", in: app)
         assertInlinePulseReady(in: app)
         let pulseProgress = progress.label
 
@@ -1420,14 +1464,14 @@ final class LearningUITests: XCTestCase {
         openLesson("pulse", title: "Pulse", in: app)
         app.buttons["startLessonButton"].tap()
         assertInlinePulseReady(in: app)
-        let next = app.buttons["nextExerciseButton"]
-        reveal(next, in: app)
+        let next = app.buttons["nextStepButton"]
+        app.scroll(to: next)
         XCTAssertTrue(next.isEnabled)
-        XCTAssertTrue(next.label.contains("Continue to Lesson 4") && next.label.contains("Two taps per beat"))
+        XCTAssertEqual(next.label, "Next step, Two taps per beat")
         screenshot("Pulse · earned completion recommends Lesson 4")
         next.tap()
         assertInlinePulseReady(in: app, title: "Two taps per beat")
-        XCTAssertTrue(app.buttons["nextExerciseButton"].label.contains("Lesson 5"), "Lesson 4 should recommend the next available rhythm")
+        XCTAssertEqual(app.buttons["nextStepButton"].label, "Next step, Mixed rhythm")
         assertNoWrittenInput(in: app)
         assertNoPermissionAlerts(in: app)
         screenshot("Lesson 4 · inline from completed Pulse")
@@ -1559,12 +1603,12 @@ final class LearningUITests: XCTestCase {
             throw XCTSkip("Requires externally copied completed Lesson 4 practice history")
         }
         let completed = progress.label
-        let next = app.buttons["nextExerciseButton"]
-        reveal(next, in: app)
-        XCTAssertTrue(next.label.contains("Continue to Lesson 5") && next.label.contains("Mixed rhythm"))
+        let next = app.buttons["nextStepButton"]
+        app.scroll(to: next)
+        XCTAssertEqual(next.label, "Next step, Mixed rhythm")
         next.tap()
         assertInlinePulseReady(in: app, title: "Mixed rhythm")
-        XCTAssertFalse(app.buttons["nextExerciseButton"].exists)
+        XCTAssertEqual(app.buttons["nextStepButton"].label, "Next step, Listen & Echo")
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "mixedRhythmInstructions").firstMatch.isHittable)
         screenshot("Lesson 5 · continue from completed Lesson 4")
         startLesson("Two taps per beat", in: app)
@@ -1597,7 +1641,7 @@ final class LearningUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["12 taps · 8 beats · 60 BPM."].exists)
         XCTAssertFalse(app.staticTexts["currentTargetLabel"].exists)
         XCTAssertFalse(app.buttons["practiceRecordButton"].exists)
-        XCTAssertFalse(app.buttons["nextExerciseButton"].exists)
+        XCTAssertEqual(app.buttons["nextStepButton"].label, "Next step, Listen & Echo")
         assertNoWrittenInput(in: app)
         screenshot("Lesson 5 · mixed rhythm ready")
 
@@ -1691,8 +1735,8 @@ final class LearningUITests: XCTestCase {
         let target = app.staticTexts["currentTargetLabel"].label
         let progress = app.staticTexts["practiceProgressText"]
         XCTAssertTrue(progress.waitForExistence(timeout: 5), "Progress should be available before microphone setup")
-        let next = app.buttons["nextExerciseButton"]
-        reveal(next, in: app)
+        let next = app.buttons["nextStepButton"]
+        app.scroll(to: next)
         XCTAssertTrue(next.isEnabled, "The next exercise must remain available before its predecessor is completed")
         XCTAssertFalse(app.buttons["Turn off camera and microphone"].exists)
         assertNoPermissionAlerts(in: app)
@@ -1829,8 +1873,8 @@ final class LearningUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [selected], timeout: 5), .completed)
         let headerReady = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: heading)
         XCTAssertEqual(XCTWaiter.wait(for: [headerReady], timeout: 5), .completed)
-        XCTAssertEqual(app.staticTexts["practiceLessonArea"].label, "Rhythm")
-        for tab in ["Music", "Recordings"] { XCTAssertTrue(app.tabBars.buttons[tab].isHittable) }
+        XCTAssertEqual(app.staticTexts["practiceLessonArea"].label, "Level 1 · First sounds")
+        for tab in ["Music", "Recordings", "About"] { XCTAssertTrue(app.tabBars.buttons[tab].isHittable) }
         XCTAssertFalse(app.navigationBars[title].exists, "The lesson should share the Rhythm practice screen")
         XCTAssertFalse(app.navigationBars.buttons["Done"].exists)
         assertNoPulseHapticsSwitches(in: app)

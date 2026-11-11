@@ -64,6 +64,25 @@ final class LevelTests: XCTestCase {
         XCTAssertNil(PracticeProgress(stars: []).bestStars)
     }
 
+    func testAStepKnowsItsPlaceAndItsNeighboursInsideItsLevel() {
+        let first = Level.position(of: .lesson(.steadyHum))
+        XCTAssertEqual(first?.label, "Step 1 of 6")
+        XCTAssertNil(first?.previous, "The first step of a level has no previous step")
+        XCTAssertEqual(first?.next, .lesson(.matchHum))
+
+        let last = Level.position(of: .echo)
+        XCTAssertEqual(last?.label, "Step 6 of 6")
+        XCTAssertEqual(last?.previous, .lesson(.mixedRhythm))
+        XCTAssertNil(last?.next, "The step bar stays inside the level")
+
+        let notes = Level.position(of: .meetNotes(.odeToJoy))
+        XCTAssertEqual(notes?.level.id, "odeToJoy")
+        XCTAssertEqual(notes?.label, "Step 3 of 5")
+        XCTAssertEqual(notes?.previous, .tap(.odeToJoy))
+        XCTAssertEqual(notes?.next, .hum(.odeToJoy))
+        for step in Level.path.flatMap(\.steps) { XCTAssertNotNil(Level.position(of: step)) }
+    }
+
     func testStoredIDsAreRememberedOnceEach() {
         var stored = ""
         XCTAssertFalse(StoredIDs.contains("hotCrossBuns", in: stored))

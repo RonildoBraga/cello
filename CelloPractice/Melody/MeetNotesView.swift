@@ -26,9 +26,10 @@ struct MeetNotesView: View {
         VoicePracticeView(store: store, capture: capture, mode: .phrase(context),
                           nextPhrase: next.map { next in (next.title, { drill = next }) }) { locked in
             VStack(alignment: .leading, spacing: 17) {
-                ScreenHeader(eyebrow: piece.title, title: "Meet the notes",
+                StepHeader(step: .meetNotes(piece),
                              subtitle: "This melody uses \(NoteDrill.notes(for: piece).count) notes. Hear one, then hum it back after 3–2–1. The bar shows how close you are.",
                              collapsesSubtitle: store.melodyProgress(for: context).successfulAttempts > 0)
+                    .disabled(locked)
                 HStack {
                     ChoiceMenu(choices: drills, selection: $drill, name: "Note", title: \.title) {
                         store.melodyProgress(for: $0.context).completed
