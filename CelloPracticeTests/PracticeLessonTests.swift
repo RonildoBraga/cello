@@ -58,7 +58,8 @@ final class PracticeLessonTests: XCTestCase {
     func testOnlyTheFirstLevelLessonsHavePrimersAndEachHasSomethingToHearOrFeel() {
         let withPrimers = PracticeLesson.allCases.filter { $0.primer != nil }
         XCTAssertEqual(withPrimers, [.steadyHum, .matchHum, .pulse, .twoTaps])
-        XCTAssertEqual(withPrimers.map(PathStep.lesson), Level.path[0].steps, "Every Level 1 step explains its new idea")
+        XCTAssertEqual(withPrimers.map(PathStep.lesson), Array(Level.path[0].steps.prefix(4)),
+                       "Each new idea in Level 1 is explained before the lesson that needs it")
         XCTAssertEqual(PracticeLesson.steadyHum.primer?.demo, .hum)
         XCTAssertEqual(PracticeLesson.matchHum.primer?.demo, .twoNotes)
         guard case .beats(let beat)? = PracticeLesson.pulse.primer?.demo,
@@ -73,8 +74,8 @@ final class PracticeLessonTests: XCTestCase {
     func testNoLevelOneLessonUsesATermBeforeAPrimerHasExplainedIt() {
         var explained = ""
         for step in Level.path[0].steps {
-            guard case .lesson(let lesson) = step, let primer = lesson.primer else { return XCTFail("Level 1 is lessons") }
-            explained += " " + primer.paragraphs.joined(separator: " ").lowercased()
+            guard case .lesson(let lesson) = step else { continue }
+            explained += " " + (lesson.primer?.paragraphs.joined(separator: " ").lowercased() ?? "")
             let copy = ([lesson.purpose, lesson.shortPurpose, lesson.practicePrompt] + lesson.instructions
                         + lesson.goals.flatMap { [$0.title, $0.detail] }).joined(separator: " ").lowercased()
             for term in ["pitch", "beat", "cents", "register", "bpm", "pulse"] where copy.contains(term) {

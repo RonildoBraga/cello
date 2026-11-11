@@ -2,13 +2,17 @@ import XCTest
 @testable import Cello
 
 final class LevelTests: XCTestCase {
-    func testPathStartsWithFirstSoundsThenOneLevelPerMelody() {
-        XCTAssertEqual(Level.path.map(\.id), ["firstSounds", "hotCrossBuns", "odeToJoy"])
-        XCTAssertEqual(Level.path.map(\.number), [1, 2, 3])
-        XCTAssertEqual(Level.path[0].steps, [.lesson(.steadyHum), .lesson(.matchHum), .lesson(.pulse), .lesson(.twoTaps)])
+    func testPathIsFirstSoundsThenOneLevelPerMelodyThenTheCello() {
+        XCTAssertEqual(Level.path.map(\.id), ["firstSounds", "hotCrossBuns", "odeToJoy", "cello"])
+        XCTAssertEqual(Level.path.map(\.number), [1, 2, 3, 4])
+        XCTAssertEqual(Level.path[0].steps, [.lesson(.steadyHum), .lesson(.matchHum), .lesson(.pulse),
+                                             .lesson(.twoTaps), .lesson(.mixedRhythm), .echo])
+        XCTAssertEqual(Level.path[3].steps, [.celloIntroduction, .lesson(.openC), .lesson(.openG),
+                                             .lesson(.openD), .lesson(.openA)])
     }
 
     func testEveryMelodyLevelHasTheSameStepsInTheSameOrder() {
+        XCTAssertEqual(Level.path.count, MelodyPiece.allCases.count + 2)
         for (level, piece) in zip(Level.path.dropFirst(), MelodyPiece.allCases) {
             XCTAssertEqual(level.title, piece.title)
             XCTAssertEqual(level.steps, [.listen(piece), .tap(piece), .meetNotes(piece), .hum(piece), .wholeMelody(piece)])
@@ -16,8 +20,8 @@ final class LevelTests: XCTestCase {
         }
     }
 
-    func testEveryLessonAppearsExactlyOnceAndStepIdentifiersAreUnique() {
-        let steps = (Level.path + Level.extras).flatMap(\.steps)
+    func testEveryStepBelongsToALevelAndEveryLessonAppearsExactlyOnce() {
+        let steps = Level.path.flatMap(\.steps)
         let lessons = steps.compactMap { step -> PracticeLesson? in
             if case .lesson(let lesson) = step { return lesson }
             return nil
@@ -27,7 +31,7 @@ final class LevelTests: XCTestCase {
         XCTAssertEqual(Set(steps.map(\.id)).count, steps.count)
         // Lesson rows keep the identifier they had in the old libraries.
         XCTAssertEqual(PathStep.lesson(.pulse).id, "lesson-pulse")
-        XCTAssertTrue(Level.extras.allSatisfy { $0.number == nil })
+        XCTAssertTrue(steps.contains(.echo) && steps.contains(.celloIntroduction), "Nothing sits outside the levels")
     }
 
     func testNextStepIsTheFirstUnfinishedStepOnThePath() {
@@ -44,9 +48,20 @@ final class LevelTests: XCTestCase {
         XCTAssertEqual(skippedAhead?.step, .lesson(.matchHum))
     }
 
-    func testStepsOffThePathNeverBecomeTheNextStep() {
-        let onPath = Set(Level.path.flatMap(\.steps))
-        XCTAssertNil(Level.nextStep { onPath.contains($0) }, "Cello and extra practice stay optional")
+    func testTheCelloLevelComesLastOnThePath() {
+        let beforeCello = Set(Level.path.dropLast().flatMap(\.steps))
+        let next = Level.nextStep { beforeCello.contains($0) }
+        XCTAssertEqual(next?.level.id, "cello")
+        XCTAssertEqual(next?.step, .celloIntroduction)
+    }
+
+    func testAStepShowsTheWeakestBestScoreAcrossItsParts() {
+        XCTAssertEqual(StepProgress([PracticeProgress(stars: [1, 2])]).bestStars, 2)
+        XCTAssertEqual(StepProgress([PracticeProgress(stars: [3]), PracticeProgress(stars: [2, 1])]).bestStars, 2)
+        XCTAssertEqual(StepProgress([PracticeProgress(stars: [3]), PracticeProgress(stars: [])]).bestStars, 0,
+                       "An untried phrase keeps the step's stars empty")
+        XCTAssertEqual(PracticeProgress(stars: [], alreadyCompleted: true).bestStars, 3)
+        XCTAssertNil(PracticeProgress(stars: []).bestStars)
     }
 
     func testStoredIDsAreRememberedOnceEach() {
@@ -136,6 +151,6 @@ final class LevelTests: XCTestCase {
         XCTAssertNil(Level.newlyCompleted(celebrated: "") { _ in false })
         XCTAssertEqual(Level.newlyCompleted(celebrated: "") { firstLevel.contains($0) }?.id, "firstSounds")
         XCTAssertNil(Level.newlyCompleted(celebrated: "firstSounds") { firstLevel.contains($0) })
-        XCTAssertEqual(Level.newlyCompleted(celebrated: "firstSounds") { _ in true }?.id, "odeToJoy")
+        XCTAssertEqual(Level.newlyCompleted(celebrated: "firstSounds") { _ in true }?.id, "cello")
     }
 }

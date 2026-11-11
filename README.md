@@ -8,13 +8,14 @@ A native iPhone practice companion for beginners learning music while preparing 
 
 | Level | Steps |
 | --- | --- |
-| 1 · First sounds | Steady hum → Listen & match → Pulse → Two taps per beat |
+| 1 · First sounds | Steady hum → Listen & match → Pulse → Two taps per beat → Mixed rhythm → Listen & Echo |
 | 2 · Hot Cross Buns | Listen → Tap it → Meet the notes → Hum it → Whole melody |
 | 3 · Ode to Joy | Listen → Tap it → Meet the notes → Hum it → Whole melody |
+| 4 · Cello · open strings | Meet your cello → Open C → Open G → Open D → Open A |
 
 Each Level 1 lesson opens the first time with a short primer that explains its new idea in plain words: a note, higher and lower, a beat, two taps per beat.
 
-Below the path, **Cello · open strings** holds Meet your cello and the four open-string lessons for when you have an instrument, and **More practice** holds Mixed rhythm and Listen & Echo. A short note names Bach’s Cello Suite No. 1 as the long-term goal. See [the path design](https://github.com/RonildoBraga/cello/issues/53).
+Every step belongs to a level, and every step uses the same compact row: its place in the level, its title, how far it has got and its best score. The cello level comes last because it needs an instrument. The info button on Music opens the long-term goal (Bach’s Cello Suite No. 1), further reading and the recording credits. See [the path design](https://github.com/RonildoBraga/cello/issues/53).
 
 The lessons include:
 
@@ -26,7 +27,7 @@ The lessons include:
 | Rhythm | 4 | Two taps per beat | Count `1 & 2 &`, adding a tap halfway between beats. |
 | Rhythm | 5 | Mixed rhythm | Alternate one and two taps per beat: `1, 2-and, 3, 4-and`. |
 
-**Music → More practice → Listen & Echo** adds ear training with fresh two-note and three-note patterns. Tap Hear pattern, listen to the complete recorded-human reference, then Record after 3–2–1. During recording, the live tuning bar follows each target note and shows measured pitch, cents and a higher/lower cue. Stars and the performance chart appear after saving. Two notes last four seconds; three last six. Each level earns separate progress across patterns, with three three-star takes among the last five rated takes completing that level. Both levels remain available. This activity has its own ledger and keeps the original numbered foundation lessons unchanged. See [the Echo practice design and assessment](docs/listen-and-echo.md).
+**Music → First sounds → Listen & Echo** adds ear training with fresh two-note and three-note patterns. Tap Hear pattern, listen to the complete recorded-human reference, then Record after 3–2–1. During recording, the live tuning bar follows each target note and shows measured pitch, cents and a higher/lower cue. Stars and the performance chart appear after saving. Two notes last four seconds; three last six. Each level earns separate progress across patterns, with three three-star takes among the last five rated takes completing that level. Both levels remain available. This activity has its own ledger and keeps the original numbered foundation lessons unchanged. See [the Echo practice design and assessment](docs/listen-and-echo.md).
 
 Open **Music → Cello · open strings → Meet your cello** for an original labelled diagram, the four recorded string-pitch examples from low to high, and the route into playing. Hear is manual and needs no microphone/camera capture. Reading and listening leave performance scores and completion unchanged. The introduction returns to the existing playing lessons; setup, first-position instruction and cello melody assessment remain in [issue #6](https://github.com/RonildoBraga/cello/issues/6). See [the introductory sources and draft practical lesson plan](docs/first-cello-lessons.md).
 

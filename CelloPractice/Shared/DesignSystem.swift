@@ -142,49 +142,6 @@ struct SecondaryActionButtonStyle: ButtonStyle {
     }
 }
 
-/// A navigable row in the library: icon or lesson number, title, subtitle, and
-/// either a footer line or a custom status line.
-struct LibraryRow<Status: View>: View {
-    enum Leading {
-        case symbol(String)
-        case number(Int)
-    }
-
-    let leading: Leading
-    let title: String
-    let subtitle: String
-    var footer: String? = nil
-    @ViewBuilder var status: Status
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 13) {
-                IconTile {
-                    switch leading {
-                    case .symbol(let name): Image(systemName: name).font(.title3)
-                    case .number(let number):
-                        Text(String(format: "%02d", number)).font(.system(.title3, design: .serif).weight(.semibold))
-                    }
-                }
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(title).font(.headline).foregroundStyle(Palette.ink)
-                    Text(subtitle).font(.footnote).foregroundStyle(Palette.muted)
-                    if let footer { Text(footer).font(.caption).foregroundStyle(Palette.forest) }
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
-            }
-            status
-        }.card().contentShape(Rectangle())
-    }
-}
-
-extension LibraryRow where Status == EmptyView {
-    init(symbol: String, title: String, subtitle: String, footer: String? = nil) {
-        self.init(leading: .symbol(symbol), title: title, subtitle: subtitle, footer: footer) { EmptyView() }
-    }
-}
-
 /// The tinted square that leads a row. It grows with the text beside it.
 struct IconTile<Content: View>: View {
     @ScaledMetric(relativeTo: .title3) private var size = Layout.tileSize

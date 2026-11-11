@@ -59,8 +59,8 @@ extension XCUIApplication {
 
     private static func level(forStep identifier: String) -> String {
         switch identifier {
-        case "lesson-steadyHum", "lesson-matchHum", "lesson-pulse", "lesson-twoTaps": return "firstSounds"
-        case "lesson-mixedRhythm", "echoPracticeLink": return "more"
+        case "lesson-steadyHum", "lesson-matchHum", "lesson-pulse", "lesson-twoTaps",
+             "lesson-mixedRhythm", "echoPracticeLink": return "firstSounds"
         case _ where identifier.hasPrefix("step-"): return String(identifier.split(separator: "-")[1])
         default: return "cello"
         }
