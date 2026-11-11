@@ -28,6 +28,10 @@ enum MelodyRecordingRater {
         return analyse(samples: Array(samples.prefix(count)), sampleRate: sampleRate, context: context)
     }
 
+    /// How far from a note a sound may be and still count as that note. The tuner and
+    /// the chart draw this same band, so what is shown is what is scored.
+    static let matchCents = 70.0
+
     private static func analyse(samples: [Float], sampleRate: Double, context: MelodyPracticeContext) -> MelodyRating {
         let window = max(512, Int(sampleRate * (8_192.0 / 48_000)))
         guard samples.count >= window else { return MelodyRating(status: .insufficientSound) }
@@ -117,7 +121,7 @@ enum MelodyRecordingRater {
                 return abs(cents - 1_200) <= 90
             } } ?? false
             let near = expectedFrequency.map { expected in
-                Double(usable.filter { abs(1_200 * log2(($0.frequency ?? 0) / expected)) <= 70 }.count)
+                Double(usable.filter { abs(1_200 * log2(($0.frequency ?? 0) / expected)) <= matchCents }.count)
                     / Double(max(1, usable.count))
             } ?? 0
             let restQuiet = activeCoverage <= 0.20

@@ -67,6 +67,9 @@ enum VoicePracticeMode: Equatable {
     var duration: TimeInterval { melodyContext?.duration ?? 3 }
     /// A voice finding its note needs a wider meter than a string being tuned.
     var meterRange: Double { exercise.targetFrequency == nil ? 200 : 50 }
+    /// How far from the note still counts, in cents: the limit this take's rater uses.
+    /// A melody's notes have more room than one held note.
+    var tolerance: Double { melodyContext == nil ? RecordingRater.matchCents : MelodyRecordingRater.matchCents }
 
     // MARK: The lane
 
@@ -213,7 +216,7 @@ enum VoicePracticeMode: Equatable {
         case .echo:
             guard let note else { return "Pattern finished" }
             guard let cents = reading.cents else { return "\(verb.capitalized) \(note) · aim for the centre" }
-            if abs(cents) <= 10 { return "Close to \(note)" }
+            if abs(cents) <= tolerance { return "Close to \(note)" }
             return cents < 0 ? "Below \(note) · \(verb) higher" : "Above \(note) · \(verb) lower"
         }
     }

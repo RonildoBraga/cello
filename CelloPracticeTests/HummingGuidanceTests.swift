@@ -43,6 +43,26 @@ final class HummingGuidanceTests: XCTestCase {
                       "Echo keeps its notes secret")
     }
 
+    func testTheTunerShowsTheSameToleranceTheTakeIsScoredWith() {
+        // One held note must sit within 25 cents; a melody's notes have 70 either side.
+        XCTAssertEqual(VoicePracticeMode.note(.steadyHum).tolerance, RecordingRater.matchCents)
+        XCTAssertEqual(VoicePracticeMode.note(.openG).tolerance, 25)
+        let phrase = VoicePracticeMode.phrase(MelodyPiece.hotCrossBuns.humming(register: .lowVoice, section: .phrase3))
+        XCTAssertEqual(phrase.tolerance, MelodyRecordingRater.matchCents)
+        XCTAssertEqual(VoicePracticeMode.phrase(NoteDrill.notes(for: .hotCrossBuns)[0].context).tolerance, 70)
+        // Listen & Echo words what the bar shows: anywhere in the band is close, outside it is not.
+        let pattern = EchoLevel.twoNotes.pattern(0, register: .lowVoice)
+        let echo = VoicePracticeMode.echo(pattern, level: .twoNotes)
+        let target = try? XCTUnwrap(echo.target(at: 0))
+        func message(cents: Double) -> String? {
+            target.flatMap { echo.recordingMessage(target: $0, reading: TunerReading(frequency: $0 * pow(2, cents / 1_200), targetFrequency: $0)) }
+        }
+        XCTAssertEqual(message(cents: 60)?.hasPrefix("Close to"), true)
+        XCTAssertEqual(message(cents: -69)?.hasPrefix("Close to"), true)
+        XCTAssertEqual(message(cents: 75)?.hasPrefix("Above"), true)
+        XCTAssertEqual(message(cents: -75)?.hasPrefix("Below"), true)
+    }
+
     func testFeedbackNamesTheNoteThatChangedLateAndByHowMuch() {
         // The commonest real mistake: the second of two notes starting late.
         let rating = rating([note(0, start: 0, onset: 0, timed: true),

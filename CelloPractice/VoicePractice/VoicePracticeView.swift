@@ -302,7 +302,7 @@ struct VoicePracticeView<Header: View>: View {
             if showsMeter {
                 PitchMeter(cents: reading.cents ?? 0,
                            active: currentTarget != nil && reading.cents != nil && !isBusy && !saving,
-                           range: mode.meterRange)
+                           range: mode.meterRange, tolerance: mode.tolerance)
                     .frame(height: 30).padding(.horizontal, 6)
                 HStack {
                     Text("Low")
@@ -335,7 +335,8 @@ struct VoicePracticeView<Header: View>: View {
                         .accessibilityLabel("Turn on live tuner")
                 }
             }.frame(minHeight: 30)
-            PitchMeter(cents: reading.cents ?? 0, active: reading.cents != nil, range: mode.meterRange, onCard: true)
+            PitchMeter(cents: reading.cents ?? 0, active: reading.cents != nil, range: mode.meterRange,
+                       tolerance: mode.tolerance, onCard: true)
                 .frame(height: 30).padding(.horizontal, 6)
             // With several notes in the take, the learner picks which one the tuner listens for.
             if mode.tunerTargets.count > 1 {
@@ -410,7 +411,7 @@ struct VoicePracticeView<Header: View>: View {
             if !showsMeter || reading.frequency == nil { return mode.idleMessage(referenceHeard: referenceWasHeard) }
         }
         guard let cents = reading.cents else { return "Listening…" }
-        if abs(cents) <= 10 { return "Close to the target" }
+        if abs(cents) <= mode.tolerance { return "Close to the target" }
         return cents < 0 ? "Below the target" : "Above the target"
     }
 
