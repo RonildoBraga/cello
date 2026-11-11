@@ -73,7 +73,13 @@ final class LevelTests: XCTestCase {
         let last = Level.position(of: .echo)
         XCTAssertEqual(last?.label, "Lesson 6 of 6")
         XCTAssertEqual(last?.previous, .lesson(.mixedRhythm))
-        XCTAssertNil(last?.next, "The lesson bar stays inside the level")
+        XCTAssertNil(last?.next)
+        XCTAssertEqual(last?.onward, .listen(.hotCrossBuns), "The last lesson leads on to the next level")
+        XCTAssertEqual(last?.onwardSpoken, "Next level, Hot Cross Buns")
+        XCTAssertEqual(first?.onwardSpoken, "Next lesson, Listen & match")
+        XCTAssertNil(first?.nextLevel)
+        let veryLast = Level.position(of: .lesson(.openA))
+        XCTAssertNil(veryLast?.onward, "The path ends at the last lesson of the last level")
 
         let notes = Level.position(of: .meetNotes(.odeToJoy))
         XCTAssertEqual(notes?.level.id, "odeToJoy")
@@ -81,6 +87,14 @@ final class LevelTests: XCTestCase {
         XCTAssertEqual(notes?.previous, .tap(.odeToJoy))
         XCTAssertEqual(notes?.next, .hum(.odeToJoy))
         for step in Level.path.flatMap(\.lessons) { XCTAssertNotNil(Level.position(of: step)) }
+    }
+
+    func testFireworksMarkEachNewGoldPartAndNothingElse() {
+        XCTAssertFalse(Celebration.earnedGold(from: [:], to: [:]))
+        XCTAssertFalse(Celebration.earnedGold(from: ["a": 1], to: ["a": 1, "b": 0]))
+        XCTAssertTrue(Celebration.earnedGold(from: ["a": 0], to: ["a": 1]), "A lesson turning gold")
+        XCTAssertTrue(Celebration.earnedGold(from: ["hum": 2], to: ["hum": 3]), "One more phrase turning gold")
+        XCTAssertFalse(Celebration.earnedGold(from: ["a": 1], to: ["a": 0]), "Losing nothing to celebrate")
     }
 
     func testStoredIDsAreRememberedOnceEach() {

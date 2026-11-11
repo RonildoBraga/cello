@@ -65,6 +65,28 @@ struct MusicLibraryView: View {
     /// each time the path comes into view.
     @State private var open: Set<String> = []
 
+    /// The words on the fireworks now showing, if any.
+    @State private var fireworks: String?
+    @State private var fireworksCount = 0
+
+    /// Gold parts per lesson and finished levels, watched so that earning one
+    /// anywhere under this tab sets off the fireworks.
+    private var goldParts: [String: Int] {
+        Dictionary(uniqueKeysWithValues: Level.path.flatMap(\.lessons).map { ($0.id, state(for: $0).progress.goldParts) })
+    }
+    private var completedLevels: Set<String> {
+        Set(Level.path.filter { $0.isComplete(isPassed: isPassed) }.map(\.id))
+    }
+
+    private func celebrate(_ title: String) {
+        fireworksCount += 1
+        let shown = fireworksCount
+        fireworks = title
+        DispatchQueue.main.asyncAfter(deadline: .now() + Celebration.fireworksDuration) {
+            if fireworksCount == shown { fireworks = nil }
+        }
+    }
+
     /// The first lesson on the path that has not been passed yet.
     private var next: (level: Level, step: PathLesson)? { Level.nextLesson(isPassed: isPassed) }
 
@@ -96,6 +118,16 @@ struct MusicLibraryView: View {
                     destination($0).id($0).environment(\.currentPathLesson, $0.step)
                 }
         }.tint(Palette.forest).environment(\.openPathLesson, open)
+            .environment(\.pathLessonIsPassed, isPassed).environment(\.celebratesResults, true)
+            .overlay { if let fireworks { FireworksView(title: fireworks).id(fireworksCount) } }
+            .onChange(of: goldParts) { old, new in
+                if Celebration.earnedGold(from: old, to: new) { celebrate("Gold") }
+            }
+            .onChange(of: completedLevels) { old, new in
+                if let level = Level.path.last(where: { new.contains($0.id) && !old.contains($0.id) }) {
+                    celebrate("Level \(level.number) complete")
+                }
+            }
     }
 
     @ViewBuilder

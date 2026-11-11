@@ -103,7 +103,8 @@ final class LearningUITests: XCTestCase {
         let onWhole = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Lesson 5 of 5"), object: position)
         XCTAssertEqual(XCTWaiter.wait(for: [onWhole], timeout: 5), .completed)
         XCTAssertEqual(app.staticTexts["screenTitle"].label, "Whole melody")
-        XCTAssertFalse(app.buttons["nextLessonButton"].isEnabled, "The last lesson of a level has no next lesson")
+        XCTAssertEqual(app.buttons["nextLessonButton"].label, "Next level, Ode to Joy",
+                       "The last lesson of a level leads on to the next level")
         selectMelodyHummingSection("Phrase 2", in: app)
         app.buttons["previousLessonButton"].tap()
         let onHum = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Lesson 4 of 5"), object: position)

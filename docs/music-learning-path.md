@@ -20,19 +20,25 @@ About → long-term goal, who built it, sound sources and licences, lesson refer
 Recordings → existing local audio/video history
 ```
 
-The path replaced separate Foundations and Pieces libraries ([issue #49](https://github.com/RonildoBraga/cello/issues/49), design note [#53](https://github.com/RonildoBraga/cello/issues/53)). A `Level` is a title and an ordered list of `PathStep`s, and each step opens a screen that already existed: a lesson page, Listen (the reference player), Tap it (melody rhythm), Meet the notes, and Hum it or Whole melody (melody humming opened at phrase 1 or at the whole melody). Adding a melody adds one level with the same steps.
+The path replaced separate Foundations and Pieces libraries ([issue #49](https://github.com/RonildoBraga/cello/issues/49), design note [#53](https://github.com/RonildoBraga/cello/issues/53)). A `Level` is a title and an ordered list of `PathLesson`s, and each lesson opens a screen that already existed: a lesson page, Listen (the reference player), Tap it (melody rhythm), Meet the notes, and Hum it or Whole melody (melody humming opened at phrase 1 or at the whole melody). Adding a melody adds one level with the same lessons.
 
-The level holding the first unfinished step opens when the path appears, and that step is marked Continue. It is a suggestion only: every level can be opened and every step tapped.
+The level holding the first unfinished lesson opens when the path appears, and that lesson is marked Continue. It is a suggestion only: every level can be opened and every lesson tapped.
 
 Everything belongs to a level. An earlier version kept the cello lessons, Mixed rhythm, Listen & Echo, a note about Bach and the credits below the levels; on the phone that read as clutter with no place in the journey. Mixed rhythm and Listen & Echo now close Level 1, the cello is the last level because it needs an instrument, and the Bach note and credits moved to an About tab beside Music and Recordings (an info button on Music was tried first and took too much room). Listen & Echo is passed by a passing two-note take; Meet your cello is passed by reading it.
 
-Every step uses one compact row, whatever it opens: step number, title, progress in words and the best score out of three. A step made of phrases or notes shows the weakest best score across them, so three stars means every part reached three. Listen and Meet your cello are not scored and show no stars. A level's steps share one card, so a whole level fits on a screen.
+Every lesson uses one compact row, whatever it opens: lesson number, title, progress in words and the best score out of three. A lesson made of phrases or notes shows the weakest best score across them, so three stars means every part reached three. Listen and Meet your cello are not scored and show no stars. A level's lessons share one card, so a whole level fits on a screen.
 
-### Inside a step
+### Inside a lesson
 
-Every step's screen opens with the same header (`StepHeader`): the level ("Level 1 · First sounds"), the step's title and one plain line about what to do. A step bar, "‹ Step 1 of 6 · Listen & match ›", is pinned at the bottom just above the main button, where the thumb already is; it was first tried under the title, where it pushed the practice area down. The shared bottom action bar adds it on any screen that belongs to a step, and holds it still while a take or round is in flight. The arrows move to the previous and next step of the level and fade at its first and last step. Moving with the bar replaces the screen, so Back always returns to Music. A lesson's page, with instructions and scores, is what a tap on the path opens; its Start button also leads to a practice screen directly above the path.
+Every lesson's screen opens with the same header (`LessonHeader`): the level ("Level 1 · First sounds"), the lesson's title and one plain line about what to do. A lesson bar, "‹ Lesson 1 of 6 · Listen & match ›", is pinned at the bottom just above the main button, where the thumb already is; it was first tried under the title, where it pushed the practice area down. The shared bottom action bar adds it on any screen that belongs to a lesson, and holds it still while a take or round is in flight. The arrows move to the previous and next lesson of the level and fade at its first and last lesson. Moving with the bar replaces the screen, so Back always returns to Music. A lesson's page, with instructions and scores, is what a tap on the path opens; its Start button also leads to a practice screen directly above the path.
 
-Under the practice area one line reports both tiers in words: "Passed · Gold: 2 of 3 three-star takes". Inside a melody step the same row still offers the next phrase or note.
+Under the practice area one line reports both tiers in words: "Passed · Gold: 2 of 3 three-star takes". Inside a melody lesson the same row still offers the next phrase or note.
+
+### Celebrating
+
+Celebrations are sized to the achievement. A fresh result pops its stars in one by one, with a success tap for three. When any part of a lesson turns gold, or a level's last lesson is passed, fireworks play once over the screen for about two seconds: silent, never blocking touches, and a still badge when Reduce Motion is on. The Music tab watches gold parts and finished levels, so the trigger does not depend on which screen earned it. Results opened later from Recordings show their stars without ceremony.
+
+Once a lesson is passed, Next on the lesson bar becomes a solid button ("Next: Listen & match"). At the last lesson of a level it leads into the next level.
 
 ### Primers
 
@@ -44,7 +50,7 @@ The content is `PracticeLesson.primer`; the screen is `PrimerView`. Reading a pr
 
 Each melody level introduces its notes before asking for whole phrases ([issue #51](https://github.com/RonildoBraga/cello/issues/51)): three for Hot Cross Buns (G2, A2, B2), five for Ode to Joy (G2 to D3). For each note the learner hears the recorded hum and hums it back for three seconds with the live tuning bar. Two pairs follow, the lowest then the highest note and the reverse, to hear and feel "higher" and "lower".
 
-A `NoteDrill` is a one- or two-event `MelodyPracticeContext` with its own piece ID (`hotCrossBuns.notes`), so the recorder, the melody rater, the result card, the chart and the melody ledger are the ones phrases use. Takes appear in Recordings as "Hot Cross Buns · Meet the notes · G2". The step is passed when every note has a passing take; the pairs are extra practice. Notes are shown as names and tiles; staff notation is out of scope.
+A `NoteDrill` is a one- or two-event `MelodyPracticeContext` with its own piece ID (`hotCrossBuns.notes`), so the recorder, the melody rater, the result card, the chart and the melody ledger are the ones phrases use. Takes appear in Recordings as "Hot Cross Buns · Meet the notes · G2". The lesson is passed when every note has a passing take; the pairs are extra practice. Notes are shown as names and tiles; staff notation is out of scope.
 
 ### Passed and gold
 
@@ -53,24 +59,24 @@ Progress has two tiers ([issue #50](https://github.com/RonildoBraga/cello/issues
 - **Passed** moves the path on: one scored attempt with two stars or more. It is read from the saved takes and rounds, so deleting the only passing take un-passes it.
 - **Gold** is the earlier completion rule, unchanged: three 3-star attempts among five consecutive scored attempts. It is kept in the existing ledgers, survives later takes and always counts as passed.
 
-A lesson or the whole melody is one part. Tap it and Hum it roll up four phrases: the step shows "2 of 4 phrases passed", is passed when all four are, and is gold when all four are gold. Listen is passed once the whole melody has played to its end. A level shows how many of its steps are passed; when the last one passes, the path shows a completion card once and points at the next step.
+A lesson or the whole melody is one part. Tap it and Hum it roll up four phrases: the lesson shows "2 of 4 phrases passed", is passed when all four are, and is gold when all four are gold. Listen is passed once the whole melody has played to its end. A level shows how many of its lessons are passed; when the last one passes, the path shows a completion card once and points at the next lesson.
 
 No saved format changed. Two small preferences hold what no take records: the melodies heard to the end and the levels already celebrated.
 
-Music, Recordings and About are the three iPhone tabs. Practice is a screen, not a tab: every activity — a lesson, a melody's Listen, Tap it or Hum it step, Listen & Echo — is pushed inside Music and left with Back ([issue #33](https://github.com/RonildoBraga/cello/issues/33)). Starting a lesson pushes a fresh, ready practice screen directly above the path.
+Music, Recordings and About are the three iPhone tabs. Practice is a screen, not a tab: every activity — a lesson, a melody's Listen, Tap it or Hum it lesson, Listen & Echo — is pushed inside Music and left with Back ([issue #33](https://github.com/RonildoBraga/cello/issues/33)). Starting a lesson pushes a fresh, ready practice screen directly above the path.
 
-An earlier release had a separate Practice tab with its own area and lesson pickers. It was removed because it duplicated the Music tab's lists, could fall out of step with the Music tab, and could not host piece or Echo practice.
+An earlier release had a separate Practice tab with its own area and lesson pickers. It was removed because it duplicated the Music tab's lists, could fall out of lesson with the Music tab, and could not host piece or Echo practice.
 
 This is a design choice informed by [Apple’s sidebar guidance](https://developer.apple.com/design/human-interface-guidelines/sidebars): a tab bar is worth considering where sidebar space is limited. A custom hidden drawer is unnecessary for this small iPhone library. A larger-screen sidebar can be considered if the catalogue grows.
 
 ## First-release requirements
 
 - Each existing lesson appears exactly once, on the path or below it.
-- Original lesson IDs and lesson numbers stay stable: Humming 1–2, Rhythm 3–5 and Cello 1–4. The path shows a step's place in its level; lesson pages keep the lesson number. Saved ratings, raw media, references and earned completion are unchanged.
-- The path, the lesson page and the step bar share the same lesson-opening action.
+- Original lesson IDs and lesson numbers stay stable: Humming 1–2, Rhythm 3–5 and Cello 1–4. The path shows a lesson's place in its level; lesson pages keep the lesson number. Saved ratings, raw media, references and earned completion are unchanged.
+- The path, the lesson page and the lesson bar share the same lesson-opening action.
 - A navigation area never supplies a recording pitch target. Existing voice/cello target rules stay separate from the new `LearningArea` model.
 - Leaving practice cancels unfinished rounds/count-ins. A take already finishing saves under its original exercise and reference.
-- A melody level shows only steps that work today. It has no inactive control and no fabricated readiness percentage.
+- A melody level shows only lessons that work today. It has no inactive control and no fabricated readiness percentage.
 - Choosing an already selected lesson from the path starts a fresh ready screen; it does not reveal a stale result.
 
 Success is verified through navigation tests, saved-history compatibility checks, screen inspection and physical-device installation. No analytics service or new learner-data collection is required.
@@ -100,7 +106,7 @@ Melody rhythm uses that same immutable reference timeline with a separate rhythm
 
 ## Second melody: Ode to Joy opening
 
-[Issue #14](https://github.com/RonildoBraga/cello/issues/14) adds our independently encoded five-note opening excerpt while the learner waits for a cello. It introduces upward and downward steps across five notes and a dotted-quarter/eighth-note ending. Four bar-sized practice selections build to the sixteen-beat opening; these are practice divisions, not a claim to contain the complete symphonic theme. Both melodies use the same Humming, Rhythm and manual reference pages, charts, fixed grading versions and progress rules.
+[Issue #14](https://github.com/RonildoBraga/cello/issues/14) adds our independently encoded five-note opening excerpt while the learner waits for a cello. It introduces upward and downward lessons across five notes and a dotted-quarter/eighth-note ending. Four bar-sized practice selections build to the sixteen-beat opening; these are practice divisions, not a claim to contain the complete symphonic theme. Both melodies use the same Humming, Rhythm and manual reference pages, charts, fixed grading versions and progress rules.
 
 `MelodyPiece` selects the built-in score before recording. The existing frozen context format is unchanged; each piece keeps a distinct ID and achievements. Hot Cross Buns factory output remains identical, preserving its prior progress keys and ratings. References reuse the existing licensed recorded sources. See [score and recording provenance](ode-to-joy-reference.md). Cello technique and acoustic validation remain in #6.
 

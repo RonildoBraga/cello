@@ -2,6 +2,18 @@
 
 House rules for changing Cello, whether you are a person or an AI assistant. They describe what the code already does; keep it that way unless an issue says otherwise.
 
+## Words
+
+One vocabulary, on screen, in code, in tests and in docs:
+
+- **Level**: a numbered stage of the path (First sounds, Hot Cross Buns, Ode to Joy, Cello).
+- **Lesson**: one item in a level, shown as "Lesson 1 of 6". Not "step", "exercise" or "activity".
+- **Part**: a piece of a lesson that has several, such as a phrase or a single note.
+- **Take**: one recording. **Round**: one tapping attempt.
+- **Passed**: one scored take or round with two stars or more. **Gold**: three 3-star takes or rounds among the last five.
+
+A lesson's number is its place in its level. Saved data keeps its own stable IDs and never shows them.
+
 ## Before you open a pull request
 
 ```sh

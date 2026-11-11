@@ -76,9 +76,11 @@ struct Level: Identifiable {
     static func position(of step: PathLesson) -> LessonPosition? {
         for level in path {
             guard let index = level.lessons.firstIndex(of: step) else { continue }
+            let nextLevel = path.first { $0.number == level.number + 1 }
             return LessonPosition(level: level, index: index,
-                                previous: index > 0 ? level.lessons[index - 1] : nil,
-                                next: index + 1 < level.lessons.count ? level.lessons[index + 1] : nil)
+                                  previous: index > 0 ? level.lessons[index - 1] : nil,
+                                  next: index + 1 < level.lessons.count ? level.lessons[index + 1] : nil,
+                                  nextLevel: index + 1 < level.lessons.count ? nil : nextLevel)
         }
         return nil
     }
@@ -100,6 +102,16 @@ struct LessonPosition {
     let index: Int
     let previous: PathLesson?
     let next: PathLesson?
+    /// Set at the last lesson of a level: the level that follows, if any.
+    let nextLevel: Level?
+
+    /// Where Next leads: the next lesson here, or the first lesson of the next level.
+    var onward: PathLesson? { next ?? nextLevel?.lessons.first }
+    /// What Next is called: a lesson's title, or the level it starts.
+    var onwardTitle: String? { next?.title ?? nextLevel?.title }
+    var onwardSpoken: String? {
+        next.map { "Next lesson, \($0.title)" } ?? nextLevel.map { "Next level, \($0.title)" }
+    }
 
     var label: String { "Lesson \(index + 1) of \(level.lessons.count)" }
 }
