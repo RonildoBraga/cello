@@ -63,7 +63,7 @@ final class SessionStore: ObservableObject {
 
     func saveRecording(from source: URL, samples: [PitchSample], exercise: Exercise,
                        notes: String = "", duration: Double, targetFrequency: Double? = nil,
-                       melodyContext: MelodyPracticeContext? = nil) async -> PracticeSession? {
+                       melodyContext: MelodyPracticeContext? = nil, room: RoomNoise? = nil) async -> PracticeSession? {
         errorMessage = progressPersistenceError
         lastSaveError = nil
         defer {
@@ -104,7 +104,8 @@ final class SessionStore: ObservableObject {
             notes: notes, pitchSamples: validSamples, videoFilename: "recording.mov",
             // A hummed note has no fixed target, so the one it was sung against is kept.
             tuningTargetFrequency: exercise.targetFrequency == nil ? actualTarget : nil,
-            rating: rating, melodyContext: melodyContext, melodyRating: melodyRating
+            rating: rating, melodyContext: melodyContext, melodyRating: melodyRating,
+            roomLevel: (room?.level).flatMap { $0.isFinite && $0 >= 0 ? $0 : nil }
         )
         let folder = folderURL(for: session)
         do {

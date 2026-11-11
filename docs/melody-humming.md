@@ -23,6 +23,8 @@ When the Notes goal is missed, the advice names the first note that was off and 
 
 After a take the live tuner sits inside the take's chart card, under the chart: look at the take, then try the correction at once. It compares the voice with one note. A take with several different notes (a pair in Meet the notes, a phrase, the whole melody) shows them as "Tune to" chips, in the order they first sound; the first is chosen to begin with. If the microphone has been turned off, the row offers to turn it on. Before and during a take there is nothing to choose: the tuner follows the score by itself. Listen & Echo has no tuner after a take.
 
+In a noisy room the tuner shows a note only when the sound stands clear of the room, and the count-in and the result say that the room is noisy. See [background noise](background-noise.md).
+
 ## Assessment version 1
 
 Saved media is decoded to 48 kHz mono PCM on the movie timeline. Leading silence is retained; missing media cannot be concatenated into an apparently continuous note. The grader uses the frozen expected interval without shifting the learner's start, transposing the hum or folding octaves onto the target. Codec/file-output sound after the expected end does not change the exercise result; the complete original media remains available.

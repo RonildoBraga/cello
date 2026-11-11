@@ -84,3 +84,13 @@ struct PracticeResultCard: View {
             .foregroundStyle(earned ? Palette.gold : Palette.muted.opacity(0.4))
     }
 }
+
+/// Shown with a take made in a noisy room, so a low score has its reason beside it.
+struct RoomNoiseNote: View {
+    var body: some View {
+        Label(RoomNoise.resultNote, systemImage: "speaker.wave.2")
+            .font(.footnote).foregroundStyle(Palette.ink)
+            .fixedSize(horizontal: false, vertical: true).frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityIdentifier("roomNoiseNote")
+    }
+}

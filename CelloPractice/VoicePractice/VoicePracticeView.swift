@@ -190,6 +190,7 @@ struct VoicePracticeView<Header: View>: View {
                                 PracticeRatingView(rating: rating)
                                     .accessibilityIdentifier("latestRatingCard")
                             }
+                            if session.room?.isLoud == true { RoomNoiseNote() }
                             // The chart of the take and the tuner share a card: look, then try again live.
                             VStack(alignment: .leading, spacing: 14) {
                                 if let rating = session.melodyRating, let context = session.melodyContext {
@@ -400,7 +401,8 @@ struct VoicePracticeView<Header: View>: View {
         switch phase {
         case .preparing: return mode.preparingMessage
         case .previewing: return mode.listenMessage
-        case .counting: return mode.countInMessage
+        // The count is the last moment to move the phone before the take.
+        case .counting: return capture.room?.isLoud == true ? RoomNoise.warning : mode.countInMessage
         case .startingRecording: return mode.startingMessage
         case .recording:
             if let message = mode.recordingMessage(target: currentTarget, reading: reading) { return message }
@@ -499,13 +501,13 @@ struct VoicePracticeView<Header: View>: View {
         capture.startRecording(maximumDuration: timedRecording ? mode.duration : 90) {
             [weak capture = capture, store, exercise = mode.exercise, targetFrequency = mode.targetFrequency,
              melodyContext = mode.melodyContext, saving = $saving, saved = $saved,
-             latestSession = $latestSession, isVisible = $isVisible] url, samples in
+             latestSession = $latestSession, isVisible = $isVisible] url, samples, room in
             saving.wrappedValue = true
             let fallbackDuration = capture?.elapsed ?? 0
             Task { @MainActor in
                 let result = await store.saveRecording(from: url, samples: samples,
                     exercise: exercise, duration: fallbackDuration, targetFrequency: targetFrequency,
-                    melodyContext: melodyContext)
+                    melodyContext: melodyContext, room: room)
                 saving.wrappedValue = false
                 saved.wrappedValue = result != nil
                 if let result, isVisible.wrappedValue {

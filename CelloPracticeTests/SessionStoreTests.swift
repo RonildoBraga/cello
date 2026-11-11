@@ -795,6 +795,28 @@ final class SessionStoreTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(string.medianCentsFromTarget), 0, accuracy: 1e-8)
     }
 
+    @MainActor
+    func testSavingATakeKeepsTheRoomItWasMadeInWithoutChangingItsScore() async throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let directory = root.appendingPathComponent("PracticeSessions", isDirectory: true)
+        let pending = root.appendingPathComponent("PendingTakes", isDirectory: true)
+        let store = SessionStore(directory: directory)
+        let quiet = await store.saveRecording(from: try await makeHummingMovie(in: pending), samples: [],
+            exercise: .steadyHum, duration: 3, targetFrequency: HummingExample.frequency)
+        let noisy = await store.saveRecording(from: try await makeHummingMovie(in: pending), samples: [],
+            exercise: .steadyHum, duration: 3, targetFrequency: HummingExample.frequency, room: RoomNoise(level: 0.001))
+        XCTAssertNil(try XCTUnwrap(quiet).room)
+        XCTAssertEqual(try XCTUnwrap(noisy).room?.isLoud, true)
+        XCTAssertEqual(noisy?.rating, quiet?.rating, "The room is recorded beside the score, not used in it")
+        XCTAssertEqual(noisy?.rating?.starCount, 3)
+
+        let reloaded = SessionStore(directory: directory)
+        XCTAssertNil(reloaded.errorMessage)
+        XCTAssertEqual(reloaded.sessions.first { $0.id == noisy?.id }?.roomLevel, 0.001)
+        XCTAssertNil(reloaded.sessions.first { $0.id == quiet?.id }?.roomLevel)
+    }
+
     private func makeRoot() throws -> URL {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("CelloSessionTests-\(UUID().uuidString)", isDirectory: true)
