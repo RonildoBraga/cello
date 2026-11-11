@@ -28,17 +28,15 @@ struct MelodyHummingView: View {
             VStack(alignment: .leading, spacing: 17) {
                 LessonHeader(subtitle: piece.hummingIntro,
                            collapsesSubtitle: store.melodyProgress(for: context).successfulAttempts > 0)
-                HStack {
-                    if section != .whole {
-                        ChoiceMenu(choices: MelodySection.phrases, selection: $section, title: \.title) {
-                            store.melodyProgress(for: piece.humming(register: .lowVoice, section: $0)).completed
-                        }.disabled(locked).accessibilityIdentifier("melodyHummingSectionPicker")
-                    }
-                    Spacer()
-                    Text("\(Int(context.duration)) seconds · \(context.tempoBPM) BPM")
-                        .font(.caption).foregroundStyle(Palette.muted)
-                        .accessibilityIdentifier("melodyTakeDuration")
+                if section != .whole {
+                    PartStrip(parts: MelodySection.phrases, selection: $section, leading: "Phrase",
+                              short: \.chipLabel, title: \.title) {
+                        store.melodyProgress(for: piece.humming(register: .lowVoice, section: $0))
+                    }.disabled(locked)
                 }
+                Text("\(Int(context.duration)) seconds · \(context.tempoBPM) BPM")
+                    .font(.caption).foregroundStyle(Palette.muted)
+                    .accessibilityIdentifier("melodyTakeDuration")
                 MelodyNotesView(context: context,
                                 elapsed: capture.isRecording ? capture.elapsed
                                     : capture.isPlayingReference ? capture.referenceElapsed : nil)

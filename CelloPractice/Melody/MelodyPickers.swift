@@ -1,33 +1,53 @@
 import SwiftUI
 
-/// Chooses one item from a short list, such as a phrase or a note, marking the
-/// ones already completed.
-struct ChoiceMenu<Choice: Hashable>: View {
-    let choices: [Choice]
-    @Binding var selection: Choice
-    /// Spoken before the selected title: "Section: Phrase 1".
-    var name = "Section"
-    let title: (Choice) -> String
-    var isCompleted: (Choice) -> Bool = { _ in false }
+/// The parts of a lesson side by side, such as its phrases or notes: which one
+/// is on show, which are passed or gold, and a tap to switch. It replaces a
+/// drop-down menu, which hid the other parts and how far each had got.
+struct PartStrip<Part: Hashable>: View {
+    let parts: [Part]
+    @Binding var selection: Part
+    /// A word before the chips when they are only numbers: "Phrase".
+    var leading: String? = nil
+    /// The few characters on the chip.
+    let short: (Part) -> String
+    /// The full name, spoken and used to find the chip.
+    let title: (Part) -> String
+    var progress: (Part) -> PracticeProgress? = { _ in nil }
 
     var body: some View {
-        Menu {
-            ForEach(choices, id: \.self) { item in
-                Button { selection = item } label: {
-                    if isCompleted(item) {
-                        Label("\(title(item)) · completed", systemImage: "checkmark.circle.fill")
-                    } else if item == selection {
-                        Label(title(item), systemImage: "checkmark")
-                    } else {
-                        Text(title(item))
-                    }
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                if let leading {
+                    Text(leading).font(.subheadline.weight(.medium)).foregroundStyle(Palette.muted)
+                        .accessibilityHidden(true)
                 }
+                ForEach(parts, id: \.self) { chip($0) }
             }
-        } label: {
-            HStack(spacing: 7) {
-                Text(title(selection)).font(.headline)
-                Image(systemName: "chevron.down").font(.caption.weight(.semibold))
-            }.foregroundStyle(Palette.forest).frame(minHeight: 44)
-        }.accessibilityLabel("\(name): \(title(selection))")
+        }
     }
+
+    private func chip(_ part: Part) -> some View {
+        let selected = part == selection
+        let progress = progress(part)
+        let result = progress?.completed == true ? "gold" : progress?.passed == true ? "passed" : nil
+        return Button { selection = part } label: {
+            HStack(spacing: 4) {
+                if let result {
+                    Image(systemName: result == "gold" ? "star.fill" : "checkmark").font(.caption2.weight(.bold))
+                        .foregroundStyle(selected ? .white : result == "gold" ? Palette.goldText : Palette.forest)
+                }
+                Text(short(part))
+            }.font(.subheadline.weight(.semibold)).foregroundStyle(selected ? .white : Palette.forest)
+                .padding(.horizontal, 13).frame(minWidth: 44, minHeight: 44)
+                .background(selected ? Palette.forest : Palette.forest.opacity(0.07), in: Capsule())
+        }.buttonStyle(.plain)
+            .accessibilityLabel([title(part), result].compactMap { $0 }.joined(separator: ", "))
+            .accessibilityAddTraits(selected ? .isSelected : [])
+            .accessibilityIdentifier("part-\(title(part))")
+    }
+}
+
+extension MelodySection {
+    /// On a chip: the phrase number, or "All" for the whole melody.
+    var chipLabel: String { self == .whole ? "All" : String(title.suffix(1)) }
 }

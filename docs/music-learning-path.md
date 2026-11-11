@@ -36,6 +36,8 @@ Under the practice area one line reports both tiers in words: "Passed · Gold: 2
 
 The lesson bar is the only control for moving on. A lesson with several parts (the four phrases of Hum it, the five parts of Tap it, the notes of Meet the notes) passes them to the bar as `LessonParts`: Next steps through the parts, then to the next lesson, then into the next level, and Previous goes back the same way. The bar shows "Lesson 2 of 5" with "Part 1 of 5" beneath it. A separate "Try Whole melody" link under the result used to offer the next part; it looked like a different lesson and was removed. For the same reason Tap it's last part is called "All phrases", and Hum it lists only its phrases: Whole melody is the next lesson.
 
+A lesson's parts are shown side by side as chips (`PartStrip`): the one on show is filled, passed parts carry a tick and gold parts a star, and a tap switches. They replaced a drop-down menu, which hid the other parts and their progress behind a tap and looked like a setting. On Meet the notes the chips are the note names, so the separate note tile and the "3 seconds" label were removed.
+
 ### Moving on
 
 Once a lesson is passed, Next on the lesson bar becomes a solid button ("Next: Listen & match"). At the last lesson of a level it leads into the next level. There is no celebration animation and no level-complete card: fireworks and a star animation were tried and removed as decoration. The path's ticks, the gold mark and the highlighted Next say what happened.

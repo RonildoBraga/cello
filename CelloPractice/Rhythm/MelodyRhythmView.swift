@@ -24,15 +24,13 @@ struct MelodyRhythmView: View {
             VStack(alignment: .leading, spacing: 12) {
                 LessonHeader(subtitle: "Tap once when each note starts. Keep counting while a long note continues.",
                            collapsesSubtitle: store.progress(for: context).successfulAttempts > 0)
-                HStack {
-                    ChoiceMenu(choices: Self.parts, selection: $section, title: Self.title) {
-                        store.progress(for: piece.rhythm(section: $0)).completed
-                    }.disabled(locked).accessibilityIdentifier("melodyRhythmSectionPicker")
-                    Spacer()
-                    Text("\(Int(context.duration)) seconds · \(context.reference.tempoBPM) BPM")
-                        .font(.caption).foregroundStyle(Palette.muted)
-                        .accessibilityIdentifier("melodyRhythmDuration")
-                }
+                PartStrip(parts: Self.parts, selection: $section, leading: "Phrase",
+                          short: \.chipLabel, title: Self.title) {
+                    store.progress(for: piece.rhythm(section: $0))
+                }.disabled(locked)
+                Text("\(Int(context.duration)) seconds · \(context.reference.tempoBPM) BPM")
+                    .font(.caption).foregroundStyle(Palette.muted)
+                    .accessibilityIdentifier("melodyRhythmDuration")
                 if let best = store.bestStars(for: context) {
                     let latest = store.latestStars(for: context).map { "\($0) / 3" } ?? "unrated"
                     Text("Best \(best) / 3 stars · Latest \(latest)")

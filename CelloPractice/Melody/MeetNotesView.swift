@@ -28,17 +28,10 @@ struct MeetNotesView: View {
             VStack(alignment: .leading, spacing: 17) {
                 LessonHeader(subtitle: "This melody uses \(NoteDrill.notes(for: piece).count) notes. Hear one, then hum it back after the count of 1–2–3–4. The bar shows how close you are.",
                              collapsesSubtitle: store.melodyProgress(for: context).successfulAttempts > 0)
-                HStack {
-                    ChoiceMenu(choices: drills, selection: $drill, name: "Note", title: \.title) {
-                        store.melodyProgress(for: $0.context).completed
-                    }.disabled(locked).accessibilityIdentifier("meetNotesPicker")
-                    Spacer()
-                    Text("\(Int(context.duration)) seconds")
-                        .font(.caption).foregroundStyle(Palette.muted)
-                }
-                MelodyNotesView(context: context,
-                                elapsed: capture.isRecording ? capture.elapsed
-                                    : capture.isPlayingReference ? capture.referenceElapsed : nil)
+                // The chips name every note, so nothing else on the screen repeats them.
+                PartStrip(parts: drills, selection: $drill, short: \.chipLabel, title: \.title) {
+                    store.melodyProgress(for: $0.context)
+                }.disabled(locked)
             }.id("practiceTop")
         }.id(drill.id)
             .background(Palette.paper).screenTitle(piece.title)

@@ -29,11 +29,9 @@ struct MelodyReferenceView: View {
                         .accessibilityIdentifier("melodyReferenceKey")
                 }
                 VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        SectionTitle("Follow the notes")
-                        Spacer()
-                        ChoiceMenu(choices: MelodySection.allCases, selection: $section, title: \.title).accessibilityIdentifier("melodySectionPicker")
-                    }
+                    SectionTitle("Follow the notes")
+                    PartStrip(parts: MelodySection.allCases, selection: $section, leading: "Phrase",
+                              short: \.chipLabel, title: \.title)
                     MelodyNotesView(context: context,
                                     elapsed: capture.isPlayingReference ? capture.referenceElapsed : nil)
                     Text(piece.notesHint).font(.caption).foregroundStyle(Palette.muted)

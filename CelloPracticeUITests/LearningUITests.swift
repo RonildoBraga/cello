@@ -86,18 +86,17 @@ final class LearningUITests: XCTestCase {
         app.pathLesson("lesson-hotCrossBuns-whole").tap()
         XCTAssertTrue(app.navigationBars["Hot Cross Buns"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.staticTexts["screenTitle"].label, "Whole melody")
-        XCTAssertFalse(app.buttons["melodyHummingSectionPicker"].exists, "Whole melody is one part: nothing to choose")
+        XCTAssertFalse(app.buttons["part-Phrase 1"].exists, "Whole melody is one part: nothing to choose")
         XCTAssertFalse(app.staticTexts["lessonPartPosition"].exists)
         XCTAssertFalse(app.staticTexts["melodyRatingStars"].exists, "Opening a lesson must not invent a score")
         screenshot("Hot Cross Buns · whole melody lesson")
         app.pathLesson("lesson-hotCrossBuns-hum").tap()
         XCTAssertTrue(app.navigationBars["Hot Cross Buns"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.staticTexts["screenTitle"].label, "Hum it")
-        XCTAssertEqual(app.buttons["melodyHummingSectionPicker"].label, "Section: Phrase 1")
+        XCTAssertTrue(app.buttons["part-Phrase 1"].isSelected)
 
         // The lesson bar is the one way forward: through the phrases, then to
         // the next lesson, then into the next level. And back the same way.
-        let picker = app.buttons["melodyHummingSectionPicker"]
         let next = app.buttons["nextLessonButton"]
         let previous = app.buttons["previousLessonButton"]
         let position = app.staticTexts["lessonPosition"]
@@ -106,12 +105,12 @@ final class LearningUITests: XCTestCase {
         XCTAssertEqual(next.label, "Next part, Phrase 2")
         XCTAssertFalse(app.buttons["nextMelodyPhraseButton"].exists, "There is no second way to move on")
         next.tap()
-        let onPhraseTwo = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Section: Phrase 2"), object: picker)
+        let onPhraseTwo = XCTNSPredicateExpectation(predicate: NSPredicate(format: "selected == true"), object: app.buttons["part-Phrase 2"])
         XCTAssertEqual(XCTWaiter.wait(for: [onPhraseTwo], timeout: 5), .completed)
         XCTAssertEqual(position.label, "Lesson 4 of 5", "A phrase is a part of the same lesson")
         XCTAssertEqual(previous.label, "Previous part")
         previous.tap()
-        let onPhraseOne = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Section: Phrase 1"), object: picker)
+        let onPhraseOne = XCTNSPredicateExpectation(predicate: NSPredicate(format: "selected == true"), object: app.buttons["part-Phrase 1"])
         XCTAssertEqual(XCTWaiter.wait(for: [onPhraseOne], timeout: 5), .completed)
 
         selectMelodyHummingSection("Phrase 4", in: app)
@@ -124,7 +123,7 @@ final class LearningUITests: XCTestCase {
         previous.tap()
         let onHum = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Lesson 4 of 5"), object: position)
         XCTAssertEqual(XCTWaiter.wait(for: [onHum], timeout: 5), .completed)
-        XCTAssertEqual(picker.label, "Section: Phrase 1")
+        XCTAssertTrue(app.buttons["part-Phrase 1"].isSelected)
         openLesson("pulse", title: "Pulse", in: app)
         app.buttons["startLessonButton"].tap()
         assertInlinePulseReady(in: app)
@@ -681,8 +680,7 @@ final class LearningUITests: XCTestCase {
         step.tap()
         XCTAssertTrue(app.navigationBars["Hot Cross Buns"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.staticTexts["screenTitle"].label, "Meet the notes")
-        let picker = app.buttons["meetNotesPicker"]
-        XCTAssertEqual(picker.label, "Note: G2")
+        XCTAssertTrue(app.buttons["part-G2"].isSelected)
         waitForRecord(in: app)
         let record = app.buttons["practiceRecordButton"]
         let hear = app.buttons["previewTargetButton"]
@@ -690,12 +688,12 @@ final class LearningUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["melodyRatingStars"].exists, "Opening the lesson must not invent a score")
         assertNoPermissionAlerts(in: app)
 
-        picker.tap()
+        // Every note is on show at once; there is no menu to open.
         for title in ["G2", "A2", "B2", "G2 then B2 · going higher", "B2 then G2 · going lower"] {
-            XCTAssertTrue(app.buttons[title].waitForExistence(timeout: 3), "\(title) should be offered")
+            XCTAssertTrue(app.buttons["part-\(title)"].exists, "\(title) should be offered")
         }
-        app.buttons["A2"].tap()
-        XCTAssertEqual(picker.label, "Note: A2")
+        app.buttons["part-A2"].tap()
+        XCTAssertTrue(app.buttons["part-A2"].isSelected)
         waitForRecord(in: app)
         XCTAssertEqual(record.label, "Record", "Choosing a note must not play it")
         screenshot("Hot Cross Buns · meet the notes")
@@ -732,11 +730,7 @@ final class LearningUITests: XCTestCase {
         let app = XCUIApplication.cello()
         app.launch()
         openMelodyReference(in: app)
-        // Menu pickers can expose a pop-up button instead of a button on iOS27.
-        let sections = app.descendants(matching: .any).matching(identifier: "melodySectionPicker").firstMatch
-        reveal(sections, in: app)
-        sections.tap()
-        app.buttons["Phrase 3"].tap()
+        choosePart("Phrase 3", in: app)
         waitForMelodyButton("Hear phrase", in: app)
         let play = app.buttons["melodyPlayButton"]
         let status = app.descendants(matching: .any).matching(identifier: "melodyPlaybackStatus").firstMatch
@@ -763,8 +757,7 @@ final class LearningUITests: XCTestCase {
 
         play.tap()
         waitForMelodyButton("Stop", in: app)
-        sections.tap()
-        app.buttons["Phrase 1"].tap()
+        choosePart("Phrase 1", in: app)
         waitForMelodyButton("Hear phrase", in: app)
         XCTAssertFalse(status.exists, "A phrase change must cancel playback without automatically restarting")
         XCTAssertFalse(app.buttons["practiceRecordButton"].exists)
@@ -789,10 +782,7 @@ final class LearningUITests: XCTestCase {
         XCTAssertTrue(key.label.contains("Recorded cello"))
         XCTAssertFalse(status.exists, "Changing register must not autoplay")
 
-        let sections = app.descendants(matching: .any).matching(identifier: "melodySectionPicker").firstMatch
-        reveal(sections, in: app)
-        sections.tap()
-        app.buttons["Phrase 4"].tap()
+        choosePart("Phrase 4", in: app)
         waitForMelodyButton("Hear phrase", in: app)
         XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label ENDSWITH %@", ", 1.5 beats")).count, 1)
         XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label ENDSWITH %@", ", 0.5 beats")).count, 1)
@@ -841,7 +831,7 @@ final class LearningUITests: XCTestCase {
         app.pathLesson("lesson-odeToJoy-hum").tap()
         XCTAssertTrue(app.navigationBars["Ode to Joy"].waitForExistence(timeout: 5))
         waitForRecord(in: app)
-        let sections = app.buttons["melodyHummingSectionPicker"]
+        let sections = app.buttons["part-Phrase 1"]
         let duration = app.staticTexts["melodyTakeDuration"]
         let target = app.staticTexts["currentTargetLabel"]
         XCTAssertFalse(app.segmentedControls["melodyHummingRegisterPicker"].exists, "Humming uses one voice")
@@ -986,11 +976,11 @@ final class LearningUITests: XCTestCase {
         let app = XCUIApplication.cello()
         app.launch()
         openMelodyRhythm(in: app)
-        let sections = app.descendants(matching: .any).matching(identifier: "melodyRhythmSectionPicker").firstMatch
+        let sections = app.buttons["part-Phrase 1"]
         let duration = app.staticTexts["melodyRhythmDuration"]
         let tap = app.buttons["melodyRhythmTapButton"]
         let progress = app.staticTexts["practiceProgressText"].label
-        XCTAssertTrue(sections.label.contains("Phrase 1"))
+        XCTAssertTrue(sections.isSelected)
         XCTAssertTrue(duration.label.contains("4 seconds") && duration.label.contains("60 BPM"))
         XCTAssertTrue(app.staticTexts["Note, 2 beats"].exists, "The last note continues for two beats")
         XCTAssertFalse(tap.exists, "The tap pad appears with the count-in, not before")
@@ -1163,12 +1153,12 @@ final class LearningUITests: XCTestCase {
         let foundationTarget = app.staticTexts["currentTargetLabel"].label
         let foundationProgress = app.staticTexts["practiceProgressText"].label
         openMelodyHumming(in: app)
-        let sections = app.buttons["melodyHummingSectionPicker"]
+        let sections = app.buttons["part-Phrase 1"]
         let duration = app.staticTexts["melodyTakeDuration"]
         let target = app.staticTexts["currentTargetLabel"]
         XCTAssertFalse(app.segmentedControls["melodyHummingRegisterPicker"].exists, "Humming uses one voice")
         XCTAssertFalse(app.buttons["Higher voice"].exists)
-        XCTAssertTrue(sections.label.contains("Phrase 1"))
+        XCTAssertTrue(sections.isSelected)
         XCTAssertTrue(duration.label.contains("4 seconds") && duration.label.contains("60 BPM"))
         XCTAssertTrue(target.label.contains("G2–B2"))
         XCTAssertFalse(app.staticTexts["LISTEN"].exists)
@@ -1807,7 +1797,7 @@ final class LearningUITests: XCTestCase {
     private func openMelodyHumming(in app: XCUIApplication, pieceID: String = "hotCrossBuns") {
         app.pathLesson("lesson-\(pieceID)-hum").tap()
         XCTAssertTrue(app.navigationBars[melodyTitle(for: pieceID)].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["melodyHummingSectionPicker"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["part-Phrase 1"].waitForExistence(timeout: 5))
         waitForRecord(in: app)
     }
 
@@ -1815,17 +1805,17 @@ final class LearningUITests: XCTestCase {
         pieceID == "odeToJoy" ? "Ode to Joy" : "Hot Cross Buns"
     }
 
+    /// Taps a part's chip, such as "Phrase 3" or "A2", wherever its lesson shows them.
+    private func choosePart(_ title: String, in app: XCUIApplication) {
+        let chip = app.buttons["part-\(title)"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 5))
+        for _ in 0..<5 where !chip.isHittable { app.scrollViews.firstMatch.swipeDown() }
+        XCTAssertTrue(chip.isHittable)
+        chip.tap()
+    }
+
     private func selectMelodyHummingSection(_ title: String, in app: XCUIApplication) {
-        let sections = app.buttons["melodyHummingSectionPicker"]
-        for _ in 0..<5 {
-            if sections.isHittable { break }
-            app.scrollViews.firstMatch.swipeDown()
-        }
-        XCTAssertTrue(sections.isHittable)
-        sections.tap()
-        let choice = app.buttons.matching(NSPredicate(format: "label == %@ OR label BEGINSWITH %@", title, "\(title) ·")).firstMatch
-        XCTAssertTrue(choice.waitForExistence(timeout: 3))
-        choice.tap()
+        choosePart(title, in: app)
         waitForRecord(in: app)
     }
 
@@ -1836,16 +1826,7 @@ final class LearningUITests: XCTestCase {
     }
 
     private func selectMelodyRhythmSection(_ title: String, in app: XCUIApplication) {
-        let sections = app.descendants(matching: .any).matching(identifier: "melodyRhythmSectionPicker").firstMatch
-        for _ in 0..<5 {
-            if sections.isHittable { break }
-            app.scrollViews.firstMatch.swipeDown()
-        }
-        XCTAssertTrue(sections.isHittable)
-        sections.tap()
-        let choice = app.buttons.matching(NSPredicate(format: "label == %@ OR label BEGINSWITH %@", title, "\(title) ·")).firstMatch
-        XCTAssertTrue(choice.waitForExistence(timeout: 3))
-        choice.tap()
+        choosePart(title, in: app)
         waitForMelodyRhythmButton("Start", in: app)
     }
 
