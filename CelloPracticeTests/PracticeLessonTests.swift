@@ -106,6 +106,49 @@ final class PracticeLessonTests: XCTestCase {
         XCTAssertNil(result.latestStars)
     }
 
+    @MainActor
+    func testDeletedPassingTakeKeepsTheFoundationScoreUsedByThePathTodayAndDetail() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("PassedLesson-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let directory = root.appendingPathComponent("PracticeSessions")
+        let steady = session(at: 0, stars: 2)
+        let match = session(at: 1, stars: 2, exercise: .matchHum)
+        // Archived-rating fixtures verify state and deletion, not acoustic grading.
+        for take in [steady, match] {
+            let folder = directory.appendingPathComponent(take.id.uuidString)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try SessionStore.writeMetadata(take, to: folder)
+            try Data("archived take".utf8).write(to: folder.appendingPathComponent(take.videoFilename))
+        }
+
+        let store = SessionStore(directory: directory)
+        let rhythms = RhythmStores(directory: root)
+        let before = LessonState(lesson: .matchHum, store: store, rhythmStores: rhythms)
+        XCTAssertEqual(before.bestStars, 2)
+        XCTAssertEqual(before.latestStars, 2)
+        XCTAssertTrue(before.step.passed)
+        XCTAssertFalse(before.step.gold)
+        store.delete(match)
+        XCTAssertNil(store.errorMessage)
+
+        let reloaded = SessionStore(directory: directory)
+        XCTAssertNil(reloaded.errorMessage)
+        XCTAssertEqual(reloaded.sessions.map(\.id), [steady.id])
+        let kept = LessonState(lesson: .matchHum, store: reloaded, rhythmStores: rhythms)
+        XCTAssertTrue(kept.step.passed)
+        XCTAssertFalse(kept.step.gold)
+        XCTAssertEqual(kept.bestStars, 2, "The path row and detail retain the score proved by the pass")
+        XCTAssertNil(kept.latestStars, "Deleting its take must not invent a latest saved score")
+        XCTAssertEqual(kept.step.bestStars, 2)
+
+        let states = [PathLesson.lesson(.steadyHum): LessonState(lesson: .steadyHum, store: reloaded, rhythmStores: rhythms),
+                      .lesson(.matchHum): kept]
+        let today = Level.today(isPassed: { states[$0]?.step.passed ?? false },
+                                stars: { states[$0]?.bestStars ?? 0 })
+        XCTAssertEqual(today, [.lesson(.pulse), .lesson(.steadyHum), .lesson(.matchHum)],
+                       "Both passed lessons still rank as two stars, so their path order breaks the tie")
+    }
+
     func testUnratedHistoryDoesNotBecomeAZeroStarScore() {
         let target = HummingExample.frequency
         let legacy = PracticeSession(id: UUID(), createdAt: Date(), exercise: .steadyHum,

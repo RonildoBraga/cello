@@ -328,7 +328,7 @@ private struct TierLabel: View {
 }
 
 @MainActor
-private struct LessonState {
+struct LessonState {
     let progress: PracticeProgress
     let bestStars: Int?
     let latestStars: Int?
@@ -341,7 +341,7 @@ private struct LessonState {
             progress = store.progress(for: exercise, targetFrequency: target)
             let scores = LessonScoreSummary(exercise: exercise, targetFrequency: target,
                                             sessions: store.sessions, completed: progress.completed)
-            bestStars = scores.bestStars
+            bestStars = progress.bestStars
             latestStars = scores.latestStars
             hasAttempts = scores.hasAttempts
         case .rhythm(let exercise):
