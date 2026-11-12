@@ -59,6 +59,28 @@ final class OdeToJoyPracticeTests: XCTestCase {
         }
     }
 
+    func testQuickNotesAreHeardThroughSteadyHissThatFillsTheirPauses() throws {
+        // The example at a real hum's level (loud parts near -47 dBFS) with hiss 13 dB below it.
+        // The hiss alone is above the level that counts as sound, so no pause between the notes
+        // falls silent: the fresh starts are heard as dips.
+        let context = MelodyPiece.hotCrossBuns.humming(register: .lowVoice, section: .phrase3)
+        let clean = pcm(try RecordedReference.wavData(context: context))
+        let cells = stride(from: 0, to: clean.count - 480, by: 480).map { start in
+            (clean[start..<(start + 480)].reduce(0.0) { $0 + Double($1) * Double($1) } / 480).squareRoot()
+        }.sorted()
+        let gain = Float(pow(10, -47.0 / 20) / cells[cells.count * 9 / 10])
+        var state: UInt64 = 1234
+        func uniform() -> Double {
+            state = state &* 6364136223846793005 &+ 1442695040888963407
+            return Double(state >> 11) / Double(UInt64(1) << 53)
+        }
+        let hiss = pow(10, -60.0 / 20)
+        let noisy = clean.map { $0 * gain + Float(hiss * (-2 * log(max(uniform(), 1e-12))).squareRoot() * cos(2 * .pi * uniform())) }
+        let rating = rate(noisy, for: context)
+        XCTAssertEqual(rating.noteResults.filter { $0.observedOnset != nil }.count, 8)
+        XCTAssertEqual(rating.starCount, 3)
+    }
+
     func testIndependentWrongPitchAndMissingNoteSignalsDoNotEarnNotesOrThreeStars() throws {
         let context = try MelodyPracticeContext.odeToJoy(register: .lowVoice, section: .phrase1,
                                                          gradingVersion: MelodyRating.currentVersion)

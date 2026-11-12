@@ -13,13 +13,15 @@ struct MelodyProgressLedger: SessionProgressLedger {
     }
 
     static func key(for context: MelodyPracticeContext) -> String? {
-        guard context.isValid, context.gradingVersion == MelodyRating.currentVersion,
+        guard context.isValid, context.gradingVersion.map(MelodyRating.progressVersions.contains) == true,
               !EchoLevel.allCases.contains(where: { $0.pieceID == context.pieceID }) else { return nil }
         // Hash the complete frozen score selection, including events and tuning,
         // rather than just its display labels. Sorted keys make reloads stable.
+        // The scoring version is hashed as the first that counts, so a pass earned
+        // under earlier rules is still this lesson's pass.
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
-        guard let data = try? encoder.encode(context) else { return nil }
+        guard let data = try? encoder.encode(context.graded(by: MelodyRating.progressVersions.lowerBound)) else { return nil }
         return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
 

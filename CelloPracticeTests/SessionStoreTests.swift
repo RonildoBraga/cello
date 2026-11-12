@@ -808,13 +808,64 @@ final class SessionStoreTests: XCTestCase {
             exercise: .steadyHum, duration: 3, targetFrequency: HummingExample.frequency, room: RoomNoise(level: 0.001))
         XCTAssertNil(try XCTUnwrap(quiet).room)
         XCTAssertEqual(try XCTUnwrap(noisy).room?.isLoud, true)
-        XCTAssertEqual(noisy?.rating, quiet?.rating, "The room is recorded beside the score, not used in it")
+        // Each take has its own encoded movie, so measured lengths can differ by a sample: compare the score.
+        for goal in [\PracticeRating.match, \.steady, \.hold] {
+            XCTAssertEqual(noisy?.rating?[keyPath: goal], quiet?.rating?[keyPath: goal], "The room is recorded beside the score, not used in it")
+        }
         XCTAssertEqual(noisy?.rating?.starCount, 3)
+        XCTAssertEqual(quiet?.rating?.starCount, 3)
 
         let reloaded = SessionStore(directory: directory)
         XCTAssertNil(reloaded.errorMessage)
         XCTAssertEqual(reloaded.sessions.first { $0.id == noisy?.id }?.roomLevel, 0.001)
         XCTAssertNil(reloaded.sessions.first { $0.id == quiet?.id }?.roomLevel)
+    }
+
+    @MainActor
+    func testPassesAndGoldEarnedUnderTheEarlierRulesStillStandUnderTheNewOnes() throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let directory = root.appendingPathComponent("PracticeSessions", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let earlier = try scoredMelodyContext(gradingVersion: 2)
+        let current = try scoredMelodyContext()
+        XCTAssertEqual(current.gradingVersion, 3)
+        // One lesson, one key: the one version 2 wrote into the saved progress files.
+        XCTAssertEqual(MelodyProgressLedger.key(for: current), MelodyProgressLedger.key(for: earlier))
+        XCTAssertNil(MelodyProgressLedger.key(for: try scoredMelodyContext(gradingVersion: 1)), "Version 1 was retired before passes were kept")
+        XCTAssertNotEqual(MelodyProgressLedger.key(for: current),
+                          MelodyProgressLedger.key(for: try .hotCrossBuns(register: .lowVoice, section: .phrase2, gradingVersion: 3)))
+
+        // Three three-star takes scored by version 2 are this lesson's gold today.
+        let takes = try writeMelodyHistory(count: 3, context: earlier, in: directory).map { take in
+            PracticeSession(id: take.id, createdAt: take.createdAt, exercise: take.exercise, duration: take.duration,
+                            notes: "", pitchSamples: [], videoFilename: take.videoFilename, melodyContext: earlier,
+                            melodyRating: MelodyRating(version: 2, status: .rated, notes: true, timing: true, clarity: true))
+        }
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        for take in takes {
+            try encoder.encode(take).write(to: directory.appendingPathComponent(take.id.uuidString).appendingPathComponent("session.json"))
+        }
+        let store = SessionStore(directory: directory)
+        XCTAssertNil(store.errorMessage)
+        let progress = store.melodyProgress(for: current)
+        XCTAssertTrue(progress.passed)
+        XCTAssertTrue(progress.completed)
+        XCTAssertEqual(store.sessions.first?.melodyRating?.version, 2, "The takes keep the scores they were given")
+
+        // Listen & Echo keeps its key too.
+        let echo = try EchoLevel.twoNotes.context(patternIndex: 0, register: .lowVoice)
+        XCTAssertEqual(echo.gradingVersion, 3)
+        func echoTake(_ version: Int) -> PracticeSession {
+            PracticeSession(id: UUID(), createdAt: Date(), exercise: .listen, duration: echo.duration, notes: "",
+                            pitchSamples: [], videoFilename: "recording.mov", melodyContext: echo.graded(by: version),
+                            melodyRating: MelodyRating(version: version, status: .rated, notes: true, timing: true))
+        }
+        let level = try XCTUnwrap(EchoProgressLedger.key(for: .twoNotes, register: .lowVoice))
+        XCTAssertEqual(EchoProgressLedger.eligibleKey(for: echoTake(2)), level)
+        XCTAssertEqual(EchoProgressLedger.eligibleKey(for: echoTake(3)), level)
+        XCTAssertNil(EchoProgressLedger.eligibleKey(for: echoTake(1)))
     }
 
     private func makeRoot() throws -> URL {

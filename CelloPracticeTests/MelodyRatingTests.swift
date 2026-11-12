@@ -114,6 +114,94 @@ final class MelodyRatingTests: XCTestCase {
         }
     }
 
+    // MARK: Version 3: fresh starts, settled pitch and quick notes
+
+    /// Hot Cross Buns' third phrase: four quick G's, then four quick A's.
+    private var quickPhrase: MelodyPracticeContext { MelodyPiece.hotCrossBuns.humming(register: .lowVoice, section: .phrase3) }
+
+    /// Notes sung "doo-doo": each `sounding` of its slot, on a quieter hum that never stops,
+    /// so the level between notes dips to `floor` of the note's instead of falling silent.
+    private func articulated(_ context: MelodyPracticeContext, floor: Double, sounding: Double = 0.78,
+                             slideCents: Double = 0, offsetCents: Double = 0) -> [Float] {
+        var sound = [Float](repeating: 0, count: Int(context.duration * sampleRate))
+        var phase = 0.0
+        for event in context.expectedEvents {
+            guard let target = context.frequency(for: event) else { continue }
+            let start = Int(event.onsetBeat * sampleRate), length = Int(event.durationBeats * sampleRate)
+            for frame in 0..<length where start + frame < sound.count {
+                let elapsed = Double(frame) / sampleRate, position = Double(frame) / Double(length)
+                // The note swells in over 30 ms and falls away at the end of its sounding part.
+                let rise = min(1, elapsed / 0.03), fall = min(1, max(0, (sounding - position) * Double(length) / sampleRate / 0.03))
+                let level = floor + (1 - floor) * min(rise, fall)
+                // A slide begins off the note and reaches it a third of the way through.
+                let cents = offsetCents + slideCents * max(0, 1 - position / 0.33)
+                phase += 2 * Double.pi * target * pow(2, cents / 1_200) / sampleRate
+                sound[start + frame] = Float(0.2 * level * (sin(phase) + 0.5 * sin(2 * phase) + 0.25 * sin(3 * phase)))
+            }
+        }
+        return sound
+    }
+
+    func testQuickNotesSeparatedByADipAreHeardAsNotesOfTheirOwn() throws {
+        // The level between the notes falls to a third, about 10 dB, as a real "doo-doo" does.
+        let rating = rate(articulated(quickPhrase, floor: 0.33), quickPhrase)
+        XCTAssertEqual(rating.status, .rated)
+        XCTAssertEqual(rating.noteResults.filter { $0.observedOnset != nil }.count, 8, "Every fresh start is heard")
+        XCTAssertEqual(rating.starCount, 3, "notes \(rating.matchedNoteFraction ?? -1) timing \(rating.timedNoteFraction ?? -1) clarity \(rating.clearNoteFraction ?? -1)")
+        XCTAssertNil(rating.heardAdvice)
+        for note in rating.noteResults {
+            XCTAssertEqual(try XCTUnwrap(note.observedOnset), note.expectedStart, accuracy: 0.08, "A start sits at the bottom of its dip")
+        }
+    }
+
+    func testOneNoteHeldThroughQuickNotesIsStillOneNote() throws {
+        // No dips at all: the same pitch held where eight starts were asked for.
+        let held = rate(articulated(quickPhrase, floor: 1), quickPhrase)
+        XCTAssertLessThan(held.noteResults.filter { $0.observedOnset != nil }.count, 4)
+        XCTAssertFalse(held.timing)
+        XCTAssertLessThan(held.starCount ?? 3, 2)
+        XCTAssertEqual(held.feedback, held.heardAdvice, "The advice says the notes were not heard apart")
+        // A waver too shallow to be a fresh start is not one either.
+        let wavering = rate(articulated(quickPhrase, floor: 0.7), quickPhrase)
+        XCTAssertLessThan(wavering.noteResults.filter { $0.observedOnset != nil }.count, 4)
+    }
+
+    func testADipInsideAHeldNoteIsNotANewNote() throws {
+        // Phrase 1 ends on a two-beat note. Its level sags to a third for a moment at 2.9 s,
+        // where the score has no note starting.
+        let context = try snapshot()
+        var sound = signal(context: context)
+        for index in Int(2.85 * sampleRate)..<Int(2.95 * sampleRate) { sound[index] *= 0.3 }
+        let rating = rate(sound, context)
+        XCTAssertEqual(rating.noteResults.filter { $0.observedOnset != nil }.count, 3)
+        XCTAssertEqual(rating.starCount, 3)
+        XCTAssertEqual(rating, rate(sound, context), "The same sound always scores the same")
+    }
+
+    func testANoteIsJudgedOnWhereItSettlesNotOnTheSlideIntoIt() throws {
+        // Every note starts a whole tone high and reaches its pitch a third of the way through.
+        let slid = rate(articulated(quickPhrase, floor: 0.2, slideCents: 200), quickPhrase)
+        XCTAssertTrue(slid.notes, "matched \(slid.matchedNoteFraction ?? -1)")
+        XCTAssertEqual(slid.starCount, 3)
+        // Settling in the wrong place is still wrong: 90 cents sharp throughout misses Notes
+        // and keeps the other two goals, which is a pass.
+        let sharp = rate(articulated(quickPhrase, floor: 0.2, offsetCents: 90), quickPhrase)
+        XCTAssertFalse(sharp.notes)
+        XCTAssertTrue(sharp.timing && sharp.clarity)
+        XCTAssertEqual(sharp.starCount, 2)
+        XCTAssertEqual(sharp.feedback, "The first note (G2) was a little too high. Hear the start again and begin on its pitch.")
+    }
+
+    func testQuickNotesHaveRoomForTheirStartsAndLongNotesDoNot() throws {
+        // Each quick note sounds for 55% of its half second: detached, as beginners sing them.
+        let detached = rate(articulated(quickPhrase, floor: 0, sounding: 0.55), quickPhrase)
+        XCTAssertTrue(detached.timing && detached.clarity, "timing \(detached.timedNoteFraction ?? -1) clarity \(detached.clearNoteFraction ?? -1)")
+        // A one-beat note cut as short still loses its timing: it was not held.
+        let context = try snapshot()
+        let clipped = rate(articulated(context, floor: 0, sounding: 0.55), context)
+        XCTAssertFalse(clipped.timing)
+    }
+
     func testCorrectSequenceStartedLateIsNotSilentlyAlignedToScore() throws {
         let context = try snapshot()
         let rating = rate(signal(context: context, delay: 0.4), context)

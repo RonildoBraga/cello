@@ -112,10 +112,16 @@ final class HummingGuidanceTests: XCTestCase {
     }
 
     func testWithoutAMeasuredStartTheGeneralAdviceStays() {
+        // A note that was never heard as a note of its own has no start to measure: say that instead.
         let unheard = rating([note(0, start: 0, onset: 0, timed: true), note(1, start: 2, onset: nil, timed: false)])
         XCTAssertNil(unheard.timingAdvice)
-        XCTAssertTrue(unheard.feedback.hasPrefix("Start as the first bar reaches the line"))
-        XCTAssertTrue(unheard.feedback.hasSuffix("keep it going until the next."))
+        XCTAssertEqual(unheard.feedback, "1 of the 2 notes were heard. Give each note a clear start of its own.")
+        XCTAssertEqual(unheard.heardAdvice, unheard.feedback)
+        // Nothing heard at all, or everything heard, leaves the usual advice.
+        XCTAssertNil(rating([note(0, start: 0, onset: nil, timed: false), note(1, start: 2, onset: nil, timed: false)]).heardAdvice)
+        let late = rating([note(0, start: 0, onset: 0, timed: true), note(1, start: 2, onset: 2.05, timed: false)])
+        XCTAssertNil(late.heardAdvice)
+        XCTAssertTrue(late.feedback.hasSuffix("Hold it until its bar has passed the line."))
         let onTime = MelodyRating(status: .rated, notes: true, timing: true, clarity: true)
         XCTAssertTrue(onTime.feedback.hasPrefix("All three goals reached"))
     }
