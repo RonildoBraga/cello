@@ -106,3 +106,5 @@ Lightly Row is assessed the same way. Its skips are a minor third, three semiton
 Old MacDonald is assessed the same way. Its leap of a sixth, nine semitones, comes between two phrases, so practised phrase by phrase it is heard only in Meet the notes and the whole line. See [the arrangement](old-macdonald-reference.md).
 
 Yankee Doodle is assessed the same way. Most of its notes last half a second and change pitch, so each new note is found by its change of pitch rather than by a fresh start; quick notes get the same room for their starts as Hot Cross Buns' repeated ones. See [the arrangement](yankee-doodle-reference.md).
+
+The G major scale is assessed the same way, with the voice on the cello's own notes, G2 to G3. Phrases 2 and 3 meet on the top G sounded twice, a beat apart, like Twinkle's repeated notes. See [the scale](g-major-scale-reference.md).

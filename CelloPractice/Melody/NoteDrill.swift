@@ -27,7 +27,7 @@ struct NoteDrill: Hashable, Identifiable {
     /// The piece's distinct notes, lowest first.
     static func notes(for piece: MelodyPiece, register: MelodyRegister = .lowVoice) -> [NoteDrill] {
         Set(piece.score.events.compactMap(\.midiNote)).sorted().map {
-            NoteDrill(piece: piece, midiNotes: [$0 + register.transpositionSemitones], register: register)
+            NoteDrill(piece: piece, midiNotes: [$0 + piece.transposition(for: register)], register: register)
         }
     }
 
@@ -39,7 +39,7 @@ struct NoteDrill: Hashable, Identifiable {
         return zip(events, events.dropFirst()).reduce(into: []) { drills, pair in
             guard let note = pair.1.midiNote, note == pair.0.midiNote,
                   pair.1.durationBeats < 1, pair.1.durationBeats == pair.0.durationBeats else { return }
-            let drill = NoteDrill(piece: piece, midiNotes: Array(repeating: note + register.transpositionSemitones,
+            let drill = NoteDrill(piece: piece, midiNotes: Array(repeating: note + piece.transposition(for: register),
                                                                  count: Int(quickBeats / pair.1.durationBeats)),
                                   register: register, noteBeats: pair.1.durationBeats)
             if !drills.contains(drill) { drills.append(drill) }
@@ -61,7 +61,7 @@ struct NoteDrill: Hashable, Identifiable {
         guard let low = singles.first?.midiNotes[0], let high = singles.last?.midiNotes[0], low != high else {
             return singles
         }
-        let pair = jump(in: piece)?.map { $0 + register.transpositionSemitones } ?? [low, high]
+        let pair = jump(in: piece)?.map { $0 + piece.transposition(for: register) } ?? [low, high]
         return singles + [NoteDrill(piece: piece, midiNotes: pair, register: register, noteBeats: pairBeats),
                           NoteDrill(piece: piece, midiNotes: pair.reversed(), register: register, noteBeats: pairBeats)]
             + quickRepeats(for: piece, register: register)

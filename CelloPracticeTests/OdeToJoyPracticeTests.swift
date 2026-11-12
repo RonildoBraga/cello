@@ -8,7 +8,7 @@ final class OdeToJoyPracticeTests: XCTestCase {
     func testRecordedPhrasesAndWholeOpeningEarnThreeIndependentStarsHummedAndOnTheCello() throws {
         // Twinkle's jump of five notes, Lightly Row's skips and Yankee Doodle's running notes are scored
         // by the same rater as the steps of Ode to Joy.
-        for piece in [MelodyPiece.odeToJoy, .twinkle, .lightlyRow, .oldMacDonald, .yankeeDoodle] {
+        for piece in [MelodyPiece.odeToJoy, .twinkle, .lightlyRow, .oldMacDonald, .yankeeDoodle, .gMajorScale] {
             for register in PracticeMethod.allCases.map(\.register) {
                 for section in MelodySection.allCases {
                     let context = try MelodyPracticeContext.melody(
@@ -39,7 +39,8 @@ final class OdeToJoyPracticeTests: XCTestCase {
             (.twinkle, MelodySection.phrases, [50, 52, 54, 55, 57, 59]),
             (.lightlyRow, MelodySection.phrases, [50, 52, 54, 55, 57]),
             (.oldMacDonald, MelodySection.phrases, [50, 52, 55, 57, 59]),
-            (.yankeeDoodle, MelodySection.phrases, [50, 52, 54, 55, 57, 59, 60])]
+            (.yankeeDoodle, MelodySection.phrases, [50, 52, 54, 55, 57, 59, 60]),
+            (.gMajorScale, MelodySection.phrases, [43, 45, 47, 48, 50, 52, 54, 55])]
         for (piece, sections, notes) in pieces {
             for register in PracticeMethod.allCases.map(\.register) {
                 var heardNotes: Set<Int> = []
@@ -59,7 +60,7 @@ final class OdeToJoyPracticeTests: XCTestCase {
                                           "\(piece.title), \(register.rawValue), MIDI \(event.midiNote ?? -1)")
                     }
                 }
-                XCTAssertEqual(heardNotes, Set(notes.map { $0 + register.transpositionSemitones }))
+                XCTAssertEqual(heardNotes, Set(notes.map { $0 + piece.transposition(for: register) }))
             }
         }
     }

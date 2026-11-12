@@ -6,7 +6,7 @@ House rules for changing Cello, whether you are a person or an AI assistant. The
 
 One vocabulary, on screen, in code, in tests and in docs:
 
-- **Level**: a numbered stage of the path (First sounds, Hot Cross Buns, Ode to Joy, Twinkle, Twinkle, Lightly Row, Old MacDonald, Yankee Doodle).
+- **Level**: a numbered stage of the path (First sounds, Hot Cross Buns, Ode to Joy, Twinkle, Twinkle, Lightly Row, Old MacDonald, Yankee Doodle, G major scale).
 - **Lesson**: one item in a level, shown as "Lesson 1 of 6". Not "step", "exercise" or "activity".
 - **Part**: a piece of a lesson that has several, such as a phrase or a single note.
 - **Take**: one recording. **Round**: one tapping attempt.
@@ -17,7 +17,7 @@ A lesson's number is its place in its level. Saved data keeps its own stable IDs
 ## Before you open a pull request
 
 ```sh
-bash scripts/test.sh        # pitch package + app unit tests (also run by CI)
+bash scripts/test.sh        # pitch package + app unit tests (CI runs the rendered melody examples as a job of their own)
 bash scripts/test.sh smoke  # nine UI tests across every area, about 6 minutes; run for each change to a screen
 bash scripts/test.sh ui     # every real-clock UI test, about 30 minutes; run before a release
 ```
