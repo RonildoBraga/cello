@@ -808,8 +808,12 @@ final class SessionStoreTests: XCTestCase {
             exercise: .steadyHum, duration: 3, targetFrequency: HummingExample.frequency, room: RoomNoise(level: 0.001))
         XCTAssertNil(try XCTUnwrap(quiet).room)
         XCTAssertEqual(try XCTUnwrap(noisy).room?.isLoud, true)
-        XCTAssertEqual(noisy?.rating, quiet?.rating, "The room is recorded beside the score, not used in it")
+        // Each take has its own encoded movie, so measured lengths can differ by a sample: compare the score.
+        for goal in [\PracticeRating.match, \.steady, \.hold] {
+            XCTAssertEqual(noisy?.rating?[keyPath: goal], quiet?.rating?[keyPath: goal], "The room is recorded beside the score, not used in it")
+        }
         XCTAssertEqual(noisy?.rating?.starCount, 3)
+        XCTAssertEqual(quiet?.rating?.starCount, 3)
 
         let reloaded = SessionStore(directory: directory)
         XCTAssertNil(reloaded.errorMessage)
