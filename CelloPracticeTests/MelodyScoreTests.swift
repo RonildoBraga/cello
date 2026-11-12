@@ -43,6 +43,31 @@ final class MelodyScoreTests: XCTestCase {
         }
     }
 
+    func testLightlyRowSkipsOverANoteThenClimbsWithNoNoteTheLearnerHasNotMet() {
+        let score = MelodyScore.lightlyRow
+        XCTAssertEqual(score.pieceID, "lightlyRow")
+        XCTAssertEqual(score.version, 1)
+        // 5 3 3 | 4 2 2 | 1 2 3 4 | 5 5 5, the tune's opening line with every length doubled.
+        XCTAssertEqual(score.events.map(\.midiNote), [57, 54, 54, 55, 52, 52, 50, 52, 54, 55, 57, 57, 57])
+        XCTAssertEqual(score.events.map(\.durationBeats), [1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2])
+        XCTAssertEqual(score.events.last?.endBeat, score.totalBeats)
+        XCTAssertEqual(score.phraseBoundaries, MelodyScore.odeToJoy.phraseBoundaries)
+        XCTAssertEqual(Set(score.events.compactMap(\.midiNote)), Set(MelodyScore.odeToJoy.events.compactMap(\.midiNote)),
+                       "The five notes of Ode to Joy, so the skips are the only new thing")
+        for (register, range, phrases) in [
+            (MelodyRegister.lowVoice, "G2–D3", [["D3", "B2", "B2"], ["C3", "A2", "A2"], ["G2", "A2", "B2", "C3"], ["D3", "D3", "D3"]]),
+            (.cello, "D3–A3", [["A3", "F♯3", "F♯3"], ["G3", "E3", "E3"], ["D3", "E3", "F♯3", "G3"], ["A3", "A3", "A3"]])] {
+            XCTAssertEqual(MelodyPiece.lightlyRow.rangeLabel(for: register), range)
+            for (section, notes) in zip(MelodySection.phrases, phrases) {
+                let context = MelodyPiece.lightlyRow.humming(register: register, section: section)
+                XCTAssertTrue(context.isValid)
+                XCTAssertEqual(context.noteNames, notes)
+                XCTAssertEqual(context.expectedEvents.last?.endBeat, 4)
+                XCTAssertEqual(context.displayPieceTitle, "Lightly Row")
+            }
+        }
+    }
+
     func testTheRhythmHintFollowsTheLengthsOfTheNotesSoTunesThatShareARhythmShareItsHint() {
         let onEachBeat = "Tap on each beat: 1, 2, 3, 4."
         let heldEnding = "Tap on 1, 2 and 3. Count 4 while the last note continues."
@@ -50,7 +75,8 @@ final class MelodyScoreTests: XCTestCase {
             (.hotCrossBuns, [heldEnding, heldEnding, "Two short notes per beat: 1 & 2 & 3 & 4 &.", heldEnding]),
             (.odeToJoy, [onEachBeat, onEachBeat, onEachBeat,
                          "Tap on 1, the & after 2, and 3. Count 4 while the last note continues."]),
-            (.twinkle, [onEachBeat, heldEnding, onEachBeat, heldEnding])]
+            (.twinkle, [onEachBeat, heldEnding, onEachBeat, heldEnding]),
+            (.lightlyRow, [heldEnding, heldEnding, onEachBeat, heldEnding])]
         for (piece, expected) in hints {
             XCTAssertEqual(MelodySection.phrases.map(piece.rhythmHint), expected, piece.title)
             XCTAssertEqual(piece.rhythmHint(for: .whole), "Tap at each new tile. Keep counting through the longer tiles.")

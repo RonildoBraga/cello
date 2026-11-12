@@ -7,6 +7,7 @@ final class NoteDrillTests: XCTestCase {
         XCTAssertEqual(NoteDrill.notes(for: .hotCrossBuns).map(\.title), ["G2", "A2", "B2"])
         XCTAssertEqual(NoteDrill.notes(for: .odeToJoy).map(\.title), ["G2", "A2", "B2", "C3", "D3"])
         XCTAssertEqual(NoteDrill.notes(for: .twinkle).map(\.title), ["G2", "A2", "B2", "C3", "D3", "E3"])
+        XCTAssertEqual(NoteDrill.notes(for: .lightlyRow).map(\.title), ["G2", "A2", "B2", "C3", "D3"])
         for piece in MelodyPiece.allCases {
             let humming = piece.humming(register: .lowVoice, section: .whole)
             XCTAssertEqual(Set(NoteDrill.notes(for: piece).flatMap(\.midiNotes)),
@@ -36,6 +37,17 @@ final class NoteDrillTests: XCTestCase {
         XCTAssertEqual(NoteDrill.drills(for: .hotCrossBuns)[3...4].map(\.midiNotes), [[43, 47], [47, 43]])
         XCTAssertEqual(NoteDrill.drills(for: .odeToJoy).map(\.chipLabel),
                        ["G2", "A2", "B2", "C3", "D3", "G2→D3", "D3→G2"])
+    }
+
+    func testLightlyRowPractisesItsSkipOverANote() {
+        // It opens D3 then B2: down over C3. Its widest move is that skip, so the pair is the skip.
+        let drills = NoteDrill.drills(for: .lightlyRow)
+        XCTAssertEqual(drills.map(\.chipLabel), ["G2", "A2", "B2", "C3", "D3", "B2→D3", "D3→B2"])
+        XCTAssertEqual(drills.suffix(2).map(\.title), ["B2 then D3 · going higher", "D3 then B2 · going lower"])
+        XCTAssertEqual(NoteDrill.drills(for: .lightlyRow, register: .cello).map(\.chipLabel),
+                       ["D3", "E3", "F♯3", "G3", "A3", "F♯3→A3", "A3→F♯3"])
+        XCTAssertTrue(NoteDrill.quickRepeats(for: .lightlyRow).isEmpty, "Every note lasts a beat or more")
+        XCTAssertNil(VoicePracticeMode.phrase(MelodyPiece.lightlyRow.humming(register: .lowVoice, section: .whole)).quickNotesHint)
     }
 
     func testAMelodysQuickRepeatedNotesAreMetOnTheirOwnBeforeThePhraseThatNeedsThem() {

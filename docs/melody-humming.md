@@ -100,3 +100,5 @@ Local validation also uses controlled phrases assembled and transposed from the 
 Ode to Joy uses the same assessment and result presentation for its five-note opening. Select it from Music, then Humming. The existing frozen piece ID, events, register, tempo and grading version keep scores separate from Hot Cross Buns; adding the piece changes neither grading version nor old history. Each four-second selection leads to the sixteen-second opening. Reference playback remains a separate Hear action. See [the opening arrangement](ode-to-joy-reference.md).
 
 Twinkle, Twinkle is assessed the same way. Its first phrase jumps five notes (G2 to D3). The rater finds a new note from the sound alone, a fresh start or a lasting change of pitch of a semitone or more, so a jump needs no rule of its own. See [the opening arrangement](twinkle-reference.md).
+
+Lightly Row is assessed the same way. Its skips are a minor third, three semitones, well beyond the one-semitone change the rater listens for, and its repeated notes are a beat apart, like Twinkle's. See [the opening arrangement](lightly-row-reference.md).

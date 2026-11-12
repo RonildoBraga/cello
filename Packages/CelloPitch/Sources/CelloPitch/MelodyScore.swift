@@ -45,6 +45,12 @@ public struct MelodyScore: Codable, Equatable, Sendable {
         pitches: [50, 50, 57, 57, 59, 59, 57, 55, 55, 54, 54, 52, 52, 50],
         durations: [1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2])
 
+    /// The tune's opening line, every length doubled to fill four bars: skips down over a note,
+    /// then a climb by step.
+    public static let lightlyRow = fourBars("lightlyRow",
+        pitches: [57, 54, 54, 55, 52, 52, 50, 52, 54, 55, 57, 57, 57],
+        durations: [1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2])
+
     /// A tune's notes and their lengths in beats, laid end to end across four bars.
     private static func fourBars(_ pieceID: String, pitches: [Int], durations: [Double]) -> MelodyScore {
         var beat = 0.0
@@ -59,7 +65,7 @@ public struct MelodyScore: Codable, Equatable, Sendable {
 
 /// Built-in arrangements share the same phrase and assessment flow.
 public enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
-    case hotCrossBuns, odeToJoy, twinkle
+    case hotCrossBuns, odeToJoy, twinkle, lightlyRow
 
     public var id: String { rawValue }
 
@@ -68,6 +74,7 @@ public enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
         case .hotCrossBuns: return "Hot Cross Buns"
         case .odeToJoy: return "Ode to Joy"
         case .twinkle: return "Twinkle, Twinkle"
+        case .lightlyRow: return "Lightly Row"
         }
     }
 
@@ -76,6 +83,7 @@ public enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
         case .hotCrossBuns: return .hotCrossBuns
         case .odeToJoy: return .odeToJoy
         case .twinkle: return .twinkle
+        case .lightlyRow: return .lightlyRow
         }
     }
 
