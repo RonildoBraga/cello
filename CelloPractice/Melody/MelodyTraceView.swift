@@ -130,12 +130,24 @@ struct MelodyTraceView: View {
                 Text("Your phrase").font(.headline).foregroundStyle(Palette.ink)
                 Spacer(minLength: 8)
                 HStack(spacing: 10) {
+                    HStack(spacing: 4) {
+                        RoundedRectangle(cornerRadius: 2).fill(Palette.forest.opacity(0.16)).frame(width: 12, height: 9)
+                        Text("±\(Int(MelodyRecordingRater.matchCents))¢").font(.caption2).foregroundStyle(Palette.muted)
+                    }.accessibilityElement(children: .ignore)
+                        .accessibilityLabel("Goal band, plus or minus \(Int(MelodyRecordingRater.matchCents)) cents")
                     legend("Reference", color: Palette.forest, dashed: true)
                     legend("Your take", color: Palette.gold)
                 }
             }
             if data.hasValidContext {
                 Chart {
+                    // How far from each note still counts: the band the rater uses, in semitones.
+                    ForEach(data.expectedNotes) { note in
+                        RectangleMark(xStart: .value("Start", note.start), xEnd: .value("End", note.end),
+                                      yStart: .value("Lower goal", note.pitch - MelodyRecordingRater.matchCents / 100),
+                                      yEnd: .value("Upper goal", note.pitch + MelodyRecordingRater.matchCents / 100))
+                            .foregroundStyle(Palette.forest.opacity(0.10))
+                    }
                     ForEach(data.expectedNotes) { note in
                         RuleMark(xStart: .value("Start", note.start), xEnd: .value("End", note.end),
                                  y: .value("Reference", note.pitch))

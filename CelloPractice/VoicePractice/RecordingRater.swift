@@ -6,6 +6,8 @@ import Foundation
 enum RecordingRater {
     private static let sampleRate = 48_000.0
     private static let maximumDuration = 95.0
+    /// How far from the target a held note may be and still match it.
+    static let matchCents = 25.0
 
     static func rate(url: URL, targetFrequency: Double) async -> PracticeRating {
         await Task.detached(priority: .userInitiated) {
@@ -114,7 +116,7 @@ enum RecordingRater {
             return PracticeRating(targetFrequency: targetFrequency, status: .unclear,
                                   voicedDuration: voicedDuration, longestHold: longestHold)
         }
-        let nearTargetFraction = pitches.filter { abs($0.cents) <= 25 }.reduce(0.0) { $0 + $1.weight } / voicedDuration
+        let nearTargetFraction = pitches.filter { abs($0.cents) <= matchCents }.reduce(0.0) { $0 + $1.weight } / voicedDuration
         let settled = pitches.filter { $0.time >= (voiceOnset ?? 0) + 0.3 }
         let settledDuration = settled.reduce(0.0) { $0 + $1.weight }
         let spread = settledDuration >= 0.3

@@ -23,6 +23,8 @@ When the Notes goal is missed, the advice names the first note that was off and 
 
 After a take the live tuner sits inside the take's chart card, under the chart: look at the take, then try the correction at once. It compares the voice with one note. A take with several different notes (a pair in Meet the notes, a phrase, the whole melody) shows them as "Tune to" chips, in the order they first sound; the first is chosen to begin with. If the microphone has been turned off, the row offers to turn it on. Before and during a take there is nothing to choose: the tuner follows the score by itself. Listen & Echo has no tuner after a take.
 
+The tuner's bar and the take's chart both draw the band that counts: 70 cents either side of a melody's note (`MelodyRecordingRater.matchCents`), 25 for one held note (`RecordingRater.matchCents`). The bar used to mark only its centre and call a sound "close" within 10 cents, so it looked far stricter than the scoring is; "close" now means inside the band. Nothing about scoring changed.
+
 In a noisy room the tuner shows a note only when the sound stands clear of the room, and the count-in and the result say that the room is noisy. See [background noise](background-noise.md).
 
 ## Assessment version 1
