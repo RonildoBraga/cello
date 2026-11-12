@@ -15,6 +15,7 @@ extension MelodyPiece {
         case .hotCrossBuns: return "Hear the phrase, then record the same notes and rhythm. Start as the first bar reaches the line."
         case .odeToJoy: return "Follow five notes moving up and down. Hear the phrase, then record after the count of 1–2–3–4."
         case .twinkle: return "Phrase 1 jumps up; the other phrases step back down. Hear the phrase, then record after the count of 1–2–3–4."
+        case .lightlyRow: return "Phrases 1 and 2 skip down over a note; phrase 3 climbs one note at a time. Hear the phrase, then record after the count of 1–2–3–4."
         }
     }
 
@@ -23,6 +24,7 @@ extension MelodyPiece {
         case .hotCrossBuns: return "Listen first, then gently hum along."
         case .odeToJoy: return "Hear the five-note opening, then gently hum along."
         case .twinkle: return "Hear the jump up at the start, then gently hum along."
+        case .lightlyRow: return "Hear the skips at the start, then gently hum along."
         }
     }
 
@@ -31,6 +33,7 @@ extension MelodyPiece {
         case .hotCrossBuns: return "Longer tiles hold longer. The quick notes in phrase 3 last half a beat each."
         case .odeToJoy: return "Longer tiles hold longer. Phrase 4 has a long note, a quick note, then a held ending."
         case .twinkle: return "Longer tiles hold longer. Every note sounds twice; phrases 2 and 4 end on a held note."
+        case .lightlyRow: return "Longer tiles hold longer. Phrases 1, 2 and 4 end on a held note; phrase 3 has four even notes."
         }
     }
 

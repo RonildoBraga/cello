@@ -50,3 +50,7 @@ The second piece reuses these rounds and fixed version-one rules. Its first thre
 ## Twinkle, Twinkle opening
 
 The third piece adds no new rhythm. Selections 1 and 3 have four one-beat notes; selections 2 and 4 have two one-beat notes and a two-beat note, the pattern of Hot Cross Buns' first phrase. The hint shown before Start is chosen from the lengths of a selection's notes, so each of these reads as it does in the earlier pieces. The opening has fourteen note starts in sixteen beats. See [the opening arrangement](twinkle-reference.md).
+
+## Lightly Row opening
+
+The fourth piece adds no new rhythm either. Selections 1, 2 and 4 have two one-beat notes and a two-beat note; selection 3 has four one-beat notes. The opening has thirteen note starts in sixteen beats. See [the opening arrangement](lightly-row-reference.md).

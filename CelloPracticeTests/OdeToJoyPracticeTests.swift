@@ -6,8 +6,8 @@ import XCTest
 
 final class OdeToJoyPracticeTests: XCTestCase {
     func testRecordedPhrasesAndWholeOpeningEarnThreeIndependentStarsHummedAndOnTheCello() throws {
-        // Twinkle's jump of five notes is scored by the same rater as the steps of Ode to Joy.
-        for piece in [MelodyPiece.odeToJoy, .twinkle] {
+        // Twinkle's jump of five notes and Lightly Row's skips are scored by the same rater as the steps of Ode to Joy.
+        for piece in [MelodyPiece.odeToJoy, .twinkle, .lightlyRow] {
             for register in PracticeMethod.allCases.map(\.register) {
                 for section in MelodySection.allCases {
                     let context = try MelodyPracticeContext.melody(
@@ -35,7 +35,8 @@ final class OdeToJoyPracticeTests: XCTestCase {
         // Twinkle reaches one note higher than Ode to Joy in each register: E3 hummed, B3 on the cello.
         let pieces: [(MelodyPiece, [MelodySection], [Int])] = [
             (.odeToJoy, [.phrase1, .phrase3], [50, 52, 54, 55, 57]),
-            (.twinkle, MelodySection.phrases, [50, 52, 54, 55, 57, 59])]
+            (.twinkle, MelodySection.phrases, [50, 52, 54, 55, 57, 59]),
+            (.lightlyRow, MelodySection.phrases, [50, 52, 54, 55, 57])]
         for (piece, sections, notes) in pieces {
             for register in PracticeMethod.allCases.map(\.register) {
                 var heardNotes: Set<Int> = []
