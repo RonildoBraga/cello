@@ -38,6 +38,8 @@ The saved pitch observations and both raters are untouched, so no score or saved
 
 Not verified on a device: the Simulator has no microphone, so the measurement, the warning and the tuner's behaviour are covered by unit tests of `RoomNoise` and `RoomListener` only.
 
+Since then, melody scoring version 3 hears a fresh start in a dip as well as in silence ([humming assessment](melody-humming.md)). That was built for quick notes, and it also helps here: with steady hiss 8 to 13 dB below the hum, the examples' quick notes and the jump keep three stars where version 2 gave none. Rumble, a second voice and knocks score as before.
+
 ## Planned
 
 1. **Real noisy takes** as private test recordings: the same lessons in a quiet room, with talk, and with a fan or kitchen noise, at arm's length and at about 20 cm.

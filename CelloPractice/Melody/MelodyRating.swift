@@ -24,7 +24,12 @@ struct MelodyNoteResult: Codable, Equatable, Sendable {
 
 /// Three independent beginner goals. Uncertain sound never becomes a failed take.
 struct MelodyRating: Codable, Equatable, Sendable {
-    static let currentVersion = 2
+    /// Version 3 hears a fresh start in a dip, judges pitch once a note has settled and
+    /// gives quick notes room for their starts. Earlier takes keep the scores they were given.
+    static let currentVersion = 3
+    /// Progress belongs to the lesson, not to the rules of the day. Takes scored under these
+    /// versions count towards the same passes and gold, kept under the key version 2 wrote.
+    static let progressVersions = 2...3
 
     enum Status: String, Codable, Sendable { case rated, unclear, insufficientSound }
 
@@ -102,6 +107,14 @@ struct MelodyRating: Codable, Equatable, Sendable {
             + (position == 0 ? "Hear the start again and begin on its pitch." : "Aim \(cents < 0 ? "higher" : "lower") on that note.")
     }
 
+    /// Says so when some notes were not heard as notes of their own, which no pitch advice can mend.
+    var heardAdvice: String? {
+        let asked = noteResults.filter { $0.expectedFrequency != nil }
+        let heard = asked.filter { $0.observedOnset != nil }.count
+        guard heard > 0, heard < asked.count else { return nil }
+        return "\(heard) of the \(asked.count) notes were heard. Give each note a clear start of its own."
+    }
+
     /// One next action, rather than several competing instructions.
     var feedback: String {
         switch status {
@@ -111,6 +124,7 @@ struct MelodyRating: Codable, Equatable, Sendable {
             return "The sound was not clear enough to score. Try again gently, in a quieter spot."
         case .rated:
             if octaveMismatch { return "That was in a different octave. Hear the reference again and match its first note." }
+            if !notes || !timing, let heardAdvice { return heardAdvice }
             if !notes { return notesAdvice ?? "Listen to this phrase again and follow each note as it changes." }
             if !timing {
                 return timingAdvice ?? "Start as the first bar reaches the line, then follow the note lengths. Give each quick note a clear start and keep it going until the next."

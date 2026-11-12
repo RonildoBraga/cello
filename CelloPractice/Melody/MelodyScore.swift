@@ -294,6 +294,14 @@ struct MelodyPracticeContext: Codable, Equatable, Sendable {
         event.frequency(tuningA4Hz: tuningA4Hz)
     }
 
+    /// The same selection under another scoring version.
+    func graded(by version: Int) -> MelodyPracticeContext {
+        MelodyPracticeContext(pieceID: pieceID, scoreVersion: scoreVersion, register: register,
+                              referenceKey: referenceKey, tuningA4Hz: tuningA4Hz, tempoBPM: tempoBPM,
+                              section: section, expectedEvents: expectedEvents, durationBeats: durationBeats,
+                              gradingVersion: version)
+    }
+
     /// Event endpoints are exclusive; silence between events has no active index.
     func eventIndex(at seconds: TimeInterval) -> Int? {
         guard isValid, seconds.isFinite, seconds >= 0, seconds < duration else { return nil }

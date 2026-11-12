@@ -31,6 +31,9 @@ enum MelodyRecordingRater {
     /// How far from a note a sound may be and still count as that note. The tuner and
     /// the chart draw this same band, so what is shown is what is scored.
     static let matchCents = 70.0
+    /// A note shorter than this is a quick one. Starting a note afresh costs about a tenth
+    /// of a second whatever its length, so a quick note has less sound left to be judged on.
+    static let quickNote = 0.75
 
     private static func analyse(samples: [Float], sampleRate: Double, context: MelodyPracticeContext) -> MelodyRating {
         let window = max(512, Int(sampleRate * (8_192.0 / 48_000)))
@@ -82,9 +85,12 @@ enum MelodyRecordingRater {
 
         // Boundaries are inferred without the score: amplitude reattacks and
         // sustained pitch changes. One sustained note cannot stand in for eight taps.
-        let boundaries = observedBoundaries(cells: cells, attackWindowDuration: Double(window) / sampleRate)
-        var pitchedOrdinal = 0
         let secondsPerBeat = 60 / Double(context.tempoBPM)
+        let boundaries = observedBoundaries(cells: cells, attackWindowDuration: Double(window) / sampleRate,
+            noteStarts: context.expectedEvents.filter { $0.midiNote != nil }.map {
+                (time: $0.onsetBeat * secondsPerBeat, slack: startSlack(noteDuration: $0.durationBeats * secondsPerBeat))
+            })
+        var pitchedOrdinal = 0
         let results = context.expectedEvents.enumerated().map { index, event -> MelodyNoteResult in
             let start = event.onsetBeat * secondsPerBeat
             let duration = event.durationBeats * secondsPerBeat
@@ -113,23 +119,27 @@ enum MelodyRecordingRater {
                         && $0.time < finish - min(0.08, segmentDuration * 0.15)
                 }
             } else { observed = [] }
-            let usable = observed.filter { $0.frequency != nil && !$0.ambiguous }
-            let voicedCoverage = Double(usable.count) * cellDuration / expectedInterior
-            let observedFrequency = median(usable.compactMap(\.frequency))
+            let heard = observed.filter { $0.frequency != nil && !$0.ambiguous }
+            // A voice often slides into a note. Its pitch is judged once it has settled:
+            // on the last three fifths of what was heard.
+            let settled = heard.count >= 6 ? Array(heard.suffix(heard.count * 6 / 10)) : heard
+            let voicedCoverage = Double(heard.count) * cellDuration / expectedInterior
+            let observedFrequency = median(settled.compactMap(\.frequency))
             let octaveMismatch = observedFrequency.flatMap { measured in expectedFrequency.map {
                 let cents = abs(1_200 * log2(measured / $0))
                 return abs(cents - 1_200) <= 90
             } } ?? false
             let near = expectedFrequency.map { expected in
-                Double(usable.filter { abs(1_200 * log2(($0.frequency ?? 0) / expected)) <= matchCents }.count)
-                    / Double(max(1, usable.count))
+                Double(settled.filter { abs(1_200 * log2(($0.frequency ?? 0) / expected)) <= matchCents }.count)
+                    / Double(max(1, settled.count))
             } ?? 0
             let restQuiet = activeCoverage <= 0.20
             let matched = expectedFrequency == nil ? restQuiet : voicedCoverage >= 0.35 && near >= 0.75
-            let clear = expectedFrequency == nil ? restQuiet : voicedCoverage >= 0.70
-                && median(usable.map(\.confidence)).map { $0 >= 0.85 } == true
-            let nearStart = onset.map { abs($0 - start) <= min(0.20, duration * 0.35) } ?? false
-            let timed = expectedFrequency == nil ? restQuiet : nearStart && activeCoverage >= 0.60
+            let quick = duration < quickNote
+            let clear = expectedFrequency == nil ? restQuiet : voicedCoverage >= (quick ? 0.50 : 0.70)
+                && median(heard.map(\.confidence)).map { $0 >= 0.85 } == true
+            let nearStart = onset.map { abs($0 - start) <= startSlack(noteDuration: duration) } ?? false
+            let timed = expectedFrequency == nil ? restQuiet : nearStart && activeCoverage >= (quick ? 0.45 : 0.60)
                 && Double(samples.count) / sampleRate >= end - min(0.15, duration * 0.20)
             return MelodyNoteResult(expectedIndex: index, expectedStart: start, expectedDuration: duration,
                 expectedFrequency: expectedFrequency, observedFrequency: observedFrequency,
@@ -149,6 +159,8 @@ enum MelodyRecordingRater {
                 cell.time >= event.onsetBeat * secondsPerBeat && cell.time < event.endBeat * secondsPerBeat
             }
         }.count
+        // Fresh starts leave short gaps in the sound, so a take with quick notes may be less voiced.
+        let voicedEnough = context.expectedEvents.contains { $0.durationBeats * secondsPerBeat < quickNote } ? 0.65 : 0.80
         let status: MelodyRating.Status
         if voicedDuration < max(0.35, context.duration * 0.12) {
             status = activeDuration >= max(0.35, context.duration * 0.12) ? .unclear : .insufficientSound
@@ -157,11 +169,14 @@ enum MelodyRecordingRater {
         } else { status = .rated }
         return MelodyRating(status: status, notes: matchedFraction + 1e-9 >= 0.80,
             timing: timedFraction + 1e-9 >= 0.80 && Double(outsideSound) * cellDuration <= 0.15,
-            clarity: clearFraction + 1e-9 >= 0.80 && voicedDuration / max(0.001, activeDuration) >= 0.80,
+            clarity: clearFraction + 1e-9 >= 0.80 && voicedDuration / max(0.001, activeDuration) >= voicedEnough,
             voicedDuration: voicedDuration, matchedNoteFraction: matchedFraction,
             timedNoteFraction: timedFraction, clearNoteFraction: clearFraction,
             octaveMismatch: results.contains(where: \.octaveMismatch), noteResults: results, pitchPoints: points)
     }
+
+    /// How far from its place a note may start and still be on time.
+    private static func startSlack(noteDuration: Double) -> Double { min(0.20, noteDuration * 0.35) }
 
     private struct Frame { let time: Double; let estimate: PitchEstimate?; let ambiguous: Bool }
     private struct Cell {
@@ -200,7 +215,13 @@ enum MelodyRecordingRater {
         return slips
     }
 
-    private static func observedBoundaries(cells: [Cell], attackWindowDuration: Double) -> [Double] {
+    /// Where notes begin, from the sound: after silence, at a lasting change of pitch, or at a
+    /// dip. A dip is the sound falling to under half the note's own level for 30 ms and climbing
+    /// most of the way back: how "doo-doo" sounds when the notes are not fully separated. A held
+    /// note's level also wanders, so a dip is believed only where the score has a note starting
+    /// and nothing has begun there yet. One sustained note still cannot stand in for eight.
+    private static func observedBoundaries(cells: [Cell], attackWindowDuration: Double,
+                                           noteStarts: [(time: Double, slack: Double)]) -> [Double] {
         var boundaries: [Double] = []
         var inactiveCount = 3
         var previousFrequency: Double?
@@ -208,13 +229,48 @@ enum MelodyRecordingRater {
         // A semitone is nominally 100 cents. Short analysis windows can measure
         // a true semitone a few cents low (97.46 in the quarter-second control).
         let minimumMeasuredStep = 100.0 - 5
+        // The level over 30 ms, so one uneven cell is not a dip.
+        let levels = cells.indices.map { index -> Double in
+            let near = cells[max(0, index - 1)...min(cells.count - 1, index + 1)]
+            return near.reduce(0.0) { $0 + $1.rms } / Double(near.count)
+        }
+        // The note's last 200 ms of level outside any dip; its middle is the note's own level,
+        // so the burst that starts a note is not the measure.
+        var steady: [Double] = []
+        var dip: (cells: Int, level: Double, time: Double)?
         for (index, cell) in cells.enumerated() {
-            if !cell.active { inactiveCount += 1; continue }
-            let attack = inactiveCount >= 3
+            if !cell.active { inactiveCount += 1; steady.removeAll(); dip = nil; continue }
+            var attack = inactiveCount >= 3
+            var attackTime = cell.time
             inactiveCount = 0
-            if attack, boundaries.last.map({ cell.time - $0 >= 0.12 }) ?? true {
-                boundaries.append(max(0, cell.time - 0.005))
-                lastAttack = boundaries.last
+            if attack {
+                steady.removeAll()
+                dip = nil
+            } else {
+                let level = levels[index]
+                let usual = steady.isEmpty ? 0 : steady.sorted()[steady.count / 2]
+                if let low = dip, low.cells >= 3 {
+                    if level >= max(low.level * 2, usual * 0.6) {
+                        if noteStarts.contains(where: { start in abs(low.time - start.time) <= start.slack
+                            && !boundaries.contains { abs($0 - start.time) <= start.slack } }) {
+                            attack = true
+                            attackTime = low.time
+                        }
+                        dip = nil
+                        steady.removeAll()
+                    } else if level < low.level { dip = (low.cells, level, cell.time) }
+                } else if steady.count >= 10, level < usual * 0.5 {
+                    dip = dip.map { ($0.cells + 1, min($0.level, level), level < $0.level ? cell.time : $0.time) } ?? (1, level, cell.time)
+                } else {
+                    dip = nil
+                    steady.append(level)
+                    if steady.count > 20 { steady.removeFirst() }
+                }
+            }
+            if attack, boundaries.last.map({ attackTime - $0 >= 0.12 }) ?? true {
+                boundaries.append(max(0, attackTime - 0.005))
+                // The sound came back at this cell: the settling pitch is ignored from here.
+                lastAttack = max(0, cell.time - 0.005)
                 previousFrequency = cell.frequency
             }
             guard let frequency = cell.frequency, !cell.ambiguous else { continue }

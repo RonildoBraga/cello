@@ -50,8 +50,8 @@ enum EchoLevel: String, CaseIterable, Identifiable, Codable, Sendable {
         build(patternIndex: index, register: register, gradingVersion: MelodyRating.currentVersion)
     }
 
-    private func context(patternIndex: Int, register: MelodyRegister,
-                         gradingVersion: Int) throws -> MelodyPracticeContext {
+    fileprivate func context(patternIndex: Int, register: MelodyRegister,
+                             gradingVersion: Int) throws -> MelodyPracticeContext {
         guard patterns.indices.contains(patternIndex) else { throw ContextError.invalidPattern }
         return build(patternIndex: patternIndex, register: register, gradingVersion: gradingVersion)
     }
@@ -89,7 +89,7 @@ enum EchoLevel: String, CaseIterable, Identifiable, Codable, Sendable {
     /// grading versions remain recognisable without becoming current achievements.
     static func selection(for context: MelodyPracticeContext) -> (level: EchoLevel, patternIndex: Int)? {
         guard context.isValid,
-              let gradingVersion = context.gradingVersion, [1, 2].contains(gradingVersion),
+              let gradingVersion = context.gradingVersion, (1...MelodyRating.currentVersion).contains(gradingVersion),
               let level = allCases.first(where: { $0.pieceID == context.pieceID }) else { return nil }
         for index in 0..<level.patternCount {
             if let canonical = try? level.context(patternIndex: index, register: context.register,
@@ -127,7 +127,7 @@ struct EchoProgressLedger: SessionProgressLedger {
     static func eligibleKey(for session: PracticeSession) -> String? {
         guard session.exercise == .listen, session.rating == nil,
               let context = session.melodyContext, let rating = session.melodyRating,
-              context.gradingVersion == MelodyRating.currentVersion,
+              context.gradingVersion.map(MelodyRating.progressVersions.contains) == true,
               rating.status == .rated, rating.version == context.gradingVersion,
               let selection = EchoLevel.selection(for: context) else { return nil }
         return key(for: selection.level, register: context.register)
@@ -146,7 +146,10 @@ struct EchoProgressLedger: SessionProgressLedger {
         var keys: [String: String] = [:]
         for level in EchoLevel.allCases {
             for register in MelodyRegister.allCases {
-                let contexts = (0..<level.patternCount).compactMap { try? level.context(patternIndex: $0, register: register) }
+                // Hashed under the first scoring version that counts, so earlier passes still stand.
+                let contexts = (0..<level.patternCount).compactMap {
+                    try? level.context(patternIndex: $0, register: register, gradingVersion: MelodyRating.progressVersions.lowerBound)
+                }
                 guard contexts.count == level.patternCount, let data = try? encoder.encode(contexts) else { continue }
                 keys["\(level.rawValue)|\(register.rawValue)"] = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
             }

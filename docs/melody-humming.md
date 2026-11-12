@@ -43,11 +43,25 @@ A clearly measured octave mismatch remains in its original octave and receives e
 
 As a hum fades, its first overtone can outlast it, and for a frame or two the detector reads the note an octave high. In 9 of 58 saved takes such a reading, 150 ms or shorter, sat next to the real note; in one it was counted as an extra note and turned a three-star take into none. A voice cannot leap an octave and back that fast, so frames that read an octave away from the sound beside them for 150 ms or less are marked ambiguous: they are not a note, not a point on the chart, and never folded onto the target. A note really held an octave away is unaffected. This corrects the measurement, not the rubric, so the grading version is unchanged and saved ratings keep the grade they were given.
 
+## Assessment version 3: fresh starts, settled pitch, quick notes
+
+A learner stuck on Hot Cross Buns' quick third phrase asked for a wider pitch tolerance. Measured against every saved take, the tolerance was not the obstacle: widening 70 cents to 100 would have rescued at most 10 of 41 takes that missed Notes, and at most 1 of 12 phrase takes. Three other things were.
+
+- **A fresh start was only heard after near-silence.** In the take that prompted this, three of seven fresh starts dipped about 10 dB, plain to a listener, and the rater heard one long note: notes 6 to 8 "not heard", all three stars lost whatever the pitch. A dip now counts: the level (over 30 ms) falls under half the note's own level (the middle of its last 200 ms, so a starting burst is not the measure) for 30 ms and climbs back to 60% of it. The start is placed at the bottom of the dip. A held note's level wanders too, and believing every dip split real three-star takes in two, so a dip counts only within a start's timing allowance of a note the score has, and only if nothing has begun there yet. The sound must still show the start; the score only says where one is believable. One sustained note still cannot stand in for eight.
+- **A slide into a note counted against it.** Pitch is now judged on the last three fifths of what was heard of a note. Where the note settles still has to be within 70 cents.
+- **Quick notes were held to a long note's coverage.** Starting a note afresh costs about a tenth of a second whatever its length. A note shorter than 0.75 s needs half its interior voiced (not 70%) and 45% sounding (not 60%), and a take containing such notes may be 65% voiced overall (not 80%).
+
+When some notes are not heard as notes of their own, the advice says so ("5 of the 8 notes were heard. Give each note a clear start of its own.") before any advice about pitch.
+
+Re-scoring the 76 saved takes with these rules, 9 gain stars and none lose. The prompting take goes from no stars to Timing and Clarity, a pass, with Notes still missed for being 50 to 100 cents sharp. Its neighbours, a quarter of a second late throughout, earn one star. With the app's examples under added hiss, quick notes and the jump now keep three stars where they scored none, because a dip survives hiss that fills the silence. Rumble, a second voice and knocks are unchanged ([background noise](background-noise.md)).
+
+Earlier takes keep the scores they were given. Progress is not reset: see below.
+
 ## Persistence and progression
 
 Each session stores its immutable melody context, versioned result, per-note observations and saved-audio pitch points. Fixed-note `rating` stays nil for melody takes. Legacy recordings omit the new optional fields and remain readable.
 
-Three three-star takes among the last five rated takes earn completion for the exact piece, score version, phrase, register/key, tuning, tempo, expected events and grading version. Unscored takes do not consume that window. A separate MelodyProgress.json ledger preserves completion after deletion and reload. An unreadable ledger or failed write preserves the evidence instead of silently discarding an earned milestone. All phrases remain available, with a next-phrase suggestion.
+Three three-star takes among the last five rated takes earn completion for the exact piece, score version, phrase, register/key, tuning, tempo and expected events. Progress belongs to the lesson, not to the rules of the day: takes scored under versions 2 and 3 count towards the same pass and gold (`MelodyRating.progressVersions`), under the key version 2 wrote, so a new version resets nothing. Version 1 takes stay readable and count for nothing, as before. Unscored takes do not consume that window. A separate MelodyProgress.json ledger preserves completion after deletion and reload. An unreadable ledger or failed write preserves the evidence instead of silently discarding an earned milestone. All phrases remain available, with a next-phrase suggestion.
 
 ## Validation
 
