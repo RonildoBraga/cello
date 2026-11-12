@@ -1,4 +1,5 @@
 import CelloPitch
+import CryptoKit
 import Foundation
 import XCTest
 @testable import Cello
@@ -136,6 +137,52 @@ final class MelodyScoreTests: XCTestCase {
         }
     }
 
+    func testTheGMajorScaleIsOneOctaveUpAndDownWithTheVoiceOnTheCellosOwnNotes() {
+        let score = MelodyScore.gMajorScale
+        XCTAssertEqual(score.pieceID, "gMajorScale")
+        XCTAssertEqual(score.version, 1)
+        XCTAssertEqual(score.events.map(\.midiNote), [43, 45, 47, 48, 50, 52, 54, 55, 55, 54, 52, 50, 48, 47, 45, 43])
+        XCTAssertEqual(score.events.map(\.durationBeats), Array(repeating: 1, count: 16))
+        XCTAssertEqual(score.events.last?.endBeat, score.totalBeats)
+        XCTAssertEqual(score.phraseBoundaries, MelodyScore.odeToJoy.phraseBoundaries)
+        // A fifth below the cello would start on C2, too low to hum, so the voice sounds the cello's notes.
+        let phrases = [["G2", "A2", "B2", "C3"], ["D3", "E3", "F♯3", "G3"], ["G3", "F♯3", "E3", "D3"], ["C3", "B2", "A2", "G2"]]
+        for register in [MelodyRegister.lowVoice, .cello] {
+            XCTAssertEqual(MelodyPiece.gMajorScale.transposition(for: register), 0)
+            XCTAssertEqual(MelodyPiece.gMajorScale.keyName(for: register), "G major")
+            XCTAssertEqual(MelodyPiece.gMajorScale.rangeLabel(for: register), "G2–G3")
+            for (section, notes) in zip(MelodySection.phrases, phrases) {
+                let context = MelodyPiece.gMajorScale.humming(register: register, section: section)
+                XCTAssertTrue(context.isValid)
+                XCTAssertEqual(context.referenceKey, "G major")
+                XCTAssertEqual(context.noteNames, notes)
+                XCTAssertEqual(context.displayPieceTitle, "G major scale")
+            }
+        }
+    }
+
+    func testEveryEarlierMelodyKeepsTheNotesAndProgressKeysOfItsSavedTakes() throws {
+        // Progress is saved under a hash of the whole frozen selection: notes, key and all. Placing a later
+        // melody's voice at the cello's pitch must not move the voice of an earlier one, in any lesson.
+        // The digest was taken from the build before the voice could move.
+        var keys: [String] = []
+        for piece in [MelodyPiece.hotCrossBuns, .odeToJoy, .twinkle, .lightlyRow, .oldMacDonald, .yankeeDoodle] {
+            for register in MelodyRegister.allCases {
+                XCTAssertEqual(piece.transposition(for: register), register.transpositionSemitones, piece.title)
+                for section in MelodySection.allCases {
+                    let context = try MelodyPracticeContext.melody(piece: piece, register: register, section: section,
+                                                                   gradingVersion: MelodyRating.currentVersion)
+                    keys.append(try XCTUnwrap(MelodyProgressLedger.key(for: context)))
+                }
+                for drill in NoteDrill.drills(for: piece, register: register) {
+                    keys.append(try XCTUnwrap(MelodyProgressLedger.key(for: drill.context)))
+                }
+            }
+        }
+        let digest = SHA256.hash(data: Data(keys.joined(separator: "\n").utf8)).map { String(format: "%02x", $0) }.joined()
+        XCTAssertEqual(digest, "c7e95322f6a4f18c4f6d1ba87a7fe45cfcc5a3011989727b9bc3796c85ab22a9")
+    }
+
     func testEveryEarlierMelodyKeepsTheKeyItsSavedTakesWereHeardIn() throws {
         // A take's key is part of what its progress is saved under, so it must never change.
         for piece in [MelodyPiece.hotCrossBuns, .odeToJoy, .twinkle, .lightlyRow] {
@@ -160,7 +207,8 @@ final class MelodyScoreTests: XCTestCase {
             (.twinkle, [onEachBeat, heldEnding, onEachBeat, heldEnding]),
             (.lightlyRow, [heldEnding, heldEnding, onEachBeat, heldEnding]),
             (.oldMacDonald, [onEachBeat, heldEnding, onEachBeat, "Tap once on 1. Count 2, 3 and 4 while the note continues."]),
-            (.yankeeDoodle, [twoPerBeat, runThenTwo, twoPerBeat, runThenTwo])]
+            (.yankeeDoodle, [twoPerBeat, runThenTwo, twoPerBeat, runThenTwo]),
+            (.gMajorScale, Array(repeating: onEachBeat, count: 4))]
         for (piece, expected) in hints {
             XCTAssertEqual(MelodySection.phrases.map(piece.rhythmHint), expected, piece.title)
             XCTAssertEqual(piece.rhythmHint(for: .whole), "Tap at each new tile. Keep counting through the longer tiles.")

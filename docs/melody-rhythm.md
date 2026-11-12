@@ -62,3 +62,7 @@ Selections 1 and 3 have four one-beat notes and selection 2 two one-beat notes a
 ## Yankee Doodle first strain
 
 Selections 1 and 3 have eight half-beat notes, the rhythm of Hot Cross Buns' third selection. Selections 2 and 4 are new: four half-beat notes, then two one-beat notes. The hint says to tap two short notes per beat on 1 and 2, then tap on 3 and on 4. The strain has 28 note starts in sixteen beats, the most of any melody. See [the arrangement](yankee-doodle-reference.md).
+
+## G major scale
+
+Every selection has four one-beat notes, so every hint is to tap on each beat. The scale has sixteen note starts in sixteen beats. See [the scale](g-major-scale-reference.md).

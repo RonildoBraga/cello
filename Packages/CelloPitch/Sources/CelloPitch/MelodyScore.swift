@@ -65,6 +65,11 @@ public struct MelodyScore: Codable, Equatable, Sendable {
         durations: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1, 1,
                     0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1, 1])
 
+    /// One octave of G major, up and back down, from the cello's open G string: the key of Bach's first Prelude.
+    public static let gMajorScale = fourBars("gMajorScale",
+        pitches: [43, 45, 47, 48, 50, 52, 54, 55, 55, 54, 52, 50, 48, 47, 45, 43],
+        durations: Array(repeating: 1, count: 16))
+
     /// A tune's notes and their lengths in beats, laid end to end across four bars.
     private static func fourBars(_ pieceID: String, pitches: [Int], durations: [Double]) -> MelodyScore {
         var beat = 0.0
@@ -79,7 +84,7 @@ public struct MelodyScore: Codable, Equatable, Sendable {
 
 /// Built-in arrangements share the same phrase and assessment flow.
 public enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
-    case hotCrossBuns, odeToJoy, twinkle, lightlyRow, oldMacDonald, yankeeDoodle
+    case hotCrossBuns, odeToJoy, twinkle, lightlyRow, oldMacDonald, yankeeDoodle, gMajorScale
 
     public var id: String { rawValue }
 
@@ -91,6 +96,7 @@ public enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
         case .lightlyRow: return "Lightly Row"
         case .oldMacDonald: return "Old MacDonald"
         case .yankeeDoodle: return "Yankee Doodle"
+        case .gMajorScale: return "G major scale"
         }
     }
 
@@ -102,25 +108,40 @@ public enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
         case .lightlyRow: return .lightlyRow
         case .oldMacDonald: return .oldMacDonald
         case .yankeeDoodle: return .yankeeDoodle
+        case .gMajorScale: return .gMajorScale
         }
     }
 
     /// The key the melody is heard in, in a register: its home note on the cello, moved as the register moves it.
     /// Earlier melodies are all in D major on the cello, so their keys are the register's own (`MelodyRegister.keyName`).
     public func keyName(for register: MelodyRegister) -> String {
-        NoteName.pitchClass(celloTonic + register.transpositionSemitones) + " major"
+        NoteName.pitchClass(celloTonic + transposition(for: register)) + " major"
+    }
+
+    /// How many semitones the melody is moved from the cello's notes in a register. The voice hums the
+    /// first melodies a fifth below the cello; from the G major scale on, that would start too low to hum,
+    /// so the voice sounds the cello's own notes. A melody's saved takes keep the notes they were made on.
+    public func transposition(for register: MelodyRegister) -> Int {
+        voiceAtCelloPitch ? 0 : register.transpositionSemitones
+    }
+
+    private var voiceAtCelloPitch: Bool {
+        switch self {
+        case .hotCrossBuns, .odeToJoy, .twinkle, .lightlyRow, .oldMacDonald, .yankeeDoodle: return false
+        case .gMajorScale: return true
+        }
     }
 
     /// The melody's home note on the cello, as a MIDI note.
     private var celloTonic: Int {
         switch self {
         case .hotCrossBuns, .odeToJoy, .twinkle, .lightlyRow: return 50 // D3
-        case .oldMacDonald, .yankeeDoodle: return 55 // G3
+        case .oldMacDonald, .yankeeDoodle, .gMajorScale: return 55 // G3
         }
     }
 
     public func rangeLabel(for register: MelodyRegister) -> String {
-        melodyNoteRange(score.events.compactMap(\.midiNote).map { $0 + register.transpositionSemitones })
+        melodyNoteRange(score.events.compactMap(\.midiNote).map { $0 + transposition(for: register) })
     }
 
     // MARK: Built-in selections. Enum choices at the standard tempo are always valid.
@@ -164,6 +185,8 @@ public enum MelodyRegister: String, CaseIterable, Identifiable, Codable, Sendabl
         }
     }
 
+    /// How far this register sits from the cello in Listen & Echo and the first melodies; a melody may
+    /// place the voice elsewhere (`MelodyPiece.transposition(for:)`).
     public var transpositionSemitones: Int {
         switch self {
         case .lowVoice: return -7
@@ -301,7 +324,7 @@ public struct MelodyPracticeContext: Codable, Equatable, Sendable {
         let events = score.events.filter { range.contains($0.onsetBeat) }.map {
             MelodyEvent(onsetBeat: $0.onsetBeat - range.lowerBound,
                         durationBeats: $0.durationBeats,
-                        midiNote: $0.midiNote.map { $0 + register.transpositionSemitones })
+                        midiNote: $0.midiNote.map { $0 + piece.transposition(for: register) })
         }
         return MelodyPracticeContext(pieceID: score.pieceID, scoreVersion: score.version,
                                      register: register, referenceKey: piece.keyName(for: register),

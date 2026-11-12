@@ -10,6 +10,7 @@ final class NoteDrillTests: XCTestCase {
         XCTAssertEqual(NoteDrill.notes(for: .lightlyRow).map(\.title), ["G2", "A2", "B2", "C3", "D3"])
         XCTAssertEqual(NoteDrill.notes(for: .oldMacDonald).map(\.title), ["G2", "A2", "C3", "D3", "E3"])
         XCTAssertEqual(NoteDrill.notes(for: .yankeeDoodle).map(\.title), ["G2", "A2", "B2", "C3", "D3", "E3", "F3"])
+        XCTAssertEqual(NoteDrill.notes(for: .gMajorScale).map(\.title), ["G2", "A2", "B2", "C3", "D3", "E3", "F♯3", "G3"])
         for piece in MelodyPiece.allCases {
             let humming = piece.humming(register: .lowVoice, section: .whole)
             XCTAssertEqual(Set(NoteDrill.notes(for: piece).flatMap(\.midiNotes)),
@@ -71,6 +72,17 @@ final class NoteDrillTests: XCTestCase {
         let phrase = { VoicePracticeMode.phrase(MelodyPiece.yankeeDoodle.humming(register: .lowVoice, section: $0)) }
         XCTAssertEqual(MelodySection.allCases.map { phrase($0).quickNotesHint != nil }, [true, true, true, true, false])
         XCTAssertNotNil(VoicePracticeMode.phrase(drills[9].context).quickNotesHint)
+    }
+
+    func testTheScalePractisesItsEightNotesAndTheOctaveTheSameWayByVoiceAndOnTheCello() {
+        // A scale only steps, so the pair is its lowest and highest notes: the octave, up then down.
+        for register in [MelodyRegister.lowVoice, .cello] {
+            let drills = NoteDrill.drills(for: .gMajorScale, register: register)
+            XCTAssertEqual(drills.map(\.chipLabel), ["G2", "A2", "B2", "C3", "D3", "E3", "F♯3", "G3", "G2→G3", "G3→G2"])
+            XCTAssertEqual(drills.suffix(2).map(\.title), ["G2 then G3 · going higher", "G3 then G2 · going lower"])
+            XCTAssertTrue(drills.allSatisfy { $0.context.referenceKey == "G major" })
+        }
+        XCTAssertTrue(NoteDrill.quickRepeats(for: .gMajorScale).isEmpty)
     }
 
     func testLightlyRowPractisesItsSkipOverANote() {
