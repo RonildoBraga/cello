@@ -15,9 +15,23 @@ Saved takes showed the pitch was mostly right while the second note of a pattern
 
 The rating rules below are unchanged.
 
-## Advice that names the note
+## The teacher's note
 
-When the Notes goal is missed, the advice names the first note that was off and which way to move it ("Note 5 (A2) was a little too low. Aim higher on that note."), or says that it wavered when it was near enough on the whole (`MelodyRating.notesAdvice`). It used to say only "Listen to this phrase again", which hid the commonest pitch mistake in the saved takes: a step up that fell short. The advice is worked out when shown, from the per-note results a rating already stores; the rating itself is unchanged.
+Under a take's stars the app says what a teacher would: the thing that mattered most with what to try, then at most one more thing, then a line when it is a habit (`TeacherNote`). A real take that used to get "The first note (B2) was a little too low" now reads:
+
+> Notes 2 and 3 began about 0.4 s late, and before note 2 your voice slid up first. Move straight to the next note as its bar reaches the line.
+>
+> Also: B2 was a little low. Hear the start again and begin on its pitch. A2 and G2 were right.
+
+Every word comes from what the rater measured and saved with the take, so the same take always gets the same note, it works offline, and it can be tested. Nothing is said that was not heard: no claims about breath, posture or bowing.
+
+- **What it can say.** Notes not heard as notes of their own; notes that began late or early, and by how much; notes cut short; notes low or high, a little or a lot, and which were right; a note that wavered; notes not clear enough to hear; a slide or other stray sound before a change; a different octave; a take that could not be scored.
+- **What leads.** Only goals that were missed are explained. The finding that touched the most notes comes first, and the next one follows as "Also:". A stray sound cost no star, so it is mentioned beside lateness when it came before a late note, or as an "Also:".
+- **Names and numbers.** Notes go by name (B2) where the melody uses each name once, and by number where it repeats one. A short phrase also hears what went right.
+- **Voice or cello.** A slide is "your voice slid up first" for the voice and "a higher note sounded first" on the cello. A flat or sharp open string (C2, G2, D3, A3) is told to check its tuning, since it cannot be fingered higher.
+- **A habit.** When the takes just before, on the same part and scored by the same rules, had the same main point twice or more in a row, the note ends "The same was true of your last 2 takes."
+
+Listen & Echo keeps its own wording. A backend with a language model was considered for this and set aside: a model cannot measure cents or tenths of a second, the app promises that recordings stay on the phone, and the measurements were already there. What was missing was the step from measurements to teaching.
 
 ## The live tuner after a take
 
@@ -57,11 +71,21 @@ Re-scoring the 76 saved takes with these rules, 9 gain stars and none lose. The 
 
 Earlier takes keep the scores they were given. Progress is not reset: see below.
 
+## Assessment version 4: each heard note is paired with the note it was
+
+Versions up to 3 matched heard notes to asked notes strictly in order. One stray sound, such as the voice sliding up before stepping down, was taken for the next note, and every note after it was set against the wrong one. In the take quoted above that turned a fair "Clarity earned, two changes late" into no stars and advice about the first note's pitch.
+
+The rater now pairs the two lists, each kept in order, at the least cost (`MelodyRecordingRater.pair`). Against an asked note, a heard note costs 1 for the wrong pitch and up to 1 more as its start moves from the timing allowance to a whole note's length away. Leaving an asked note unheard, or a heard note unasked, costs 1. So notes sung in time pair with their own places whatever their pitch, and the right notes sung late still pair note for note, leaving the lateness for Timing to judge.
+
+A **stray** is a heard sound with a clear pitch for less than a quarter of a second (or 40% of the shortest asked note, if that is less): too short to be a note. Leaving a stray unasked costs a quarter, it costs no star, and it is saved with the take (`MelodyRating.strays`, an optional field) so the note can mention it and the chart can mark it "extra". A real extra note still counts against Notes and Timing. A missed note now leaves the notes around it their own.
+
+Re-scoring 80 saved takes, 7 gain stars and 1 loses one (a take with nine sounds where eight were asked, 1 star to none). With the app's examples under noise, low rumble 13 to 18 dB below the hum and knocks as loud as the hum no longer cost held notes and simple phrases their stars: the bursts are strays, not extra notes.
+
 ## Persistence and progression
 
 Each session stores its immutable melody context, versioned result, per-note observations and saved-audio pitch points. Fixed-note `rating` stays nil for melody takes. Legacy recordings omit the new optional fields and remain readable.
 
-Three three-star takes among the last five rated takes earn completion for the exact piece, score version, phrase, register/key, tuning, tempo and expected events. Progress belongs to the lesson, not to the rules of the day: takes scored under versions 2 and 3 count towards the same pass and gold (`MelodyRating.progressVersions`), under the key version 2 wrote, so a new version resets nothing. Version 1 takes stay readable and count for nothing, as before. Unscored takes do not consume that window. A separate MelodyProgress.json ledger preserves completion after deletion and reload. An unreadable ledger or failed write preserves the evidence instead of silently discarding an earned milestone. All phrases remain available, with a next-phrase suggestion.
+Three three-star takes among the last five rated takes earn completion for the exact piece, score version, phrase, register/key, tuning, tempo and expected events. Progress belongs to the lesson, not to the rules of the day: takes scored under versions 2 to 4 count towards the same pass and gold (`MelodyRating.progressVersions`), under the key version 2 wrote, so a new version resets nothing. Version 1 takes stay readable and count for nothing, as before. Unscored takes do not consume that window. A separate MelodyProgress.json ledger preserves completion after deletion and reload. An unreadable ledger or failed write preserves the evidence instead of silently discarding an earned milestone. All phrases remain available, with a next-phrase suggestion.
 
 ## Validation
 

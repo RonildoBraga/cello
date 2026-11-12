@@ -37,7 +37,7 @@ final class MelodyRatingTests: XCTestCase {
         XCTAssertTrue(rating.timing)
         XCTAssertTrue(rating.clarity)
         XCTAssertEqual(rating.starCount, 2)
-        XCTAssertFalse(rating.feedback.isEmpty)
+        XCTAssertFalse(note(rating).isEmpty)
     }
 
     func testAttackPitchSettlingDoesNotInventNotesOrHideLaterLegatoChanges() throws {
@@ -148,7 +148,6 @@ final class MelodyRatingTests: XCTestCase {
         XCTAssertEqual(rating.status, .rated)
         XCTAssertEqual(rating.noteResults.filter { $0.observedOnset != nil }.count, 8, "Every fresh start is heard")
         XCTAssertEqual(rating.starCount, 3, "notes \(rating.matchedNoteFraction ?? -1) timing \(rating.timedNoteFraction ?? -1) clarity \(rating.clearNoteFraction ?? -1)")
-        XCTAssertNil(rating.heardAdvice)
         for note in rating.noteResults {
             XCTAssertEqual(try XCTUnwrap(note.observedOnset), note.expectedStart, accuracy: 0.08, "A start sits at the bottom of its dip")
         }
@@ -160,7 +159,7 @@ final class MelodyRatingTests: XCTestCase {
         XCTAssertLessThan(held.noteResults.filter { $0.observedOnset != nil }.count, 4)
         XCTAssertFalse(held.timing)
         XCTAssertLessThan(held.starCount ?? 3, 2)
-        XCTAssertEqual(held.feedback, held.heardAdvice, "The advice says the notes were not heard apart")
+        XCTAssertTrue(note(held).contains("of the 8 notes were heard"), "The advice says the notes were not heard apart")
         // A waver too shallow to be a fresh start is not one either.
         let wavering = rate(articulated(quickPhrase, floor: 0.7), quickPhrase)
         XCTAssertLessThan(wavering.noteResults.filter { $0.observedOnset != nil }.count, 4)
@@ -189,7 +188,7 @@ final class MelodyRatingTests: XCTestCase {
         XCTAssertFalse(sharp.notes)
         XCTAssertTrue(sharp.timing && sharp.clarity)
         XCTAssertEqual(sharp.starCount, 2)
-        XCTAssertEqual(sharp.feedback, "The first note (G2) was a little too high. Hear the start again and begin on its pitch.")
+        XCTAssertEqual(note(sharp), "All the notes were a little high. Aim lower on them.")
     }
 
     func testQuickNotesHaveRoomForTheirStartsAndLongNotesDoNot() throws {
@@ -200,6 +199,55 @@ final class MelodyRatingTests: XCTestCase {
         let context = try snapshot()
         let clipped = rate(articulated(context, floor: 0, sounding: 0.55), context)
         XCTAssertFalse(clipped.timing)
+    }
+
+    // MARK: Version 4: each heard note is paired with the note it was
+
+    func testASlideBeforeAChangeIsAStrayAndDoesNotShiftTheNotesAfterIt() throws {
+        // Phrase 1 is B2, A2, G2. Just before the change to A2 the voice flicks up to C3 for 0.12 s.
+        let context = try snapshot()
+        var sound = signal(context: context)
+        var phase = 0.0
+        for index in Int(0.86 * sampleRate)..<Int(0.98 * sampleRate) {
+            phase += 2 * Double.pi * 130.81 / sampleRate
+            sound[index] = Float(0.2 * (sin(phase) + 0.4 * sin(2 * phase)))
+        }
+        let rating = rate(sound, context)
+        XCTAssertEqual(rating.strays?.count, 1)
+        XCTAssertEqual(try XCTUnwrap(rating.strays?.first?.frequency), 130.81, accuracy: 6)
+        XCTAssertEqual(rating.noteResults.map(\.matched), [true, true, true], "Each note is still set against its own")
+        for note in rating.noteResults {
+            XCTAssertEqual(try XCTUnwrap(note.observedOnset), note.expectedStart, accuracy: 0.1)
+        }
+        XCTAssertEqual(rating.starCount, 3, "A stray costs no star")
+        XCTAssertEqual(note(rating), "All three goals reached. Try this phrase again, then move to the next one.\n\n"
+                       + "Also: Before a change your voice slid up first. Move straight to the next note.")
+    }
+
+    func testAMissedNoteLeavesTheNotesAroundItTheirOwn() throws {
+        let context = try snapshot()
+        let rating = rate(signal(context: context, missing: [1]), context)
+        XCTAssertEqual(rating.noteResults.map { $0.observedOnset != nil }, [true, false, true])
+        XCTAssertEqual(rating.noteResults.map(\.matched), [true, false, true])
+        XCTAssertFalse(rating.notes)
+        XCTAssertNil(rating.strays)
+        XCTAssertTrue(note(rating).hasPrefix("2 of the 3 notes were heard."))
+    }
+
+    func testAKnockBetweenNotesIsAStrayWithNoPitch() throws {
+        let context = try snapshot()
+        var sound = signal(context: context, gate: 0.6)
+        var state: UInt64 = 7
+        for index in Int(0.72 * sampleRate)..<Int(0.76 * sampleRate) {
+            state = state &* 6364136223846793005 &+ 1442695040888963407
+            sound[index] = Float(Double(state >> 11) / Double(UInt64(1) << 53) - 0.5) * 0.3
+        }
+        let rating = rate(sound, context)
+        XCTAssertEqual(rating.noteResults.map(\.matched), [true, true, true])
+        XCTAssertEqual(rating.strays?.count, 1)
+        XCTAssertNil(try XCTUnwrap(rating.strays?.first).frequency)
+        XCTAssertTrue(rating.notes, "A knock is not an extra note")
+        XCTAssertFalse(note(rating).contains("slid"), "And it is not the learner's to mend")
     }
 
     func testCorrectSequenceStartedLateIsNotSilentlyAlignedToScore() throws {
@@ -268,7 +316,7 @@ final class MelodyRatingTests: XCTestCase {
         XCTAssertEqual(rating.status, .rated)
         XCTAssertFalse(rating.notes)
         XCTAssertTrue(rating.octaveMismatch)
-        XCTAssertTrue(rating.feedback.contains("octave"))
+        XCTAssertTrue(note(rating).contains("octave"))
         let first = try XCTUnwrap(rating.noteResults.first)
         XCTAssertEqual(try XCTUnwrap(first.observedFrequency) / XCTUnwrap(first.expectedFrequency), 2, accuracy: 0.01)
     }
@@ -361,6 +409,8 @@ final class MelodyRatingTests: XCTestCase {
             tempoBPM: base.tempoBPM, section: base.section, expectedEvents: base.expectedEvents,
             durationBeats: base.durationBeats, gradingVersion: MelodyRating.currentVersion)
     }
+
+    private func note(_ rating: MelodyRating) -> String { TeacherNote(rating: rating, register: .lowVoice).text }
 
     private func rate(_ samples: [Float], _ context: MelodyPracticeContext) -> MelodyRating {
         MelodyRecordingRater.rate(samples: samples, sampleRate: sampleRate, context: context)

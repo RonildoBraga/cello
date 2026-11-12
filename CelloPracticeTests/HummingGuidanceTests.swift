@@ -63,67 +63,21 @@ final class HummingGuidanceTests: XCTestCase {
         XCTAssertEqual(message(cents: -75)?.hasPrefix("Below"), true)
     }
 
-    func testFeedbackNamesTheNoteThatChangedLateAndByHowMuch() {
+    func testListenAndEchoNamesTheNoteThatChangedLateAndByHowMuch() {
         // The commonest real mistake: the second of two notes starting late.
         let rating = rating([note(0, start: 0, onset: 0, timed: true),
                              note(1, start: 2, onset: 2.31, frequency: 123.47, timed: false)])
         XCTAssertEqual(rating.timingAdvice, "Note 2 (B2) started 0.3 s late. Change as its bar reaches the line.")
-        XCTAssertEqual(rating.feedback, rating.timingAdvice)
         XCTAssertEqual(rating.echoFeedback, rating.timingAdvice)
-    }
-
-    func testFeedbackCoversAnEarlyChangeALateStartAndANoteCutShort() {
-        let early = rating([note(0, start: 0, onset: 0, timed: true), note(1, start: 2, onset: 1.7, timed: false)])
+        let early = self.rating([note(0, start: 0, onset: 0, timed: true), note(1, start: 2, onset: 1.7, timed: false)])
         XCTAssertTrue(try XCTUnwrap(early.timingAdvice).contains("started 0.3 s early"))
-        let lateStart = rating([note(0, start: 0, onset: 0.45, timed: false), note(1, start: 2, onset: 2, timed: true)])
+        let lateStart = self.rating([note(0, start: 0, onset: 0.45, timed: false), note(1, start: 2, onset: 2, timed: true)])
         XCTAssertEqual(lateStart.timingAdvice,
                        "The first note (A2) started 0.5 s late. Start as its bar reaches the line, right after the count of 4.")
-        let cutShort = rating([note(0, start: 0, onset: 0.05, timed: false), note(1, start: 2, onset: 2, timed: true)])
+        let cutShort = self.rating([note(0, start: 0, onset: 0.05, timed: false), note(1, start: 2, onset: 2, timed: true)])
         XCTAssertEqual(cutShort.timingAdvice, "The first note (A2) stopped too soon. Hold it until its bar has passed the line.")
-    }
-
-    func testFeedbackNamesTheNoteThatWasOffPitchAndWhichWayToMoveIt() {
-        func missed(_ index: Int, expected: Double, observed: Double?, clear: Bool = true) -> MelodyNoteResult {
-            MelodyNoteResult(expectedIndex: index, expectedStart: Double(index), expectedDuration: 0.5,
-                             expectedFrequency: expected, observedFrequency: observed, observedOnset: Double(index),
-                             matched: false, timed: true, clear: clear, octaveMismatch: false)
-        }
-        func feedback(_ notes: [MelodyNoteResult]) -> String {
-            MelodyRating(status: .rated, notes: false, timing: true, clarity: true, noteResults: notes).feedback
-        }
-        let good = note(0, start: 0, onset: 0, frequency: 98, timed: true)
-        // From a real take: the step up to A2 (110 Hz) landed about a semitone short.
-        XCTAssertEqual(feedback([good, missed(1, expected: 110, observed: 103.6)]),
-                       "Note 2 (A2) was a little too low. Aim higher on that note.")
-        XCTAssertEqual(feedback([good, missed(1, expected: 110, observed: 120.4)]),
-                       "Note 2 (A2) was too high. Aim lower on that note.")
-        XCTAssertEqual(feedback([missed(0, expected: 98, observed: 89.6), good]),
-                       "The first note (G2) was too low. Hear the start again and begin on its pitch.")
-        XCTAssertEqual(feedback([good, missed(1, expected: 110, observed: 107)]),
-                       "Note 2 (A2) wavered. Find it, then keep it steady.")
-        // A note that was not heard clearly enough to measure keeps the general advice. So does
-        // one on pitch but not heard for most of its length: it may have been cut short, not wavering.
-        XCTAssertEqual(feedback([good, missed(1, expected: 110, observed: nil)]),
-                       "Listen to this phrase again and follow each note as it changes.")
-        XCTAssertEqual(feedback([good, missed(1, expected: 110, observed: 110, clear: false)]),
-                       "Listen to this phrase again and follow each note as it changes.")
-        XCTAssertEqual(feedback([good, missed(1, expected: 110, observed: 103.6, clear: false)]),
-                       "Note 2 (A2) was a little too low. Aim higher on that note.")
-    }
-
-    func testWithoutAMeasuredStartTheGeneralAdviceStays() {
-        // A note that was never heard as a note of its own has no start to measure: say that instead.
-        let unheard = rating([note(0, start: 0, onset: 0, timed: true), note(1, start: 2, onset: nil, timed: false)])
+        let unheard = self.rating([note(0, start: 0, onset: 0, timed: true), note(1, start: 2, onset: nil, timed: false)])
         XCTAssertNil(unheard.timingAdvice)
-        XCTAssertEqual(unheard.feedback, "1 of the 2 notes were heard. Give each note a clear start of its own.")
-        XCTAssertEqual(unheard.heardAdvice, unheard.feedback)
-        // Nothing heard at all, or everything heard, leaves the usual advice.
-        XCTAssertNil(rating([note(0, start: 0, onset: nil, timed: false), note(1, start: 2, onset: nil, timed: false)]).heardAdvice)
-        let late = rating([note(0, start: 0, onset: 0, timed: true), note(1, start: 2, onset: 2.05, timed: false)])
-        XCTAssertNil(late.heardAdvice)
-        XCTAssertTrue(late.feedback.hasSuffix("Hold it until its bar has passed the line."))
-        let onTime = MelodyRating(status: .rated, notes: true, timing: true, clarity: true)
-        XCTAssertTrue(onTime.feedback.hasPrefix("All three goals reached"))
     }
 
     private func note(_ index: Int, start: Double, onset: Double?, frequency: Double = 110, timed: Bool) -> MelodyNoteResult {

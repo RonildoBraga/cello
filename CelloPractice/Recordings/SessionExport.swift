@@ -129,7 +129,7 @@ enum SessionExport {
             } else {
                 result += "- Result: not rated (\(rating.status.rawValue))\n"
             }
-            result += "- Feedback: \(isEcho ? rating.echoFeedback : rating.feedback)\n"
+            result += "- Feedback: \((session.melodyFeedback() ?? "").replacingOccurrences(of: "\n\n", with: " "))\n"
             result += "- Octave mismatch: \(rating.octaveMismatch ? "detected; pitches were not shifted" : "not detected")\n"
         }
         result += """

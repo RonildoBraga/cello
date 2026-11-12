@@ -29,6 +29,8 @@ struct MelodyTraceData {
 
     let expectedNotes: [ExpectedNote]
     let points: [Point]
+    /// Sounds that were no note of the melody, where they had a pitch: marked so the note's words can be seen.
+    let strays: [Point]
     let timeRange: ClosedRange<Double>
     let pitchRange: ClosedRange<Double>
     let pitchTicks: [Double]
@@ -45,10 +47,11 @@ struct MelodyTraceData {
         self.init(context: context, observations: rating.pitchPoints.map {
             Observation(time: $0.time, frequency: $0.frequency, confidence: $0.confidence,
                         rms: $0.rms, ambiguous: $0.ambiguous)
-        }, duration: duration)
+        }, duration: duration, strays: rating.strays ?? [])
     }
 
-    private init(context: MelodyPracticeContext, observations: [Observation], duration: Double) {
+    private init(context: MelodyPracticeContext, observations: [Observation], duration: Double,
+                 strays: [MelodyStray] = []) {
         hasValidContext = context.isValid
         let referenceDuration = context.isValid ? context.duration : 0
         let savedDuration = duration.isFinite && (0...192).contains(duration) ? duration : referenceDuration
@@ -90,7 +93,11 @@ struct MelodyTraceData {
             }
         }
         points = plotted
-        let pitches = expectedNotes.map(\.pitch) + plotted.map(\.pitch)
+        self.strays = context.isValid ? strays.enumerated().compactMap { index, stray in
+            stray.frequency.flatMap { $0.isFinite && (20...20_000).contains($0) ? $0 : nil }
+                .map { Point(id: index, time: stray.time, pitch: pitch($0), segment: -1) }
+        } : []
+        let pitches = expectedNotes.map(\.pitch) + plotted.map(\.pitch) + self.strays.map(\.pitch)
         let low = floor(pitches.min() ?? 48) - 1
         let high = ceil(pitches.max() ?? 52) + 1
         pitchRange = low...max(low + 2, high)
@@ -109,7 +116,7 @@ struct MelodyTraceData {
     var accessibilitySummary: String {
         guard hasValidContext else { return "The melody reference is unavailable." }
         guard !points.isEmpty else { return "Reference phrase chart. No clear saved pitch observations to plot." }
-        return "Reference phrase and \(points.count) clear saved pitch observations. Higher points mean higher notes. Gaps have no clear pitch; the chart keeps the recorded octave. Stars use the saved audio assessment."
+        return "Reference phrase and \(points.count) clear saved pitch observations.\(strays.isEmpty ? "" : " \(strays.count) extra \(strays.count == 1 ? "sound is" : "sounds are") marked.") Higher points mean higher notes. Gaps have no clear pitch; the chart keeps the recorded octave. Stars use the saved audio assessment."
     }
 }
 
@@ -161,6 +168,15 @@ struct MelodyTraceView: View {
                                 .foregroundStyle(Palette.forest.opacity(0.4))
                                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
                         }
+                    }
+                    // A sound that was no note of the melody, such as a slide before a change.
+                    ForEach(data.strays) { stray in
+                        PointMark(x: .value("Time", stray.time), y: .value("Pitch", stray.pitch))
+                            .symbol(.circle.strokeBorder(lineWidth: 1.5)).symbolSize(90)
+                            .foregroundStyle(Palette.ink.opacity(0.55))
+                            .annotation(position: .top, spacing: 2) {
+                                Text("extra").font(.caption2).foregroundStyle(Palette.muted)
+                            }
                     }
                     ForEach(data.points) { point in
                         LineMark(x: .value("Time", point.time), y: .value("Pitch", point.pitch),

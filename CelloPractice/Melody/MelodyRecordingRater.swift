@@ -90,6 +90,22 @@ enum MelodyRecordingRater {
             noteStarts: context.expectedEvents.filter { $0.midiNote != nil }.map {
                 (time: $0.onsetBeat * secondsPerBeat, slack: startSlack(noteDuration: $0.durationBeats * secondsPerBeat))
             })
+        // What was heard, note by note, and which asked note each one was.
+        let finish = Double(samples.count) / sampleRate
+        let asked = context.expectedEvents.compactMap { event in
+            context.frequency(for: event).map {
+                (start: event.onsetBeat * secondsPerBeat, duration: event.durationBeats * secondsPerBeat, frequency: $0)
+            }
+        }
+        let strayLimit = min(0.25, 0.4 * (asked.map(\.duration).min() ?? 1))
+        let heardNotes = boundaries.enumerated().map { index, start -> HeardNote in
+            let end = index + 1 < boundaries.count ? boundaries[index + 1] : finish
+            let pitched = pitchedCells(cells, from: start, to: end)
+            let settled = pitched.count >= 6 ? Array(pitched.suffix(pitched.count * 6 / 10)) : pitched
+            return HeardNote(start: start, end: end, frequency: median(settled.compactMap(\.frequency)),
+                             voiced: Double(pitched.count) * cellDuration)
+        }
+        let pairing = pair(heardNotes, with: asked, strayLimit: strayLimit)
         var pitchedOrdinal = 0
         let results = context.expectedEvents.enumerated().map { index, event -> MelodyNoteResult in
             let start = event.onsetBeat * secondsPerBeat
@@ -103,23 +119,15 @@ enum MelodyRecordingRater {
             let onset: Double?
             let segmentEnd: Double?
             if expectedFrequency != nil {
-                onset = boundaries.indices.contains(pitchedOrdinal) ? boundaries[pitchedOrdinal] : nil
-                segmentEnd = boundaries.indices.contains(pitchedOrdinal + 1)
-                    ? boundaries[pitchedOrdinal + 1] : Double(samples.count) / sampleRate
+                let note = pairing[pitchedOrdinal].map { heardNotes[$0] }
+                onset = note?.start
+                segmentEnd = note?.end
                 pitchedOrdinal += 1
             } else { onset = nil; segmentEnd = nil }
             // Sequence pitch and clarity use independently detected sound segments;
             // timing still uses absolute movie time. A late, correct sequence can
             // earn Notes without disguising its late starts as correct Timing.
-            let observed: [Cell]
-            if let onset, let finish = segmentEnd {
-                let segmentDuration = max(0, finish - onset)
-                observed = cells.filter {
-                    $0.time >= onset + min(0.10, segmentDuration * 0.20)
-                        && $0.time < finish - min(0.08, segmentDuration * 0.15)
-                }
-            } else { observed = [] }
-            let heard = observed.filter { $0.frequency != nil && !$0.ambiguous }
+            let heard = onset.flatMap { onset in segmentEnd.map { pitchedCells(cells, from: onset, to: $0) } } ?? []
             // A voice often slides into a note. Its pitch is judged once it has settled:
             // on the last three fifths of what was heard.
             let settled = heard.count >= 6 ? Array(heard.suffix(heard.count * 6 / 10)) : heard
@@ -146,11 +154,18 @@ enum MelodyRecordingRater {
                 observedOnset: onset, matched: matched, timed: timed,
                 clear: clear, octaveMismatch: octaveMismatch)
         }
-        let expectedNotes = context.expectedEvents.filter { $0.midiNote != nil }.count
-        let extraNotes = max(0, boundaries.count - expectedNotes)
-        // Extra observed notes count against sequence/timing, rather than being
-        // discarded once the expected number of notes has been consumed.
-        let eventCount = Double(results.count + extraNotes)
+        // A heard note that was no asked note counts against sequence and timing, rather than
+        // being discarded. A stray, too short to be a note (a slide before a change, a knock),
+        // does not: it is kept so the learner can be told about it.
+        let unasked = heardNotes.indices.filter { !pairing.contains($0) }
+        // A stray is over before it settles, so its pitch is the middle of all that was heard of it.
+        let strays = unasked.filter { heardNotes[$0].voiced < strayLimit }.map { index -> MelodyStray in
+            let note = heardNotes[index]
+            return MelodyStray(time: note.start, frequency: median(cells.filter {
+                $0.time >= note.start && $0.time < note.end && !$0.ambiguous
+            }.compactMap(\.frequency)))
+        }
+        let eventCount = Double(results.count + unasked.count - strays.count)
         let matchedFraction = Double(results.filter(\.matched).count) / eventCount
         let timedFraction = Double(results.filter(\.timed).count) / eventCount
         let clearFraction = Double(results.filter(\.clear).count) / Double(results.count)
@@ -172,7 +187,62 @@ enum MelodyRecordingRater {
             clarity: clearFraction + 1e-9 >= 0.80 && voicedDuration / max(0.001, activeDuration) >= voicedEnough,
             voicedDuration: voicedDuration, matchedNoteFraction: matchedFraction,
             timedNoteFraction: timedFraction, clearNoteFraction: clearFraction,
-            octaveMismatch: results.contains(where: \.octaveMismatch), noteResults: results, pitchPoints: points)
+            octaveMismatch: results.contains(where: \.octaveMismatch), noteResults: results, pitchPoints: points,
+            strays: strays.isEmpty ? nil : strays)
+    }
+
+    /// One stretch of sound between two note starts.
+    private struct HeardNote {
+        let start: Double, end: Double
+        /// Where its pitch settled; nil when no clear pitch was heard in it.
+        let frequency: Double?
+        /// How long a clear pitch lasted in it.
+        let voiced: Double
+    }
+
+    /// A heard note's cells with a clear pitch, away from its edges, where one note blends into the next.
+    private static func pitchedCells(_ cells: [Cell], from start: Double, to end: Double) -> [Cell] {
+        let length = max(0, end - start)
+        return cells.filter {
+            $0.time >= start + min(0.10, length * 0.20) && $0.time < end - min(0.08, length * 0.15)
+                && $0.frequency != nil && !$0.ambiguous
+        }
+    }
+
+    /// Pairs the notes heard with the notes asked, each kept in order, at the least cost. Against
+    /// an asked note, a heard note costs 1 for the wrong pitch, and up to 1 more as its start moves
+    /// from the allowance to a whole note's length away. Leaving an asked note unheard, or a heard
+    /// note unasked, costs 1; a stray costs a quarter. So notes sung in time pair with their own
+    /// places whatever their pitch, and the right notes sung late still pair note for note,
+    /// leaving the lateness for Timing to judge.
+    private static func pair(_ heard: [HeardNote], with asked: [(start: Double, duration: Double, frequency: Double)],
+                             strayLimit: Double) -> [Int?] {
+        func together(_ note: HeardNote, _ target: (start: Double, duration: Double, frequency: Double)) -> Double {
+            let pitch = note.frequency.map { abs(1_200 * log2($0 / target.frequency)) <= matchCents ? 0.0 : 1 } ?? 1
+            let slack = startSlack(noteDuration: target.duration)
+            return pitch + min(1, max(0, abs(note.start - target.start) - slack) / (target.duration - slack))
+        }
+        // cost[i][j]: the least cost of pairing the first i asked notes with the first j heard ones.
+        var cost = [[Double]](repeating: [Double](repeating: .infinity, count: heard.count + 1), count: asked.count + 1)
+        cost[0][0] = 0
+        for i in 0...asked.count {
+            for j in 0...heard.count where i + j > 0 {
+                var best = Double.infinity
+                if i > 0, j > 0 { best = cost[i - 1][j - 1] + together(heard[j - 1], asked[i - 1]) }
+                if i > 0 { best = min(best, cost[i - 1][j] + 1) }
+                if j > 0 { best = min(best, cost[i][j - 1] + (heard[j - 1].voiced < strayLimit ? 0.25 : 1)) }
+                cost[i][j] = best
+            }
+        }
+        // Walk back from the end, preferring a pair wherever it is as cheap as leaving one out.
+        var pairs = [Int?](repeating: nil, count: asked.count)
+        var i = asked.count, j = heard.count
+        while i > 0 || j > 0 {
+            if i > 0, j > 0, cost[i][j] == cost[i - 1][j - 1] + together(heard[j - 1], asked[i - 1]) {
+                pairs[i - 1] = j - 1; i -= 1; j -= 1
+            } else if i > 0, cost[i][j] == cost[i - 1][j] + 1 { i -= 1 } else { j -= 1 }
+        }
+        return pairs
     }
 
     /// How far from its place a note may start and still be on time.
