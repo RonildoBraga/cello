@@ -119,7 +119,7 @@ final class EchoPracticeTests: XCTestCase {
     }
 
     func testHistoricalVersionOnePatternsRetainTheirIdentityTitleAndSavedFeedback() throws {
-        XCTAssertEqual(MelodyRating.currentVersion, 3)
+        XCTAssertEqual(MelodyRating.currentVersion, 4)
         for level in EchoLevel.allCases {
             for register in [MelodyRegister.lowVoice, .higherVoice] {
                 for index in 0..<level.patternCount {

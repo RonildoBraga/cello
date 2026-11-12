@@ -42,6 +42,8 @@ struct VoicePracticeView<Header: View>: View {
     @State private var saved = false
     @State private var referenceWasHeard = false
     @State private var latestSession: PracticeSession?
+    /// What to say about that take, worked out once when it was saved.
+    @State private var latestFeedback = ""
     /// The note the idle tuner listens for; nil is the take's first note.
     @State private var tunerTarget: Double?
     private var hasResult: Bool { latestSession?.rating != nil || latestSession?.melodyRating != nil }
@@ -185,7 +187,7 @@ struct VoicePracticeView<Header: View>: View {
                     if let session = latestSession, hasResult, showsIdleContent {
                         VStack(spacing: 16) {
                             if let rating = session.melodyRating {
-                                MelodyFeedbackView(rating: rating, isEcho: mode.isEcho)
+                                MelodyFeedbackView(rating: rating, feedback: latestFeedback, isEcho: mode.isEcho)
                             } else if let rating = session.rating {
                                 PracticeRatingView(rating: rating)
                                     .accessibilityIdentifier("latestRatingCard")
@@ -502,7 +504,7 @@ struct VoicePracticeView<Header: View>: View {
         capture.startRecording(maximumDuration: timedRecording ? mode.duration : 90) {
             [weak capture = capture, store, exercise = mode.exercise, targetFrequency = mode.targetFrequency,
              melodyContext = mode.melodyContext, saving = $saving, saved = $saved,
-             latestSession = $latestSession, isVisible = $isVisible] url, samples, room in
+             latestSession = $latestSession, latestFeedback = $latestFeedback, isVisible = $isVisible] url, samples, room in
             saving.wrappedValue = true
             let fallbackDuration = capture?.elapsed ?? 0
             Task { @MainActor in
@@ -512,6 +514,7 @@ struct VoicePracticeView<Header: View>: View {
                 saving.wrappedValue = false
                 saved.wrappedValue = result != nil
                 if let result, isVisible.wrappedValue {
+                    latestFeedback.wrappedValue = result.melodyFeedback(earlier: store.melodyRatings(before: result)) ?? ""
                     latestSession.wrappedValue = result
                 }
             }

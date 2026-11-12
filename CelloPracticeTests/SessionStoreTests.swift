@@ -829,12 +829,14 @@ final class SessionStoreTests: XCTestCase {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let earlier = try scoredMelodyContext(gradingVersion: 2)
         let current = try scoredMelodyContext()
-        XCTAssertEqual(current.gradingVersion, 3)
+        XCTAssertEqual(current.gradingVersion, MelodyRating.currentVersion)
+        XCTAssertEqual(MelodyProgressLedger.key(for: current), MelodyProgressLedger.key(for: try scoredMelodyContext(gradingVersion: 3)))
         // One lesson, one key: the one version 2 wrote into the saved progress files.
         XCTAssertEqual(MelodyProgressLedger.key(for: current), MelodyProgressLedger.key(for: earlier))
         XCTAssertNil(MelodyProgressLedger.key(for: try scoredMelodyContext(gradingVersion: 1)), "Version 1 was retired before passes were kept")
         XCTAssertNotEqual(MelodyProgressLedger.key(for: current),
-                          MelodyProgressLedger.key(for: try .hotCrossBuns(register: .lowVoice, section: .phrase2, gradingVersion: 3)))
+                          MelodyProgressLedger.key(for: try .hotCrossBuns(register: .lowVoice, section: .phrase2,
+                                                                           gradingVersion: MelodyRating.currentVersion)))
 
         // Three three-star takes scored by version 2 are this lesson's gold today.
         let takes = try writeMelodyHistory(count: 3, context: earlier, in: directory).map { take in
@@ -856,7 +858,7 @@ final class SessionStoreTests: XCTestCase {
 
         // Listen & Echo keeps its key too.
         let echo = try EchoLevel.twoNotes.context(patternIndex: 0, register: .lowVoice)
-        XCTAssertEqual(echo.gradingVersion, 3)
+        XCTAssertEqual(echo.gradingVersion, MelodyRating.currentVersion)
         func echoTake(_ version: Int) -> PracticeSession {
             PracticeSession(id: UUID(), createdAt: Date(), exercise: .listen, duration: echo.duration, notes: "",
                             pitchSamples: [], videoFilename: "recording.mov", melodyContext: echo.graded(by: version),
@@ -865,6 +867,7 @@ final class SessionStoreTests: XCTestCase {
         let level = try XCTUnwrap(EchoProgressLedger.key(for: .twoNotes, register: .lowVoice))
         XCTAssertEqual(EchoProgressLedger.eligibleKey(for: echoTake(2)), level)
         XCTAssertEqual(EchoProgressLedger.eligibleKey(for: echoTake(3)), level)
+        XCTAssertEqual(EchoProgressLedger.eligibleKey(for: echoTake(4)), level)
         XCTAssertNil(EchoProgressLedger.eligibleKey(for: echoTake(1)))
     }
 

@@ -140,6 +140,14 @@ final class SessionStore: ObservableObject {
         foundationProgress.progress(forKey: PracticeProgressLedger.key(exercise: exercise, targetFrequency: targetFrequency))
     }
 
+    /// The scores of the takes made on the same part before this one, newest first: a
+    /// teacher's note uses them to name a habit.
+    func melodyRatings(before session: PracticeSession, limit: Int = 3) -> [MelodyRating] {
+        guard let part = session.melodyContext?.graded(by: 0) else { return [] }
+        return sessions.filter { $0.createdAt < session.createdAt && $0.melodyContext?.graded(by: 0) == part }
+            .sorted { $0.createdAt > $1.createdAt }.prefix(limit).compactMap(\.melodyRating)
+    }
+
     func melodyProgress(for context: MelodyPracticeContext) -> PracticeProgress {
         melodyProgressFile.progress(forKey: MelodyProgressLedger.key(for: context))
     }

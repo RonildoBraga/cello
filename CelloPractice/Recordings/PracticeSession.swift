@@ -88,6 +88,14 @@ struct PracticeSession: Identifiable, Codable {
         self.roomLevel = roomLevel
     }
 
+    /// What to say about a melody take: Listen & Echo keeps its own wording, which names no note
+    /// before the pattern has been heard; every other take gets a teacher's note.
+    func melodyFeedback(earlier: [MelodyRating] = []) -> String? {
+        guard let rating = melodyRating, let context = melodyContext else { return nil }
+        return EchoLevel.selection(for: context) != nil ? rating.echoFeedback
+            : TeacherNote(rating: rating, register: context.register, earlier: earlier).text
+    }
+
     /// The room this take was made in, when it was measured.
     var room: RoomNoise? { roomLevel.map(RoomNoise.init(level:)) }
 

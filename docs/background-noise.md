@@ -40,6 +40,8 @@ Not verified on a device: the Simulator has no microphone, so the measurement, t
 
 Since then, melody scoring version 3 hears a fresh start in a dip as well as in silence ([humming assessment](melody-humming.md)). That was built for quick notes, and it also helps here: with steady hiss 8 to 13 dB below the hum, the examples' quick notes and the jump keep three stars where version 2 gave none. Rumble, a second voice and knocks score as before.
 
+Version 4 pairs each heard note with the note it was and treats a sound too short to be a note as a stray that costs nothing. Under low rumble 13 to 18 dB below the hum, and knocks as loud as the hum, held notes and three-note phrases now keep three stars where they dropped to one. A second voice at the hum's level, and rumble within 8 dB of it, still defeat the scoring.
+
 ## Planned
 
 1. **Real noisy takes** as private test recordings: the same lessons in a quiet room, with talk, and with a fan or kitchen noise, at arm's length and at about 20 cm.
