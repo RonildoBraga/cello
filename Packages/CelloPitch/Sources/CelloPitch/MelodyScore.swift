@@ -76,6 +76,13 @@ public struct MelodyScore: Codable, Equatable, Sendable {
         pitches: [43, 50, 59, 50, 43, 52, 60, 52, 43, 54, 60, 54, 43, 55, 59, 55],
         durations: Array(repeating: 1, count: 16))
 
+    /// The opening of Bach's first Prelude as written, at a learner's speed: the first half of each of
+    /// bars 1 to 4, eight notes of half a beat each. Bach plays each figure twice in a bar, and faster.
+    public static let preludeOpening = fourBars("preludeOpening",
+        pitches: [43, 50, 59, 57, 59, 50, 59, 50, 43, 52, 60, 59, 60, 52, 60, 52,
+                  43, 54, 60, 59, 60, 54, 60, 54, 43, 55, 59, 57, 59, 55, 59, 55],
+        durations: Array(repeating: 0.5, count: 32))
+
     /// A tune's notes and their lengths in beats, laid end to end across four bars.
     private static func fourBars(_ pieceID: String, pitches: [Int], durations: [Double]) -> MelodyScore {
         var beat = 0.0
@@ -90,7 +97,7 @@ public struct MelodyScore: Codable, Equatable, Sendable {
 
 /// Built-in arrangements share the same phrase and assessment flow.
 public enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
-    case hotCrossBuns, odeToJoy, twinkle, lightlyRow, oldMacDonald, yankeeDoodle, gMajorScale, preludeChords
+    case hotCrossBuns, odeToJoy, twinkle, lightlyRow, oldMacDonald, yankeeDoodle, gMajorScale, preludeChords, preludeOpening
 
     public var id: String { rawValue }
 
@@ -104,6 +111,7 @@ public enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
         case .yankeeDoodle: return "Yankee Doodle"
         case .gMajorScale: return "G major scale"
         case .preludeChords: return "Prelude chords"
+        case .preludeOpening: return "Prelude opening"
         }
     }
 
@@ -117,6 +125,7 @@ public enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
         case .yankeeDoodle: return .yankeeDoodle
         case .gMajorScale: return .gMajorScale
         case .preludeChords: return .preludeChords
+        case .preludeOpening: return .preludeOpening
         }
     }
 
@@ -136,7 +145,7 @@ public enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
     private var voiceAtCelloPitch: Bool {
         switch self {
         case .hotCrossBuns, .odeToJoy, .twinkle, .lightlyRow, .oldMacDonald, .yankeeDoodle: return false
-        case .gMajorScale, .preludeChords: return true
+        case .gMajorScale, .preludeChords, .preludeOpening: return true
         }
     }
 
@@ -144,7 +153,7 @@ public enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
     private var celloTonic: Int {
         switch self {
         case .hotCrossBuns, .odeToJoy, .twinkle, .lightlyRow: return 50 // D3
-        case .oldMacDonald, .yankeeDoodle, .gMajorScale, .preludeChords: return 55 // G3
+        case .oldMacDonald, .yankeeDoodle, .gMajorScale, .preludeChords, .preludeOpening: return 55 // G3
         }
     }
 

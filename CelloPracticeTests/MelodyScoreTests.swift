@@ -187,6 +187,37 @@ final class MelodyScoreTests: XCTestCase {
         }
     }
 
+    func testThePreludeOpeningIsTheFirstHalfOfBachsFirstFourBarsInHalfBeatNotes() {
+        let score = MelodyScore.preludeOpening
+        XCTAssertEqual(score.pieceID, "preludeOpening")
+        XCTAssertEqual(score.version, 1)
+        XCTAssertEqual(score.events.count, 32)
+        XCTAssertTrue(score.events.allSatisfy { $0.durationBeats == 0.5 })
+        XCTAssertEqual(score.events.last?.endBeat, score.totalBeats)
+        XCTAssertEqual(score.phraseBoundaries, MelodyScore.odeToJoy.phraseBoundaries)
+        // Checked against the Mutopia edition of BWV 1007: each bar's figure, played once.
+        let phrases = [["G2", "D3", "B3", "A3", "B3", "D3", "B3", "D3"], ["G2", "E3", "C4", "B3", "C4", "E3", "C4", "E3"],
+                       ["G2", "F♯3", "C4", "B3", "C4", "F♯3", "C4", "F♯3"], ["G2", "G3", "B3", "A3", "B3", "G3", "B3", "G3"]]
+        // The chords of Level 9 are in it, and the one new thing is the top note's step down to its neighbour and back.
+        for (bar, chord) in zip(phrases, MelodySection.phrases.map { MelodyPiece.preludeChords.humming(register: .cello, section: $0).noteNames }) {
+            XCTAssertEqual([bar[0], bar[1], bar[2], bar[5]], chord)
+        }
+        XCTAssertEqual(Set(score.events.compactMap(\.midiNote)).subtracting(MelodyScore.preludeChords.events.compactMap(\.midiNote)),
+                       [57], "A3 is the only note the chords did not have")
+        for register in [MelodyRegister.lowVoice, .cello] {
+            XCTAssertEqual(MelodyPiece.preludeOpening.transposition(for: register), 0)
+            XCTAssertEqual(MelodyPiece.preludeOpening.keyName(for: register), "G major")
+            XCTAssertEqual(MelodyPiece.preludeOpening.rangeLabel(for: register), "G2–C4")
+            for (section, notes) in zip(MelodySection.phrases, phrases) {
+                let context = MelodyPiece.preludeOpening.humming(register: register, section: section)
+                XCTAssertTrue(context.isValid)
+                XCTAssertEqual(context.noteNames, notes)
+                XCTAssertEqual(context.displayPieceTitle, "Prelude opening")
+                XCTAssertFalse(context.repeatsQuickNotes, "No note is sounded twice in a row")
+            }
+        }
+    }
+
     func testEveryEarlierMelodyKeepsTheNotesAndProgressKeysOfItsSavedTakes() throws {
         // Progress is saved under a hash of the whole frozen selection: notes, key and all. Placing a later
         // melody's voice at the cello's pitch must not move the voice of an earlier one, in any lesson.
@@ -235,7 +266,8 @@ final class MelodyScoreTests: XCTestCase {
             (.oldMacDonald, [onEachBeat, heldEnding, onEachBeat, "Tap once on 1. Count 2, 3 and 4 while the note continues."]),
             (.yankeeDoodle, [twoPerBeat, runThenTwo, twoPerBeat, runThenTwo]),
             (.gMajorScale, Array(repeating: onEachBeat, count: 4)),
-            (.preludeChords, Array(repeating: onEachBeat, count: 4))]
+            (.preludeChords, Array(repeating: onEachBeat, count: 4)),
+            (.preludeOpening, Array(repeating: twoPerBeat, count: 4))]
         for (piece, expected) in hints {
             XCTAssertEqual(MelodySection.phrases.map(piece.rhythmHint), expected, piece.title)
             XCTAssertEqual(piece.rhythmHint(for: .whole), "Tap at each new tile. Keep counting through the longer tiles.")

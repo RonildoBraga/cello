@@ -110,3 +110,5 @@ Yankee Doodle is assessed the same way. Most of its notes last half a second and
 The G major scale is assessed the same way, with the voice on the cello's own notes, G2 to G3. Phrases 2 and 3 meet on the top G sounded twice, a beat apart, like Twinkle's repeated notes. See [the scale](g-major-scale-reference.md).
 
 The Prelude chords are assessed the same way. Every move is a jump of a third or more, which the rater hears as a lasting change of pitch. A jump that falls short or goes too far is a note off its pitch, and the teacher's note names it and the way it was out. See [the excerpt](prelude-chords-reference.md).
+
+The Prelude opening is assessed the same way: Yankee Doodle's half-second notes with the chords' jumps. No note repeats in a row, so every new note is a change of pitch. See [the excerpt](prelude-opening-reference.md).
