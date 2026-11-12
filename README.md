@@ -57,7 +57,7 @@ Ratings are beginner practice feedback, not a complete assessment of musical abi
 
 ## Build and run
 
-Requirements: macOS with Xcode and an iOS 18-or-later SDK; the app targets iOS 17 and later. The project is developed with Xcode 27.1. Dependencies are Apple frameworks and the local `Packages/CelloPitch` package; no external packages or API keys are required.
+Requirements: macOS with Xcode and an iOS 18-or-later SDK; the app targets iOS 17 and later. The project is developed with Xcode 27.1. Dependencies are Apple frameworks and the local `Packages/CelloPitch` package; no external packages or API keys are required. That package holds the listening and judging (pitch detection, the melody scores, the melody rater and the teacher's note) and a command-line tool, `cello-rescore`, that re-scores saved takes on a Mac to check a scoring change before it ships; see [CONTRIBUTING](CONTRIBUTING.md).
 
 1. Open `CelloPractice.xcodeproj` and select the **Cello** scheme.
 2. Select an available iPhone Simulator and run, or choose your connected iPhone.

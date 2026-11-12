@@ -1,3 +1,4 @@
+import CelloPitch
 import Foundation
 @testable import Cello
 

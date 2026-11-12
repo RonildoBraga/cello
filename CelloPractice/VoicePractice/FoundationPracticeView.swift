@@ -1,3 +1,4 @@
+import CelloPitch
 import SwiftUI
 
 /// Practising one foundation lesson: a recorded note or a tapping round.

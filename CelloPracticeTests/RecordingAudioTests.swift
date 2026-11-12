@@ -1,4 +1,5 @@
 import AVFoundation
+import CelloPitch
 import CoreVideo
 import Foundation
 import XCTest

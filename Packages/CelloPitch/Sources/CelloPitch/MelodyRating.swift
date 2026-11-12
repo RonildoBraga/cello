@@ -1,64 +1,92 @@
 import Foundation
 
 /// Saved-audio observations keep their measured octave, including uncertain frames.
-struct MelodyPitchPoint: Codable, Equatable, Sendable {
-    let time: Double
-    let frequency: Double?
-    let confidence: Double
-    let rms: Double
-    let ambiguous: Bool
+public struct MelodyPitchPoint: Codable, Equatable, Sendable {
+    public let time: Double
+    public let frequency: Double?
+    public let confidence: Double
+    public let rms: Double
+    public let ambiguous: Bool
+
+    public init(time: Double, frequency: Double?, confidence: Double, rms: Double, ambiguous: Bool) {
+        self.time = time
+        self.frequency = frequency
+        self.confidence = confidence
+        self.rms = rms
+        self.ambiguous = ambiguous
+    }
 }
 
-struct MelodyNoteResult: Codable, Equatable, Sendable {
-    let expectedIndex: Int
-    let expectedStart: Double
-    let expectedDuration: Double
-    let expectedFrequency: Double?
-    let observedFrequency: Double?
-    let observedOnset: Double?
-    let matched: Bool
-    let timed: Bool
-    let clear: Bool
-    let octaveMismatch: Bool
+public struct MelodyNoteResult: Codable, Equatable, Sendable {
+    public let expectedIndex: Int
+    public let expectedStart: Double
+    public let expectedDuration: Double
+    public let expectedFrequency: Double?
+    public let observedFrequency: Double?
+    public let observedOnset: Double?
+    public let matched: Bool
+    public let timed: Bool
+    public let clear: Bool
+    public let octaveMismatch: Bool
+
+    public init(expectedIndex: Int, expectedStart: Double, expectedDuration: Double,
+                expectedFrequency: Double?, observedFrequency: Double?, observedOnset: Double?,
+                matched: Bool, timed: Bool, clear: Bool, octaveMismatch: Bool) {
+        self.expectedIndex = expectedIndex
+        self.expectedStart = expectedStart
+        self.expectedDuration = expectedDuration
+        self.expectedFrequency = expectedFrequency
+        self.observedFrequency = observedFrequency
+        self.observedOnset = observedOnset
+        self.matched = matched
+        self.timed = timed
+        self.clear = clear
+        self.octaveMismatch = octaveMismatch
+    }
 }
 
 /// A sound in a take that was no note of the melody and too short to be one: the voice
 /// sliding the wrong way before a change, or a knock. It costs no star.
-struct MelodyStray: Codable, Equatable, Sendable {
-    let time: Double
+public struct MelodyStray: Codable, Equatable, Sendable {
+    public let time: Double
     /// Where its pitch was, when it had one.
-    let frequency: Double?
+    public let frequency: Double?
+
+    public init(time: Double, frequency: Double?) {
+        self.time = time
+        self.frequency = frequency
+    }
 }
 
 /// Three independent beginner goals. Uncertain sound never becomes a failed take.
-struct MelodyRating: Codable, Equatable, Sendable {
+public struct MelodyRating: Codable, Equatable, Sendable {
     /// Version 3 hears a fresh start in a dip, judges pitch once a note has settled and
     /// gives quick notes room for their starts. Earlier takes keep the scores they were given.
     /// Version 4 pairs each heard note with the asked note it was, so a stray sound or a missed
     /// note no longer sets every later note against the wrong one.
-    static let currentVersion = 4
+    public static let currentVersion = 4
     /// Progress belongs to the lesson, not to the rules of the day. Takes scored under these
     /// versions count towards the same passes and gold, kept under the key version 2 wrote.
-    static let progressVersions = 2...4
+    public static let progressVersions = 2...4
 
-    enum Status: String, Codable, Sendable { case rated, unclear, insufficientSound }
+    public enum Status: String, Codable, Sendable { case rated, unclear, insufficientSound }
 
-    let version: Int
-    let status: Status
-    let notes: Bool
-    let timing: Bool
-    let clarity: Bool
-    let voicedDuration: Double
-    let matchedNoteFraction: Double?
-    let timedNoteFraction: Double?
-    let clearNoteFraction: Double?
-    let octaveMismatch: Bool
-    let noteResults: [MelodyNoteResult]
-    let pitchPoints: [MelodyPitchPoint]
+    public let version: Int
+    public let status: Status
+    public let notes: Bool
+    public let timing: Bool
+    public let clarity: Bool
+    public let voicedDuration: Double
+    public let matchedNoteFraction: Double?
+    public let timedNoteFraction: Double?
+    public let clearNoteFraction: Double?
+    public let octaveMismatch: Bool
+    public let noteResults: [MelodyNoteResult]
+    public let pitchPoints: [MelodyPitchPoint]
     /// Takes scored before version 4, and takes without a stray, have none.
-    let strays: [MelodyStray]?
+    public let strays: [MelodyStray]?
 
-    init(version: Int = currentVersion, status: Status, notes: Bool = false,
+    public init(version: Int = currentVersion, status: Status, notes: Bool = false,
          timing: Bool = false, clarity: Bool = false, voicedDuration: Double = 0,
          matchedNoteFraction: Double? = nil, timedNoteFraction: Double? = nil,
          clearNoteFraction: Double? = nil, octaveMismatch: Bool = false,
@@ -79,15 +107,15 @@ struct MelodyRating: Codable, Equatable, Sendable {
         self.strays = strays
     }
 
-    var starCount: Int? {
+    public var starCount: Int? {
         status == .rated ? [notes, timing, clarity].filter { $0 }.count : nil
     }
 
-    var goalReached: Bool { starCount == 3 }
+    public var goalReached: Bool { starCount == 3 }
 
     /// Names the first note whose timing was off, how far, and what to do. Listen & Echo's
     /// wording uses it; every other take gets a `TeacherNote`.
-    var timingAdvice: String? {
+    public var timingAdvice: String? {
         guard let note = noteResults.first(where: { $0.expectedFrequency != nil && !$0.timed }),
               let frequency = note.expectedFrequency, let onset = note.observedOnset else { return nil }
         let position = noteResults.filter { $0.expectedFrequency != nil }.firstIndex(of: note) ?? 0

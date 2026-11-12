@@ -1,10 +1,9 @@
-import CelloPitch
 import Foundation
 
 /// Compares independently measured sound with a frozen score on the recording's
 /// original timeline. It never transposes a hum or shifts it onto the target.
-enum MelodyRecordingRater {
-    static func rate(url: URL, context: MelodyPracticeContext) async -> MelodyRating {
+public enum MelodyRecordingRater {
+    public static func rate(url: URL, context: MelodyPracticeContext) async -> MelodyRating {
         do {
             let samples = try await RecordingAudio.read(url: url, maximumDuration: min(26, context.duration + 2))
             return await Task.detached(priority: .userInitiated) {
@@ -13,7 +12,7 @@ enum MelodyRecordingRater {
         } catch { return MelodyRating(status: .unclear) }
     }
 
-    static func rate(samples: [Float], sampleRate: Double, context: MelodyPracticeContext) -> MelodyRating {
+    public static func rate(samples: [Float], sampleRate: Double, context: MelodyPracticeContext) -> MelodyRating {
         guard context.isValid, context.gradingVersion == MelodyRating.currentVersion,
               context.duration <= 24, context.expectedEvents.contains(where: { $0.midiNote != nil }),
               sampleRate.isFinite, (8_000...96_000).contains(sampleRate),
@@ -30,10 +29,10 @@ enum MelodyRecordingRater {
 
     /// How far from a note a sound may be and still count as that note. The tuner and
     /// the chart draw this same band, so what is shown is what is scored.
-    static let matchCents = 70.0
+    public static let matchCents = 70.0
     /// A note shorter than this is a quick one. Starting a note afresh costs about a tenth
     /// of a second whatever its length, so a quick note has less sound left to be judged on.
-    static let quickNote = 0.75
+    public static let quickNote = 0.75
 
     private static func analyse(samples: [Float], sampleRate: Double, context: MelodyPracticeContext) -> MelodyRating {
         let window = max(512, Int(sampleRate * (8_192.0 / 48_000)))
@@ -258,7 +257,7 @@ enum MelodyRecordingRater {
     /// less. A voice cannot leap an octave and back that fast: as a hum fades, its
     /// first overtone can outlast it, and the detector follows the overtone. Such
     /// frames are ambiguous, so they are neither a new note nor a point on the chart.
-    static func octaveSlips(in frequencies: [Double?]) -> Set<Int> {
+    public static func octaveSlips(in frequencies: [Double?]) -> Set<Int> {
         // Runs of neighbouring frames that stay within a few semitones of each other.
         var runs: [Range<Int>] = []
         for (index, frequency) in frequencies.enumerated() {

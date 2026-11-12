@@ -1,4 +1,5 @@
 import AVFoundation
+import CelloPitch
 import Foundation
 
 /// Retunes recorded human humming or cello samples onto the frozen score.

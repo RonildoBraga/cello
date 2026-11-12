@@ -1,3 +1,4 @@
+import CelloPitch
 import CryptoKit
 import Foundation
 import XCTest

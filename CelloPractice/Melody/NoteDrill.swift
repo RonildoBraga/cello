@@ -1,3 +1,4 @@
+import CelloPitch
 import Foundation
 
 /// One item of a level's Meet the notes lesson: a single note to hum back, two

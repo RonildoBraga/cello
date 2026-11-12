@@ -7,6 +7,8 @@ let package = Package(
     products: [.library(name: "CelloPitch", targets: ["CelloPitch"])],
     targets: [
         .target(name: "CelloPitch"),
+        // Re-scores saved takes with this checkout's rater; see Sources/cello-rescore/main.swift.
+        .executableTarget(name: "cello-rescore", dependencies: ["CelloPitch"]),
         .testTarget(name: "CelloPitchTests", dependencies: ["CelloPitch"])
     ]
 )

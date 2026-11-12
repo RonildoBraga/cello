@@ -1,3 +1,4 @@
+import CelloPitch
 import Foundation
 
 /// One thing to do on the path. Every lesson opens a screen that already exists;

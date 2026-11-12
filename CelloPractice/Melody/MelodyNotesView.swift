@@ -1,3 +1,4 @@
+import CelloPitch
 import SwiftUI
 
 /// The same proportional note tiles guide manual listening and a timed take.

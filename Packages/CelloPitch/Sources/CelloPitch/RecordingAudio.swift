@@ -2,10 +2,10 @@ import AVFoundation
 import Foundation
 
 /// Decodes saved media on its original movie timeline, including leading silence.
-enum RecordingAudio {
-    static let sampleRate = 48_000.0
+public enum RecordingAudio {
+    public static let sampleRate = 48_000.0
 
-    static func read(url: URL, maximumDuration: Double) async throws -> [Float] {
+    public static func read(url: URL, maximumDuration: Double) async throws -> [Float] {
         guard maximumDuration.isFinite, (0...200).contains(maximumDuration) else { throw AudioError.unreadable }
         let asset = AVURLAsset(url: url)
         guard let track = try await asset.loadTracks(withMediaType: .audio).first else { throw AudioError.unreadable }
@@ -59,7 +59,7 @@ enum RecordingAudio {
     /// A strong second component can make a long period win despite a clear
     /// shorter-period interpretation. Flag uncertainty; never shift it toward
     /// the requested note. The target frequency is deliberately not an input.
-    static func octaveIsAmbiguous(_ sound: [Float], sampleRate: Double, frequency: Double) -> Bool {
+    public static func octaveIsAmbiguous(_ sound: [Float], sampleRate: Double, frequency: Double) -> Bool {
         let period = Int((sampleRate / frequency).rounded())
         guard period >= 4, period < sound.count / 2, frequency * 2 <= 1_000 else { return false }
         let full = normalizedCorrelation(sound, lag: period)

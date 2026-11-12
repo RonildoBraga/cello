@@ -1,3 +1,4 @@
+import CelloPitch
 import XCTest
 @testable import Cello
 
