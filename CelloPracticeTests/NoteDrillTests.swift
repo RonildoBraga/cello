@@ -11,6 +11,7 @@ final class NoteDrillTests: XCTestCase {
         XCTAssertEqual(NoteDrill.notes(for: .oldMacDonald).map(\.title), ["G2", "A2", "C3", "D3", "E3"])
         XCTAssertEqual(NoteDrill.notes(for: .yankeeDoodle).map(\.title), ["G2", "A2", "B2", "C3", "D3", "E3", "F3"])
         XCTAssertEqual(NoteDrill.notes(for: .gMajorScale).map(\.title), ["G2", "A2", "B2", "C3", "D3", "E3", "F♯3", "G3"])
+        XCTAssertEqual(NoteDrill.notes(for: .preludeChords).map(\.title), ["G2", "D3", "E3", "F♯3", "G3", "B3", "C4"])
         for piece in MelodyPiece.allCases {
             let humming = piece.humming(register: .lowVoice, section: .whole)
             XCTAssertEqual(Set(NoteDrill.notes(for: piece).flatMap(\.midiNotes)),
@@ -83,6 +84,19 @@ final class NoteDrillTests: XCTestCase {
             XCTAssertTrue(drills.allSatisfy { $0.context.referenceKey == "G major" })
         }
         XCTAssertTrue(NoteDrill.quickRepeats(for: .gMajorScale).isEmpty)
+    }
+
+    func testThePreludeChordsPractiseEachOfTheirJumpsOnceGoingHigher() {
+        // Every move in the chords is a jump, and there are eight different ones: each is met once,
+        // lower note first, in the order the phrases bring them.
+        let jumps = ["G2→D3", "D3→B3", "G2→E3", "E3→C4", "G2→F♯3", "F♯3→C4", "G2→G3", "G3→B3"]
+        for register in [MelodyRegister.lowVoice, .cello] {
+            let drills = NoteDrill.drills(for: .preludeChords, register: register)
+            XCTAssertEqual(drills.map(\.chipLabel), ["G2", "D3", "E3", "F♯3", "G3", "B3", "C4"] + jumps)
+            XCTAssertTrue(drills.dropFirst(7).allSatisfy { $0.title.hasSuffix("going higher") && $0.context.duration == 4 })
+            XCTAssertTrue(drills.allSatisfy { $0.context.referenceKey == "G major" })
+        }
+        XCTAssertTrue(NoteDrill.quickRepeats(for: .preludeChords).isEmpty)
     }
 
     func testLightlyRowPractisesItsSkipOverANote() {

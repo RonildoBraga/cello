@@ -54,14 +54,28 @@ struct NoteDrill: Hashable, Identifiable {
             .max { abs($0.0 - $0.1) < abs($1.0 - $1.1) }.map { [min($0, $1), max($0, $1)] }
     }
 
+    /// Every different jump of the melody once, lower note first, in the order the melody meets them.
+    private static func jumps(in piece: MelodyPiece) -> [[Int]] {
+        let notes = piece.score.events.compactMap(\.midiNote)
+        return zip(notes, notes.dropFirst()).filter { abs($0 - $1) > 2 }.map { [min($0, $1), max($0, $1)] }
+            .reduce(into: []) { found, jump in if !found.contains(jump) { found.append(jump) } }
+    }
+
     /// The notes, then two of them together (up, then down), then any quick repeats. The two are
     /// the melody's jump, so it is met before a phrase asks for it, or else its lowest and highest notes.
+    /// Bach's chords jump a different way in every phrase, so there each jump is met once, going higher.
     static func drills(for piece: MelodyPiece, register: MelodyRegister = .lowVoice) -> [NoteDrill] {
         let singles = notes(for: piece, register: register)
         guard let low = singles.first?.midiNotes[0], let high = singles.last?.midiNotes[0], low != high else {
             return singles
         }
-        let pair = jump(in: piece)?.map { $0 + piece.transposition(for: register) } ?? [low, high]
+        let shift = piece.transposition(for: register)
+        if piece == .preludeChords {
+            return singles + jumps(in: piece).map {
+                NoteDrill(piece: piece, midiNotes: $0.map { $0 + shift }, register: register, noteBeats: pairBeats)
+            } + quickRepeats(for: piece, register: register)
+        }
+        let pair = jump(in: piece)?.map { $0 + shift } ?? [low, high]
         return singles + [NoteDrill(piece: piece, midiNotes: pair, register: register, noteBeats: pairBeats),
                           NoteDrill(piece: piece, midiNotes: pair.reversed(), register: register, noteBeats: pairBeats)]
             + quickRepeats(for: piece, register: register)

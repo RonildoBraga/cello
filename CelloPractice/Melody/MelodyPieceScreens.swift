@@ -19,6 +19,7 @@ extension MelodyPiece {
         case .oldMacDonald: return "Phrase 1 drops to a low note, and phrase 3 starts high, a big jump up from the end of phrase 2. Hear the phrase, then record after the count of 1–2–3–4."
         case .yankeeDoodle: return "The notes run two to a beat, changing as they go; phrases 2 and 4 end on two longer notes. Hear the phrase, then record after the count of 1–2–3–4."
         case .gMajorScale: return "Eight notes up, one at a time, then the same eight down. Voice and cello sound the same notes. Hear the phrase, then record after the count of 1–2–3–4."
+        case .preludeChords: return "Each phrase starts on the same low G, jumps up twice, then comes back to the note before. Hear the phrase, then record after the count of 1–2–3–4."
         }
     }
 
@@ -31,6 +32,7 @@ extension MelodyPiece {
         case .oldMacDonald: return "Hear the big jump up in the middle, then gently hum along."
         case .yankeeDoodle: return "Hear the notes run two to a beat, then gently hum along."
         case .gMajorScale: return "Hear the scale climb one octave and come back down, then gently hum along."
+        case .preludeChords: return "Hear the four chords that open Bach’s Prelude, one note at a time, then gently hum along."
         }
     }
 
@@ -43,6 +45,7 @@ extension MelodyPiece {
         case .oldMacDonald: return "Longer tiles hold longer. Phrase 2 ends on a held note, and phrase 4 is one note held for all four beats."
         case .yankeeDoodle: return "Longer tiles hold longer. Most notes last half a beat; phrases 2 and 4 end on two notes of one beat each."
         case .gMajorScale: return "Every note lasts one beat. Phrases 1 and 2 climb; phrases 3 and 4 come back down."
+        case .preludeChords: return "Every note lasts one beat. Each phrase starts on the low G and jumps a different way."
         }
     }
 

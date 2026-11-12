@@ -49,7 +49,7 @@ struct AboutView: View {
                 }
 
                 section("The melodies", identifier: "aboutMelodies") {
-                    note("Hot Cross Buns is a traditional tune. Ode to Joy is the opening of Beethoven’s theme. Twinkle, Twinkle, Little Star opens with the old French tune “Ah! vous dirai-je, maman”. Lightly Row is the old German tune of “Hänschen klein”. Old MacDonald is a traditional song. Yankee Doodle is an 18th-century tune. All six are our own short teaching arrangements. The G major scale is the key of Bach’s first Prelude.")
+                    note("Hot Cross Buns is a traditional tune. Ode to Joy is the opening of Beethoven’s theme. Twinkle, Twinkle, Little Star opens with the old French tune “Ah! vous dirai-je, maman”. Lightly Row is the old German tune of “Hänschen klein”. Old MacDonald is a traditional song. Yankee Doodle is an 18th-century tune. All six are our own short teaching arrangements. The G major scale is the key of Bach’s first Prelude, and the Prelude chords are the notes of its first four bars, one to a beat.")
                 }
 
                 section("What informed the lessons", identifier: "aboutReferences") {

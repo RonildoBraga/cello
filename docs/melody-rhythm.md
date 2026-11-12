@@ -66,3 +66,7 @@ Selections 1 and 3 have eight half-beat notes, the rhythm of Hot Cross Buns' thi
 ## G major scale
 
 Every selection has four one-beat notes, so every hint is to tap on each beat. The scale has sixteen note starts in sixteen beats. See [the scale](g-major-scale-reference.md).
+
+## Prelude chords
+
+Every selection has four one-beat notes, like the scale. See [the excerpt](prelude-chords-reference.md).
