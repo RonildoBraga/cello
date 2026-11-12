@@ -70,3 +70,7 @@ Every selection has four one-beat notes, so every hint is to tap on each beat. T
 ## Prelude chords
 
 Every selection has four one-beat notes, like the scale. See [the excerpt](prelude-chords-reference.md).
+
+## Prelude opening
+
+Every selection has eight half-beat notes: two short notes per beat, the rhythm of Hot Cross Buns' third selection. The opening has 32 note starts in sixteen beats. See [the excerpt](prelude-opening-reference.md).

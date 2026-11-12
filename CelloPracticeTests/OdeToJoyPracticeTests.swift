@@ -8,7 +8,8 @@ final class OdeToJoyPracticeTests: XCTestCase {
     func testRecordedPhrasesAndWholeOpeningEarnThreeIndependentStarsHummedAndOnTheCello() throws {
         // Twinkle's jump of five notes, Lightly Row's skips and Yankee Doodle's running notes are scored
         // by the same rater as the steps of Ode to Joy.
-        for piece in [MelodyPiece.odeToJoy, .twinkle, .lightlyRow, .oldMacDonald, .yankeeDoodle, .gMajorScale, .preludeChords] {
+        for piece in [MelodyPiece.odeToJoy, .twinkle, .lightlyRow, .oldMacDonald, .yankeeDoodle, .gMajorScale, .preludeChords,
+                      .preludeOpening] {
             for register in PracticeMethod.allCases.map(\.register) {
                 for section in MelodySection.allCases {
                     let context = try MelodyPracticeContext.melody(
@@ -41,7 +42,8 @@ final class OdeToJoyPracticeTests: XCTestCase {
             (.oldMacDonald, MelodySection.phrases, [50, 52, 55, 57, 59]),
             (.yankeeDoodle, MelodySection.phrases, [50, 52, 54, 55, 57, 59, 60]),
             (.gMajorScale, MelodySection.phrases, [43, 45, 47, 48, 50, 52, 54, 55]),
-            (.preludeChords, MelodySection.phrases, [43, 50, 52, 54, 55, 59, 60])]
+            (.preludeChords, MelodySection.phrases, [43, 50, 52, 54, 55, 59, 60]),
+            (.preludeOpening, MelodySection.phrases, [43, 50, 52, 54, 55, 57, 59, 60])]
         for (piece, sections, notes) in pieces {
             for register in PracticeMethod.allCases.map(\.register) {
                 var heardNotes: Set<Int> = []
@@ -74,11 +76,13 @@ final class OdeToJoyPracticeTests: XCTestCase {
     }
 
     func testRunningNotesAreHeardThroughTheSameHissHummedAndOnTheCello() throws {
-        for register in PracticeMethod.allCases.map(\.register) {
+        // Yankee Doodle's running notes, and the Prelude's opening: half a second a note, jumps of up to an octave.
+        for (piece, register) in [MelodyPiece.yankeeDoodle, .preludeOpening].flatMap({ piece in
+            PracticeMethod.allCases.map { (piece, $0.register) } }) {
             for section in MelodySection.allCases {
-                let context = MelodyPiece.yankeeDoodle.humming(register: register, section: section)
+                let context = piece.humming(register: register, section: section)
                 let rating = rate(withHiss(pcm(try RecordedReference.wavData(context: context))), for: context)
-                let take = "\(register.rawValue), \(section.rawValue)"
+                let take = "\(piece.title), \(register.rawValue), \(section.rawValue)"
                 XCTAssertEqual(rating.noteResults.filter { $0.observedOnset != nil }.count, context.expectedEvents.count, take)
                 XCTAssertEqual(rating.starCount, 3, take)
             }

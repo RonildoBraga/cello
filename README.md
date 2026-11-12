@@ -17,6 +17,7 @@ A native iPhone practice companion for beginners learning music while preparing 
 | 7 · Yankee Doodle | Listen → Tap it → Meet the notes → Hum it → Whole melody |
 | 8 · G major scale | Listen → Tap it → Meet the notes → Hum it → Whole melody |
 | 9 · Prelude chords | Listen → Tap it → Meet the notes → Hum it → Whole melody |
+| 10 · Prelude opening | Listen → Tap it → Meet the notes → Hum it → Whole melody |
 
 Each Level 1 lesson opens the first time with a short primer that explains its new idea in plain words: a note, higher and lower, a beat, two taps per beat.
 
@@ -55,6 +56,8 @@ The first melody is Hot Cross Buns. **Meet the notes** plays each of its notes f
 **G major scale** is Level 8: one octave, G2 up to G3 and back, one note a beat, in the key of Bach's first Prelude. It is the first level where voice and cello sound the same notes: a fifth below the cello, the scale would start too low to hum. Earlier melodies keep the voice a fifth below, so their saved progress is unchanged. Meet the notes practises the eight notes and the octave. See [the scale and its references](docs/g-major-scale-reference.md).
 
 **Prelude chords** is Level 9: the four chords that open the Prelude of Bach's Cello Suite No. 1, their notes one after another, one to a beat. Each phrase starts from the low G, jumps up twice and comes back to the note before. Voice and cello sound the same notes, G2 to C4. Meet the notes practises each of its eight jumps once. See [the score and its public-domain source](docs/prelude-chords-reference.md).
+
+**Prelude opening** is Level 10, the milestone the path has pointed at: the first half of each of the Prelude's first four bars as Bach wrote them, eight running notes to a phrase, two notes a second. It is the opening at a learner's speed, and the app says so: passing it is a first step into the piece, not playing it. See [the excerpt and its source](docs/prelude-opening-reference.md).
 
 **Listen** also offers manual playback in the cello register (D3–F♯3). All audible references use recorded sound: edited human humming for the voice registers and recorded bowed cello samples for cello notes. The foundation human example keeps its original pitch; melody examples adjust the recordings to the selected notes and timing. Cello playing exercises are future work. See the [melody rhythm assessment](docs/melody-rhythm.md), [humming assessment](docs/melody-humming.md), [learning-path design](docs/music-learning-path.md) and [delivery issues](https://github.com/RonildoBraga/cello/issues/1).
 
@@ -138,6 +141,8 @@ Old MacDonald uses an independently encoded first line of the traditional song: 
 Yankee Doodle uses an independently encoded first strain of the anonymous 18th-century tune: 28 note starts, seven distinct pitches and 16 beats. The melody is public domain; no words, score edition or third-party performance is bundled. See [the arrangement details and verification sources](docs/yankee-doodle-reference.md).
 
 Prelude chords uses an independently encoded excerpt of bars 1 to 4 of the Prelude of J. S. Bach's Cello Suite No. 1, BWV 1007: 16 note starts, seven distinct pitches and 16 beats, checked against the public-domain Mutopia Project edition. The music is public domain; no score edition or third-party performance is bundled. See [the excerpt and its source](docs/prelude-chords-reference.md).
+
+Prelude opening uses an independently encoded excerpt of the same bars, the first half of each, in half-beat notes: 32 note starts, eight distinct pitches and 16 beats, checked against the same edition. No score edition or third-party performance is bundled. See [the excerpt and its source](docs/prelude-opening-reference.md).
 
 The bundled human-hum example is a three-second excerpt of **[Deep Humming Noise](https://freesound.org/people/retropttam/sounds/177276/)** by **retropttam**, licensed under **[Creative Commons Attribution 3.0 Unported](https://creativecommons.org/licenses/by/3.0/)**. It was shortened, converted to mono PCM, volume adjusted and faded at the ends; its original pitch and timing are preserved. Full provenance and checksums are in [HUMMING-LICENSE.txt](CelloPractice/Resources/HUMMING-LICENSE.txt). Copyright remains with the original author.
 

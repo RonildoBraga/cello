@@ -10,7 +10,7 @@ struct AboutView: View {
                              titleIdentifier: "aboutTitle")
 
                 section("Where this is heading", identifier: "pathDestinationNote") {
-                    note("Bach’s Cello Suite No. 1 is the long-term goal. Each level builds the listening, rhythm and note skills it needs; more melodies will join the path on the way there.")
+                    note("Bach’s Cello Suite No. 1 is the long-term goal. Level 10 is the opening of its Prelude, slowed down and shortened for learning: passing it is a first step into the piece, not playing it. Each level before it builds the listening, rhythm and note skills it needs.")
                 }
 
                 section("Privacy & support", identifier: "aboutPrivacySupport") {
@@ -49,7 +49,7 @@ struct AboutView: View {
                 }
 
                 section("The melodies", identifier: "aboutMelodies") {
-                    note("Hot Cross Buns is a traditional tune. Ode to Joy is the opening of Beethoven’s theme. Twinkle, Twinkle, Little Star opens with the old French tune “Ah! vous dirai-je, maman”. Lightly Row is the old German tune of “Hänschen klein”. Old MacDonald is a traditional song. Yankee Doodle is an 18th-century tune. All six are our own short teaching arrangements. The G major scale is the key of Bach’s first Prelude, and the Prelude chords are the notes of its first four bars, one to a beat.")
+                    note("Hot Cross Buns is a traditional tune. Ode to Joy is the opening of Beethoven’s theme. Twinkle, Twinkle, Little Star opens with the old French tune “Ah! vous dirai-je, maman”. Lightly Row is the old German tune of “Hänschen klein”. Old MacDonald is a traditional song. Yankee Doodle is an 18th-century tune. All six are our own short teaching arrangements. The G major scale is the key of Bach’s first Prelude, the Prelude chords are the notes of its first four bars, one to a beat, and the Prelude opening is the first half of each of those bars, slower than it is usually played.")
                 }
 
                 section("What informed the lessons", identifier: "aboutReferences") {

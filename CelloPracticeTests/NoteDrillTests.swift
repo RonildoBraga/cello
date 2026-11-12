@@ -12,6 +12,7 @@ final class NoteDrillTests: XCTestCase {
         XCTAssertEqual(NoteDrill.notes(for: .yankeeDoodle).map(\.title), ["G2", "A2", "B2", "C3", "D3", "E3", "F3"])
         XCTAssertEqual(NoteDrill.notes(for: .gMajorScale).map(\.title), ["G2", "A2", "B2", "C3", "D3", "E3", "F♯3", "G3"])
         XCTAssertEqual(NoteDrill.notes(for: .preludeChords).map(\.title), ["G2", "D3", "E3", "F♯3", "G3", "B3", "C4"])
+        XCTAssertEqual(NoteDrill.notes(for: .preludeOpening).map(\.title), ["G2", "D3", "E3", "F♯3", "G3", "A3", "B3", "C4"])
         for piece in MelodyPiece.allCases {
             let humming = piece.humming(register: .lowVoice, section: .whole)
             XCTAssertEqual(Set(NoteDrill.notes(for: piece).flatMap(\.midiNotes)),
@@ -97,6 +98,15 @@ final class NoteDrillTests: XCTestCase {
             XCTAssertTrue(drills.allSatisfy { $0.context.referenceKey == "G major" })
         }
         XCTAssertTrue(NoteDrill.quickRepeats(for: .preludeChords).isEmpty)
+    }
+
+    func testThePreludeOpeningPractisesItsEightNotesAndItsWidestJump() {
+        // Its jumps were each met in Level 9; here, like every melody but the chords, the widest one: the octave.
+        for register in [MelodyRegister.lowVoice, .cello] {
+            XCTAssertEqual(NoteDrill.drills(for: .preludeOpening, register: register).map(\.chipLabel),
+                           ["G2", "D3", "E3", "F♯3", "G3", "A3", "B3", "C4", "G2→G3", "G3→G2"])
+        }
+        XCTAssertTrue(NoteDrill.quickRepeats(for: .preludeOpening).isEmpty)
     }
 
     func testLightlyRowPractisesItsSkipOverANote() {
