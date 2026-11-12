@@ -8,6 +8,7 @@ final class NoteDrillTests: XCTestCase {
         XCTAssertEqual(NoteDrill.notes(for: .odeToJoy).map(\.title), ["G2", "A2", "B2", "C3", "D3"])
         XCTAssertEqual(NoteDrill.notes(for: .twinkle).map(\.title), ["G2", "A2", "B2", "C3", "D3", "E3"])
         XCTAssertEqual(NoteDrill.notes(for: .lightlyRow).map(\.title), ["G2", "A2", "B2", "C3", "D3"])
+        XCTAssertEqual(NoteDrill.notes(for: .oldMacDonald).map(\.title), ["G2", "A2", "C3", "D3", "E3"])
         for piece in MelodyPiece.allCases {
             let humming = piece.humming(register: .lowVoice, section: .whole)
             XCTAssertEqual(Set(NoteDrill.notes(for: piece).flatMap(\.midiNotes)),
@@ -37,6 +38,21 @@ final class NoteDrillTests: XCTestCase {
         XCTAssertEqual(NoteDrill.drills(for: .hotCrossBuns)[3...4].map(\.midiNotes), [[43, 47], [47, 43]])
         XCTAssertEqual(NoteDrill.drills(for: .odeToJoy).map(\.chipLabel),
                        ["G2", "A2", "B2", "C3", "D3", "G2→D3", "D3→G2"])
+    }
+
+    func testOldMacDonaldPractisesItsLeapOfASixthInItsOwnKey() {
+        // It drops a fourth (C3 to G2) and later leaps a sixth (G2 to E3): the wider move is drilled.
+        let drills = NoteDrill.drills(for: .oldMacDonald)
+        XCTAssertEqual(drills.map(\.chipLabel), ["G2", "A2", "C3", "D3", "E3", "G2→E3", "E3→G2"])
+        XCTAssertEqual(drills.suffix(2).map(\.title), ["G2 then E3 · going higher", "E3 then G2 · going lower"])
+        let cello = NoteDrill.drills(for: .oldMacDonald, register: .cello)
+        XCTAssertEqual(cello.map(\.chipLabel), ["D3", "E3", "G3", "A3", "B3", "D3→B3", "B3→D3"])
+        XCTAssertTrue(drills.allSatisfy { $0.context.referenceKey == "C major" })
+        XCTAssertTrue(cello.allSatisfy { $0.context.referenceKey == "G major" })
+        XCTAssertTrue(NoteDrill.quickRepeats(for: .oldMacDonald).isEmpty)
+        // Earlier melodies' drills keep the key their saved takes were made in.
+        XCTAssertTrue(NoteDrill.drills(for: .twinkle).allSatisfy { $0.context.referenceKey == "G major" })
+        XCTAssertTrue(NoteDrill.drills(for: .twinkle, register: .cello).allSatisfy { $0.context.referenceKey == "D major" })
     }
 
     func testLightlyRowPractisesItsSkipOverANote() {

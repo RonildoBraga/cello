@@ -7,7 +7,7 @@ import XCTest
 final class OdeToJoyPracticeTests: XCTestCase {
     func testRecordedPhrasesAndWholeOpeningEarnThreeIndependentStarsHummedAndOnTheCello() throws {
         // Twinkle's jump of five notes and Lightly Row's skips are scored by the same rater as the steps of Ode to Joy.
-        for piece in [MelodyPiece.odeToJoy, .twinkle, .lightlyRow] {
+        for piece in [MelodyPiece.odeToJoy, .twinkle, .lightlyRow, .oldMacDonald] {
             for register in PracticeMethod.allCases.map(\.register) {
                 for section in MelodySection.allCases {
                     let context = try MelodyPracticeContext.melody(
@@ -36,7 +36,8 @@ final class OdeToJoyPracticeTests: XCTestCase {
         let pieces: [(MelodyPiece, [MelodySection], [Int])] = [
             (.odeToJoy, [.phrase1, .phrase3], [50, 52, 54, 55, 57]),
             (.twinkle, MelodySection.phrases, [50, 52, 54, 55, 57, 59]),
-            (.lightlyRow, MelodySection.phrases, [50, 52, 54, 55, 57])]
+            (.lightlyRow, MelodySection.phrases, [50, 52, 54, 55, 57]),
+            (.oldMacDonald, MelodySection.phrases, [50, 52, 55, 57, 59])]
         for (piece, sections, notes) in pieces {
             for register in PracticeMethod.allCases.map(\.register) {
                 var heardNotes: Set<Int> = []
@@ -188,6 +189,24 @@ final class OdeToJoyPracticeTests: XCTestCase {
         XCTAssertNil(restored.effectiveTargetFrequency)
         XCTAssertEqual(restored.melodyContext?.expectedEvents.map(\.onsetBeat), [0, 1.5, 2])
         XCTAssertEqual(restored.melodyRating?.noteResults.map(\.expectedStart), [0, 1.5, 2])
+    }
+
+    func testAPhraseOfOneHeldNoteNeedsOneTapAndNoMoreWhileItContinues() throws {
+        // Old MacDonald's last phrase is one note held for four beats.
+        let context = try MelodyRhythmContext.melody(piece: .oldMacDonald, section: .phrase4)
+        XCTAssertEqual(context.expectedTapTimes, [0])
+        let held = round(context)
+        XCTAssertEqual(try XCTUnwrap(MelodyRhythmAttempt(timing: held, finishedAt: held.endTime)).starCount, 3)
+        var tapped = round(context)
+        tapped.recordTap(at: tapped.practiceStartTime + 2)
+        let extra = try XCTUnwrap(MelodyRhythmAttempt(timing: tapped, finishedAt: tapped.endTime))
+        XCTAssertEqual(extra.unexpectedTapCount, 1)
+        XCTAssertFalse(extra.patternGoal, "A tap while the note continues is one too many")
+        XCTAssertEqual(extra.starCount, 2)
+        for section in MelodySection.allCases {
+            let timing = round(try MelodyRhythmContext.melody(piece: .oldMacDonald, section: section))
+            XCTAssertEqual(try XCTUnwrap(MelodyRhythmAttempt(timing: timing, finishedAt: timing.endTime)).starCount, 3, section.rawValue)
+        }
     }
 
     private func rate(_ samples: [Float], for context: MelodyPracticeContext) -> MelodyRating {

@@ -13,6 +13,7 @@ A native iPhone practice companion for beginners learning music while preparing 
 | 3 · Ode to Joy | Listen → Tap it → Meet the notes → Hum it → Whole melody |
 | 4 · Twinkle, Twinkle | Listen → Tap it → Meet the notes → Hum it → Whole melody |
 | 5 · Lightly Row | Listen → Tap it → Meet the notes → Hum it → Whole melody |
+| 6 · Old MacDonald | Listen → Tap it → Meet the notes → Hum it → Whole melody |
 
 Each Level 1 lesson opens the first time with a short primer that explains its new idea in plain words: a note, higher and lower, a beat, two taps per beat.
 
@@ -43,6 +44,8 @@ The first melody is Hot Cross Buns. **Meet the notes** plays each of its notes f
 **Twinkle, Twinkle** is the third melody level: the first two lines of the tune, and the first jump on the path. It opens five notes up in one go (the open D string to the open A string on the cello), then steps back down. Meet the notes practises the jump itself. The voice reference spans G2–E3; the cello reference spans D3–B3. See [the opening score and reference provenance](docs/twinkle-reference.md).
 
 **Lightly Row** is the fourth melody level and the first of the plan toward Bach's first Prelude ([issue #78](https://github.com/RonildoBraga/cello/issues/78)): the opening line of the tune, moving by skips. Twice it skips down over a note, then it climbs back up by step. Its five notes are those of Ode to Joy, so the skips are the only new thing. Meet the notes practises a skip. The voice reference spans G2–D3; the cello reference spans D3–A3. See [the opening score and reference provenance](docs/lightly-row-reference.md).
+
+**Old MacDonald** is the fifth melody level: the song's first line, with bigger jumps. Phrase 1 drops a fourth, and the melody leaps a sixth up into phrase 3, the second jump of the Bach Prelude's opening. Every note is one Twinkle already uses. It is the first melody in its own key: C major for the voice and G major on the cello, where every earlier melody is in D. Meet the notes practises the leap. See [the score and reference provenance](docs/old-macdonald-reference.md).
 
 **Listen** also offers manual playback in the cello register (D3–F♯3). All audible references use recorded sound: edited human humming for the voice registers and recorded bowed cello samples for cello notes. The foundation human example keeps its original pitch; melody examples adjust the recordings to the selected notes and timing. Cello playing exercises are future work. See the [melody rhythm assessment](docs/melody-rhythm.md), [humming assessment](docs/melody-humming.md), [learning-path design](docs/music-learning-path.md) and [delivery issues](https://github.com/RonildoBraga/cello/issues/1).
 
@@ -120,6 +123,8 @@ Ode to Joy uses an independently encoded monophonic opening excerpt: 15 note sta
 Twinkle, Twinkle uses an independently encoded opening of the anonymous 18th-century melody *Ah! vous dirai-je, maman*: 14 note starts, six distinct pitches and 16 beats. The melody is public domain; no words, score edition or third-party performance is bundled. See [the arrangement details and verification sources](docs/twinkle-reference.md).
 
 Lightly Row uses an independently encoded opening of the anonymous tune sung to *Hänschen klein*, written down as a dance tune by 1784: 13 note starts, five distinct pitches and 16 beats. The melody is public domain; no words, score edition or third-party performance is bundled. See [the arrangement details and verification sources](docs/lightly-row-reference.md).
+
+Old MacDonald uses an independently encoded first line of the traditional song: 12 note starts, five distinct pitches and 16 beats. The song has no known composer and its now standard tune is known from recordings of the 1920s; it is treated as traditional and in the public domain. No words, score edition or third-party performance is bundled. See [the arrangement details and verification sources](docs/old-macdonald-reference.md).
 
 The bundled human-hum example is a three-second excerpt of **[Deep Humming Noise](https://freesound.org/people/retropttam/sounds/177276/)** by **retropttam**, licensed under **[Creative Commons Attribution 3.0 Unported](https://creativecommons.org/licenses/by/3.0/)**. It was shortened, converted to mono PCM, volume adjusted and faded at the ends; its original pitch and timing are preserved. Full provenance and checksums are in [HUMMING-LICENSE.txt](CelloPractice/Resources/HUMMING-LICENSE.txt). Copyright remains with the original author.
 

@@ -54,3 +54,7 @@ The third piece adds no new rhythm. Selections 1 and 3 have four one-beat notes;
 ## Lightly Row opening
 
 The fourth piece adds no new rhythm either. Selections 1, 2 and 4 have two one-beat notes and a two-beat note; selection 3 has four one-beat notes. The opening has thirteen note starts in sixteen beats. See [the opening arrangement](lightly-row-reference.md).
+
+## Old MacDonald first line
+
+Selections 1 and 3 have four one-beat notes and selection 2 two one-beat notes and a two-beat note. Selection 4 is new: one note held for all four beats. It asks for a single tap, and the hint says to count 2, 3 and 4 while the note continues; a tap in those beats is an extra tap and costs the Pattern star. One tap is enough for the other two goals: the round is scored once it has as many taps as notes, up to three. The line has twelve note starts in sixteen beats. See [the arrangement](old-macdonald-reference.md).

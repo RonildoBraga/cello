@@ -26,8 +26,8 @@ Under a take's stars the app says what a teacher would: the thing that mattered 
 Every word comes from what the rater measured and saved with the take, so the same take always gets the same note, it works offline, and it can be tested. Nothing is said that was not heard: no claims about breath, posture or bowing.
 
 - **What it can say.** Notes not heard as notes of their own; notes that began late or early, and by how much; notes cut short; notes low or high, a little or a lot, and which were right; a note that wavered; notes not clear enough to hear; a slide or other stray sound before a change; a different octave; a take that could not be scored.
-- **What leads.** Only goals that were missed are explained. The finding that touched the most notes comes first, and the next one follows as "Also:". A stray sound cost no star, so it is mentioned beside lateness when it came before a late note, or as an "Also:".
-- **Names and numbers.** Notes go by name (B2) where the melody uses each name once, and by number where it repeats one. A short phrase also hears what went right.
+- **What leads.** Only goals that were missed are explained. The finding that touched the most notes comes first, and the next one follows as "Also:". Two things cost no star and come as an "Also:": a stray sound, unless it came before a late note, where it is said beside the lateness; and a note off its pitch while the Notes goal was still reached, since one note in five may miss.
+- **Names and numbers.** Notes go by name (B2) where the melody uses each name once, and by number where it repeats one, with the name when they share it ("Notes 8 and 9 (E3)"). A short phrase also hears what went right.
 - **Voice or cello.** A slide is "your voice slid up first" for the voice and "a higher note sounded first" on the cello. A flat or sharp open string (C2, G2, D3, A3) is told to check its tuning, since it cannot be fingered higher.
 - **A habit.** When the takes just before, on the same part and scored by the same rules, had the same main point twice or more in a row, the note ends "The same was true of your last 2 takes."
 
@@ -102,3 +102,5 @@ Ode to Joy uses the same assessment and result presentation for its five-note op
 Twinkle, Twinkle is assessed the same way. Its first phrase jumps five notes (G2 to D3). The rater finds a new note from the sound alone, a fresh start or a lasting change of pitch of a semitone or more, so a jump needs no rule of its own. See [the opening arrangement](twinkle-reference.md).
 
 Lightly Row is assessed the same way. Its skips are a minor third, three semitones, well beyond the one-semitone change the rater listens for, and its repeated notes are a beat apart, like Twinkle's. See [the opening arrangement](lightly-row-reference.md).
+
+Old MacDonald is assessed the same way. Its leap of a sixth, nine semitones, comes between two phrases, so practised phrase by phrase it is heard only in Meet the notes and the whole line. See [the arrangement](old-macdonald-reference.md).

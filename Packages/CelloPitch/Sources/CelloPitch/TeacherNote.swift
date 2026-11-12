@@ -90,7 +90,10 @@ public struct TeacherNote: Equatable {
             }
         }
 
-        if !rating.notes, let pitch = pitchFinding(notes: notes, heard: heard, cello: cello) { found.append(pitch) }
+        // A note off its pitch when the Notes goal was still reached (one in five may miss) cost no
+        // star, and is said after the main point, like a slide.
+        let pitch = pitchFinding(notes: notes, heard: heard, cello: cello)
+        if !rating.notes, let pitch { found.append(pitch) }
 
         if !rating.clarity {
             let unclear = heard.filter { !notes[$0].clear }
@@ -113,6 +116,9 @@ public struct TeacherNote: Equatable {
             found.insert(Finding(subject: .general, weight: 0, text: "Before a change \(slide.words). Move straight to the next note."),
                          at: min(1, found.count))
         }
+        if rating.notes, let pitch {
+            found.insert(Finding(subject: .general, weight: 0, text: pitch.text), at: min(1, found.count))
+        }
         return found
     }
 
@@ -127,7 +133,11 @@ public struct TeacherNote: Equatable {
         let low = missed.filter { (cents($0) ?? 0) <= -60 }, high = missed.filter { (cents($0) ?? 0) >= 60 }
         let named = names(of: notes)
         func label(_ indices: [Int]) -> String {
-            guard let named else { return name(indices, of: notes.count) + (indices.count == 1 ? " (\(NoteName.frequency(notes[indices[0]].expectedFrequency)))" : "") }
+            guard let named else {
+                // Where the melody repeats a note, notes go by number, with their name when they share one.
+                let shared = Set(indices.map { NoteName.frequency(notes[$0].expectedFrequency) })
+                return name(indices, of: notes.count) + (shared.count == 1 ? " (\(shared.first!))" : "")
+            }
             return list(indices.map { named[$0] })
         }
         func was(_ indices: [Int]) -> String { indices.count == 1 ? "was" : "were" }
