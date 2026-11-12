@@ -31,7 +31,7 @@ final class TeacherNoteTests: XCTestCase {
         // Hot Cross Buns, phrase 1, as really sung: B2 a little flat, then each change 0.4 s late
         // after the voice slid up first (to C3, then back up to A2).
         let take = rating([note(0, b2, cents: -67), note(1, a2, cents: -42, late: 0.36), note(2, g2, cents: 36, late: 0.41)],
-                          strays: [MelodyStray(time: 0.96, frequency: 130.8), MelodyStray(time: 2.21, frequency: 110.5)])
+                          strays: [MelodyStray(time: 0.96, frequency: 130.8), MelodyStray(time: 2.21, frequency: 116.5)])
         let note = TeacherNote(rating: take, register: .lowVoice)
         XCTAssertEqual(note.subject, .late)
         XCTAssertEqual(note.paragraphs, [
@@ -139,6 +139,21 @@ final class TeacherNoteTests: XCTestCase {
                        ["All three goals reached. Try this phrase again, then move to the next one.",
                         "Also: Before a change your voice dipped first. Move straight to the next note."])
         XCTAssertEqual(text(rating(good, strays: [MelodyStray(time: 0.9, frequency: nil)])).count, 1)
+    }
+
+    func testASoundBetweenTwoNotesIsTheVoiceOnItsWayNotADetour() {
+        // Stepping down from B2 to A2, a moment on B♭2 lies between them: the voice never went up.
+        let passing = [MelodyStray(time: 0.96, frequency: 116.5)]
+        XCTAssertEqual(text(rating([note(0, b2), note(1, a2, late: 0.36), note(2, g2)], strays: passing)),
+                       ["Note 2 began 0.4 s late. Change as its bar reaches the line."])
+        XCTAssertEqual(text(rating([note(0, b2), note(1, a2), note(2, g2)], strays: passing)).count, 1)
+        // Where the first note was sung flat, the stretch starts from where the voice really was.
+        XCTAssertEqual(text(rating([note(0, b2, cents: -55), note(1, a2), note(2, g2)],
+                                   strays: [MelodyStray(time: 0.96, frequency: 123.5)])).count, 2, "Back up to B2 from a flat B2 is a detour")
+        // Going past the note it was heading for is a detour the other way.
+        XCTAssertEqual(text(rating([note(0, b2), note(1, a2, late: 0.36), note(2, g2)],
+                                   strays: [MelodyStray(time: 0.96, frequency: 101)])),
+                       ["Note 2 began 0.4 s late, and before it your voice dipped first. Move straight to the next note as its bar reaches the line."])
     }
 
     func testTakesThatCouldNotBeScoredAndWholeOctavesKeepTheirPlainAdvice() {

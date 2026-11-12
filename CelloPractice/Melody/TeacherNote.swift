@@ -158,18 +158,26 @@ struct TeacherNote: Equatable {
     private static let openStrings: Set<String> = ["C2", "G2", "D3", "A3"]
 
     /// The notes among these that a pitched stray sound came just before, and what it was: the
-    /// voice going the wrong way before a change. Unpitched strays (a knock) are not the learner's to mend.
+    /// voice going the wrong way before a change, or past the note it was going to. A sound
+    /// between the two notes is only the voice on its way, and is not mentioned. Unpitched
+    /// strays (a knock) are not the learner's to mend.
     private static func slide(before targets: [Int], notes: [MelodyNoteResult], heard: [Int],
                               strays: [MelodyStray], cello: Bool) -> (notes: [Int], words: String)? {
         var up = 0, down = 0, slid: [Int] = []
         for index in targets where index > 0 {
             guard let onset = notes[index].observedOnset, let expected = notes[index].expectedFrequency else { continue }
-            let previous = heard.last { $0 < index }.flatMap { notes[$0].observedOnset } ?? 0
-            let before = strays.filter { $0.time > previous && $0.time < onset }.compactMap(\.frequency)
-            guard !before.isEmpty else { continue }
+            let last = heard.last { $0 < index }
+            let previous = last.flatMap { notes[$0].observedOnset } ?? 0
+            // Where the voice came from: the note before as it was sung, or else as it was asked.
+            let from = last.flatMap { notes[$0].observedFrequency ?? notes[$0].expectedFrequency } ?? expected
+            // Outside the stretch from one note to the next, with half a semitone of room at each end.
+            let room = pow(2, 50.0 / 1_200)
+            let detours = strays.filter { $0.time > previous && $0.time < onset }.compactMap(\.frequency)
+                .filter { $0 > max(from, expected) * room || $0 < min(from, expected) / room }
+            guard !detours.isEmpty else { continue }
             slid.append(index)
-            up += before.filter { $0 > expected }.count
-            down += before.filter { $0 <= expected }.count
+            up += detours.filter { $0 > expected }.count
+            down += detours.filter { $0 <= expected }.count
         }
         guard !slid.isEmpty else { return nil }
         let higher = up >= down
