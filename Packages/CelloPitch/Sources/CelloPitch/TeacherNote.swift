@@ -55,9 +55,9 @@ public struct TeacherNote: Equatable {
         func slack(_ index: Int) -> Double { min(0.20, notes[index].expectedDuration * 0.35) }
         var found: [Finding] = []
 
+        let unheard = "\(heard.count) of the \(notes.count) notes were heard. Give each note a clear start of its own."
         if !heard.isEmpty, heard.count < notes.count, !rating.notes || !rating.timing {
-            found.append(Finding(subject: .unheard, weight: notes.count - heard.count,
-                text: "\(heard.count) of the \(notes.count) notes were heard. Give each note a clear start of its own."))
+            found.append(Finding(subject: .unheard, weight: notes.count - heard.count, text: unheard))
         }
 
         if !rating.timing {
@@ -118,6 +118,11 @@ public struct TeacherNote: Equatable {
         }
         if rating.notes, let pitch {
             found.insert(Finding(subject: .general, weight: 0, text: pitch.text), at: min(1, found.count))
+        }
+        // So does a note not heard at all, most often two quick notes run together into one: a note
+        // in five may go unheard and the goals still be reached.
+        if !heard.isEmpty, heard.count < notes.count, rating.notes, rating.timing {
+            found.insert(Finding(subject: .general, weight: 0, text: unheard), at: min(1, found.count))
         }
         return found
     }

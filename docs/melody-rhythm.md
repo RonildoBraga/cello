@@ -58,3 +58,7 @@ The fourth piece adds no new rhythm either. Selections 1, 2 and 4 have two one-b
 ## Old MacDonald first line
 
 Selections 1 and 3 have four one-beat notes and selection 2 two one-beat notes and a two-beat note. Selection 4 is new: one note held for all four beats. It asks for a single tap, and the hint says to count 2, 3 and 4 while the note continues; a tap in those beats is an extra tap and costs the Pattern star. One tap is enough for the other two goals: the round is scored once it has as many taps as notes, up to three. The line has twelve note starts in sixteen beats. See [the arrangement](old-macdonald-reference.md).
+
+## Yankee Doodle first strain
+
+Selections 1 and 3 have eight half-beat notes, the rhythm of Hot Cross Buns' third selection. Selections 2 and 4 are new: four half-beat notes, then two one-beat notes. The hint says to tap two short notes per beat on 1 and 2, then tap on 3 and on 4. The strain has 28 note starts in sixteen beats, the most of any melody. See [the arrangement](yankee-doodle-reference.md).

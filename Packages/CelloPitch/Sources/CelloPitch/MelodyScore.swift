@@ -57,6 +57,14 @@ public struct MelodyScore: Codable, Equatable, Sendable {
         pitches: [55, 55, 55, 50, 52, 52, 50, 59, 59, 57, 57, 55],
         durations: [1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 4])
 
+    /// The tune's first strain, in G major on the cello: notes that run two to a beat and change
+    /// pitch as they go, with two one-beat notes ending phrases 2 and 4.
+    public static let yankeeDoodle = fourBars("yankeeDoodle",
+        pitches: [55, 55, 57, 59, 55, 59, 57, 50, 55, 55, 57, 59, 55, 54,
+                  55, 55, 57, 59, 60, 59, 57, 55, 54, 50, 52, 54, 55, 55],
+        durations: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1, 1,
+                    0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1, 1])
+
     /// A tune's notes and their lengths in beats, laid end to end across four bars.
     private static func fourBars(_ pieceID: String, pitches: [Int], durations: [Double]) -> MelodyScore {
         var beat = 0.0
@@ -71,7 +79,7 @@ public struct MelodyScore: Codable, Equatable, Sendable {
 
 /// Built-in arrangements share the same phrase and assessment flow.
 public enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
-    case hotCrossBuns, odeToJoy, twinkle, lightlyRow, oldMacDonald
+    case hotCrossBuns, odeToJoy, twinkle, lightlyRow, oldMacDonald, yankeeDoodle
 
     public var id: String { rawValue }
 
@@ -82,6 +90,7 @@ public enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
         case .twinkle: return "Twinkle, Twinkle"
         case .lightlyRow: return "Lightly Row"
         case .oldMacDonald: return "Old MacDonald"
+        case .yankeeDoodle: return "Yankee Doodle"
         }
     }
 
@@ -92,6 +101,7 @@ public enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
         case .twinkle: return .twinkle
         case .lightlyRow: return .lightlyRow
         case .oldMacDonald: return .oldMacDonald
+        case .yankeeDoodle: return .yankeeDoodle
         }
     }
 
@@ -105,7 +115,7 @@ public enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
     private var celloTonic: Int {
         switch self {
         case .hotCrossBuns, .odeToJoy, .twinkle, .lightlyRow: return 50 // D3
-        case .oldMacDonald: return 55 // G3
+        case .oldMacDonald, .yankeeDoodle: return 55 // G3
         }
     }
 

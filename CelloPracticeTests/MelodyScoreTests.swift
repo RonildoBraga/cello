@@ -99,6 +99,43 @@ final class MelodyScoreTests: XCTestCase {
         XCTAssertEqual(MelodyPiece.oldMacDonald.keyName(for: .higherVoice), "C major")
     }
 
+    func testYankeeDoodleRunsTwoNotesToABeatThatChangePitchAsTheyGo() {
+        let score = MelodyScore.yankeeDoodle
+        XCTAssertEqual(score.pieceID, "yankeeDoodle")
+        XCTAssertEqual(score.version, 1)
+        // GG AB|GB AD|GG AB|G2 F2|GG AB|cB AG|FD EF|G2 G2 in 2/4: every eighth note is half a beat.
+        XCTAssertEqual(score.events.count, 28)
+        XCTAssertEqual(score.events.filter { $0.durationBeats == 1 }.map(\.onsetBeat), [6, 7, 14, 15],
+                       "Phrases 2 and 4 end on two one-beat notes; every other note lasts half a beat")
+        XCTAssertTrue(score.events.allSatisfy { [0.5, 1].contains($0.durationBeats) })
+        XCTAssertEqual(score.events.last?.endBeat, score.totalBeats)
+        XCTAssertEqual(score.phraseBoundaries, MelodyScore.odeToJoy.phraseBoundaries)
+        // Hot Cross Buns' quick notes repeat one pitch; most of these change pitch.
+        let quick = zip(score.events, score.events.dropFirst()).filter { $0.0.durationBeats == 0.5 && $0.1.durationBeats == 0.5 }
+        XCTAssertEqual(quick.filter { $0.0.midiNote != $0.1.midiNote }.count, 19)
+        XCTAssertEqual(quick.filter { $0.0.midiNote == $0.1.midiNote }.count, 3, "The G that opens phrases 1 to 3")
+        for (register, key, range, phrases) in [
+            (MelodyRegister.lowVoice, "C major", "G2–F3", [["C3", "C3", "D3", "E3", "C3", "E3", "D3", "G2"],
+                                                         ["C3", "C3", "D3", "E3", "C3", "B2"],
+                                                         ["C3", "C3", "D3", "E3", "F3", "E3", "D3", "C3"],
+                                                         ["B2", "G2", "A2", "B2", "C3", "C3"]]),
+            (.cello, "G major", "D3–C4", [["G3", "G3", "A3", "B3", "G3", "B3", "A3", "D3"],
+                                         ["G3", "G3", "A3", "B3", "G3", "F♯3"],
+                                         ["G3", "G3", "A3", "B3", "C4", "B3", "A3", "G3"],
+                                         ["F♯3", "D3", "E3", "F♯3", "G3", "G3"]])] {
+            XCTAssertEqual(MelodyPiece.yankeeDoodle.keyName(for: register), key)
+            XCTAssertEqual(MelodyPiece.yankeeDoodle.rangeLabel(for: register), range)
+            for (section, notes) in zip(MelodySection.phrases, phrases) {
+                let context = MelodyPiece.yankeeDoodle.humming(register: register, section: section)
+                XCTAssertTrue(context.isValid)
+                XCTAssertEqual(context.referenceKey, key)
+                XCTAssertEqual(context.noteNames, notes)
+                XCTAssertEqual(context.expectedEvents.last?.endBeat, 4)
+                XCTAssertEqual(context.displayPieceTitle, "Yankee Doodle")
+            }
+        }
+    }
+
     func testEveryEarlierMelodyKeepsTheKeyItsSavedTakesWereHeardIn() throws {
         // A take's key is part of what its progress is saved under, so it must never change.
         for piece in [MelodyPiece.hotCrossBuns, .odeToJoy, .twinkle, .lightlyRow] {
@@ -114,13 +151,16 @@ final class MelodyScoreTests: XCTestCase {
     func testTheRhythmHintFollowsTheLengthsOfTheNotesSoTunesThatShareARhythmShareItsHint() {
         let onEachBeat = "Tap on each beat: 1, 2, 3, 4."
         let heldEnding = "Tap on 1, 2 and 3. Count 4 while the last note continues."
+        let twoPerBeat = "Two short notes per beat: 1 & 2 & 3 & 4 &."
+        let runThenTwo = "Two short notes per beat on 1 and 2: 1 & 2 &. Then tap on 3 and on 4."
         let hints: [(MelodyPiece, [String])] = [
-            (.hotCrossBuns, [heldEnding, heldEnding, "Two short notes per beat: 1 & 2 & 3 & 4 &.", heldEnding]),
+            (.hotCrossBuns, [heldEnding, heldEnding, twoPerBeat, heldEnding]),
             (.odeToJoy, [onEachBeat, onEachBeat, onEachBeat,
                          "Tap on 1, the & after 2, and 3. Count 4 while the last note continues."]),
             (.twinkle, [onEachBeat, heldEnding, onEachBeat, heldEnding]),
             (.lightlyRow, [heldEnding, heldEnding, onEachBeat, heldEnding]),
-            (.oldMacDonald, [onEachBeat, heldEnding, onEachBeat, "Tap once on 1. Count 2, 3 and 4 while the note continues."])]
+            (.oldMacDonald, [onEachBeat, heldEnding, onEachBeat, "Tap once on 1. Count 2, 3 and 4 while the note continues."]),
+            (.yankeeDoodle, [twoPerBeat, runThenTwo, twoPerBeat, runThenTwo])]
         for (piece, expected) in hints {
             XCTAssertEqual(MelodySection.phrases.map(piece.rhythmHint), expected, piece.title)
             XCTAssertEqual(piece.rhythmHint(for: .whole), "Tap at each new tile. Keep counting through the longer tiles.")

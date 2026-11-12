@@ -17,7 +17,7 @@ Changes for Cello:
 - Downmixed stereo 44,100 Hz / 24-bit PCM to mono 48,000 Hz / signed 16-bit PCM.
 - Applied a 10 ms raised-cosine fade in and 50 ms raised-cosine fade out.
 - Applied a constant gain per excerpt so the maximum absolute sample is approximately 0.65.
-- No pitch correction or synthetic partials were added to these bundled source excerpts. Natural bow noise and small pitch variation remain. The app renderer may make a small constant playback-rate adjustment to match its explicit equal-tempered target.
+- No pitch correction or synthetic partials were added to these bundled source excerpts. Natural bow noise and small pitch variation remain. The app renderer may make a small constant playback-rate adjustment to match its explicit equal-tempered target. Because the excerpts are matched by their peaks, and each begins with a bow's slow attack, the renderer also gives every note it plays one loudness (-15 dBFS RMS over the part of the excerpt the note uses, with peaks kept under 0.89); without this, a half-second note from cello-d3.wav played about 8 dB quieter than one from cello-a3.wav.
 
 Source note labels use an octave number one below scientific pitch notation: source C1/G1/D2/A2 are audibly C2/G2/D3/A3. The measured frequencies below were checked independently with the app's PitchDetector; the target was not passed to the detector. Measurements use 8,192-frame windows at 48 kHz, a 4,410-frame hop, and confidence >= 0.75, with window starts from 0.4 seconds through the available sustained excerpt.
 

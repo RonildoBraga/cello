@@ -66,6 +66,8 @@ enum RecordedReference {
     private struct Recording {
         let samples: [Float]
         let frequency: Double
+        /// Cello notes are brought to one loudness (`noteGain`); the hum is used as recorded.
+        let evensLoudness: Bool
         let loopStart: Int
         let loopEnd: Int
         let crossfade: Int
@@ -94,6 +96,7 @@ enum RecordedReference {
             let last = recording.count - Int(Double(sampleRate) * (source.trimsHumEdges ? 0.05 : 0.10))
             samples = Array(recording[first..<last])
             frequency = source.frequency
+            evensLoudness = !source.trimsHumEdges
             loopStart = source.trimsHumEdges ? 0 : min(sampleRate / 3, samples.count / 4)
             loopEnd = samples.count
             crossfade = min(sampleRate / 50, (loopEnd - loopStart) / 8)
@@ -127,13 +130,30 @@ enum RecordedReference {
         guard count > 0 else { return }
         let ramp = Double(max(1, min(sampleRate / 50, count / 2)))
         let ratio = frequency / recording.frequency
-        for frame in 0..<count {
+        let note = (0..<count).map { frame -> Double in
             let edge = Double(min(frame, count - 1 - frame))
             let fade = 0.5 - 0.5 * cos(.pi * min(1, edge / ramp))
-            let value = Double(recording.value(at: Double(frame) * ratio)) * fade
-            pcm[range.lowerBound + frame] = Int16((max(-1, min(1, value)) * Double(Int16.max)).rounded()).littleEndian
+            return Double(recording.value(at: Double(frame) * ratio)) * fade
+        }
+        let gain = recording.evensLoudness ? noteGain(note) : 1
+        for (frame, value) in note.enumerated() {
+            pcm[range.lowerBound + frame] = Int16((max(-1, min(1, value * gain)) * Double(Int16.max)).rounded()).littleEndian
         }
     }
+
+    /// Each cello recording begins with a bow's slow attack, and the four strings were recorded at
+    /// different strengths, so a short note cut from the D3 recording played up to 8 dB quieter than
+    /// the same length from the A3 one. Every cello note is brought to the same loudness over the part
+    /// of a recording it plays, without letting its loudest moment pass 0.89 of full scale.
+    private static func noteGain(_ note: [Double]) -> Double {
+        let rms = (note.reduce(0) { $0 + $1 * $1 } / Double(note.count)).squareRoot()
+        let peak = note.map(abs).max() ?? 0
+        guard rms > 0, peak > 0 else { return 1 }
+        return min(celloNoteLevel / rms, 0.89 / peak)
+    }
+
+    /// The loudness every cello note is brought to: -15 dBFS, about where a long note from the A3 recording sits.
+    private static let celloNoteLevel = pow(10, -15.0 / 20)
 
     private static func wave(_ pcm: [Int16]) -> Data {
         let dataSize = UInt32(pcm.count * MemoryLayout<Int16>.size)

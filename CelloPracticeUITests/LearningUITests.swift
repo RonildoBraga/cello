@@ -22,7 +22,8 @@ final class LearningUITests: XCTestCase {
         var unfinished = false
         for (id, number, title) in [("firstSounds", 1, "First sounds"), ("hotCrossBuns", 2, "Hot Cross Buns"),
                                     ("odeToJoy", 3, "Ode to Joy"), ("twinkle", 4, "Twinkle, Twinkle"),
-                                    ("lightlyRow", 5, "Lightly Row"), ("oldMacDonald", 6, "Old MacDonald")] {
+                                    ("lightlyRow", 5, "Lightly Row"), ("oldMacDonald", 6, "Old MacDonald"),
+                                    ("yankeeDoodle", 7, "Yankee Doodle")] {
             let level = app.buttons["level-\(id)"]
             app.scroll(to: level)
             XCTAssertTrue(level.label.contains("Level \(number), \(title)"))
@@ -35,7 +36,7 @@ final class LearningUITests: XCTestCase {
         screenshot("Music · one path of levels")
 
         // Every melody level has the same lessons in the same order, and all are open.
-        for piece in ["hotCrossBuns", "odeToJoy", "twinkle", "lightlyRow", "oldMacDonald"] {
+        for piece in ["hotCrossBuns", "odeToJoy", "twinkle", "lightlyRow", "oldMacDonald", "yankeeDoodle"] {
             for (index, step) in [("listen", "Listen"), ("tap", "Tap it"), ("notes", "Meet the notes"),
                                   ("hum", "Hum it"), ("whole", "Whole melody")].enumerated() {
                 let row = app.pathRow("lesson-\(piece)-\(step.0)")

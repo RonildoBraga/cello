@@ -114,6 +114,17 @@ final class TeacherNoteTests: XCTestCase {
                                     "Also: Note 4 (G2) was a little high. Aim lower on it."])
     }
 
+    func testANoteNotHeardWhenTheGoalsWereStillReachedIsSaidAfterThePraise() {
+        // Two quick notes run together: the second is not heard, and four of five still reach every goal.
+        let take = rating([note(0, g2, length: 0.5), note(1, g2, cents: nil, length: 0.5), note(2, a2, length: 0.5),
+                           note(3, b2, length: 0.5), note(4, g2, length: 0.5)])
+        XCTAssertTrue(take.goalReached)
+        let note = TeacherNote(rating: take, register: .lowVoice)
+        XCTAssertEqual(note.subject, .allGood)
+        XCTAssertEqual(note.paragraphs, ["All three goals reached. Try this phrase again, then move to the next one.",
+                                         "Also: 4 of the 5 notes were heard. Give each note a clear start of its own."])
+    }
+
     func testTheFindingThatTouchedMostNotesLeads() {
         let take = rating([note(0, b2, cents: -90), note(1, a2, cents: -90, late: 0.3), note(2, g2, cents: -90)])
         XCTAssertEqual(text(take), ["B2, A2 and G2 were a little low. Aim higher on them.",
