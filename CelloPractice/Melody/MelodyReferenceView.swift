@@ -22,7 +22,7 @@ struct MelodyReferenceView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 LessonHeader(subtitle: piece.listenIntro)
-                Text("\(register == .cello ? "Recorded cello" : "Recorded hum") · \(register.keyName) · \(piece.rangeLabel(for: register)) · 60 BPM")
+                Text("\(register == .cello ? "Recorded cello" : "Recorded hum") · \(piece.keyName(for: register)) · \(piece.rangeLabel(for: register)) · 60 BPM")
                     .font(.caption).foregroundStyle(Palette.muted)
                     .accessibilityIdentifier("melodyReferenceKey")
                 VStack(alignment: .leading, spacing: 12) {

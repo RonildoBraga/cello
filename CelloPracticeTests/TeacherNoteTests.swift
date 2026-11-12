@@ -80,15 +80,31 @@ final class TeacherNoteTests: XCTestCase {
         XCTAssertEqual(text(unclear), ["Listen to this phrase again and follow each note as it changes."])
         // Where the melody repeats a note, notes go by number.
         let quick = (0..<8).map { note($0, $0 < 4 ? g2 : a2, cents: [2, 3].contains($0) ? 80 : 0, length: 0.5) }
-        XCTAssertEqual(text(rating(quick)), ["Notes 3 and 4 were a little high. Aim lower on them."])
+        XCTAssertEqual(text(rating(quick)), ["Notes 3 and 4 (G2) were a little high. Aim lower on them."],
+                       "Notes that share a name are named once")
         XCTAssertEqual(text(rating([note(0, g2), note(1, g2, cents: 80), note(2, g2), note(3, g2)])),
                        ["Note 2 (G2) was a little high. Aim lower on it."])
     }
 
-    func testOneMissedNoteInFiveStillEarnsNotesSoNothingIsSaidAboutIt() {
+    func testANoteMissedWhenTheNotesGoalWasStillReachedIsSaidAfterThePraise() {
+        // One note in five may miss and still earn the Notes goal; the miss is still worth a word.
         let take = rating([note(0, g2), note(1, g2, cents: 80), note(2, g2), note(3, g2), note(4, g2)])
         XCTAssertTrue(take.notes)
-        XCTAssertEqual(TeacherNote(rating: take, register: .lowVoice).subject, .allGood)
+        let note = TeacherNote(rating: take, register: .lowVoice)
+        XCTAssertEqual(note.subject, .allGood, "It is not the main point, so it never becomes a habit")
+        XCTAssertEqual(note.paragraphs, ["All three goals reached. Try this phrase again, then move to the next one.",
+                                         "Also: Note 2 (G2) was a little high. Aim lower on it."])
+        // Old MacDonald, the whole melody: both notes after the leap up sung low still earn Notes (10 of 12).
+        let c3 = 130.81, a2 = 110.0, d3 = 146.83, e3 = 164.81
+        let whole = rating([c3, c3, c3, g2, a2, a2, g2, e3, e3, d3, d3, c3].enumerated().map { index, frequency in
+            self.note(index, frequency, cents: [7, 8].contains(index) ? -150 : 0)
+        })
+        XCTAssertTrue(whole.notes && whole.timing && whole.clarity)
+        XCTAssertEqual(text(whole), ["All three goals reached. Try this phrase again, then move to the next one.",
+                                     "Also: Notes 8 and 9 (E3) were low. Aim higher on them."])
+        // Practised alone, the phrase that starts after the leap loses the goal, and says so first.
+        let phrase = rating([self.note(0, e3, cents: -150), self.note(1, e3, cents: -150), self.note(2, d3), self.note(3, d3)])
+        XCTAssertEqual(text(phrase), ["Notes 1 and 2 (E3) were low. Aim higher on them."])
     }
 
     func testNotesThatWereNotHeardComeBeforeAnythingAboutPitch() {

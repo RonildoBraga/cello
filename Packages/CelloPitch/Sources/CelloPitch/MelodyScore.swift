@@ -51,6 +51,12 @@ public struct MelodyScore: Codable, Equatable, Sendable {
         pitches: [57, 54, 54, 55, 52, 52, 50, 52, 54, 55, 57, 57, 57],
         durations: [1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2])
 
+    /// The tune's first line, in G major on the cello: a drop of a fourth in bar 1, then a leap of a
+    /// sixth up into bar 3, and a final note held for the whole bar.
+    public static let oldMacDonald = fourBars("oldMacDonald",
+        pitches: [55, 55, 55, 50, 52, 52, 50, 59, 59, 57, 57, 55],
+        durations: [1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 4])
+
     /// A tune's notes and their lengths in beats, laid end to end across four bars.
     private static func fourBars(_ pieceID: String, pitches: [Int], durations: [Double]) -> MelodyScore {
         var beat = 0.0
@@ -65,7 +71,7 @@ public struct MelodyScore: Codable, Equatable, Sendable {
 
 /// Built-in arrangements share the same phrase and assessment flow.
 public enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
-    case hotCrossBuns, odeToJoy, twinkle, lightlyRow
+    case hotCrossBuns, odeToJoy, twinkle, lightlyRow, oldMacDonald
 
     public var id: String { rawValue }
 
@@ -75,6 +81,7 @@ public enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
         case .odeToJoy: return "Ode to Joy"
         case .twinkle: return "Twinkle, Twinkle"
         case .lightlyRow: return "Lightly Row"
+        case .oldMacDonald: return "Old MacDonald"
         }
     }
 
@@ -84,6 +91,21 @@ public enum MelodyPiece: String, CaseIterable, Identifiable, Codable, Sendable {
         case .odeToJoy: return .odeToJoy
         case .twinkle: return .twinkle
         case .lightlyRow: return .lightlyRow
+        case .oldMacDonald: return .oldMacDonald
+        }
+    }
+
+    /// The key the melody is heard in, in a register: its home note on the cello, moved as the register moves it.
+    /// Earlier melodies are all in D major on the cello, so their keys are the register's own (`MelodyRegister.keyName`).
+    public func keyName(for register: MelodyRegister) -> String {
+        NoteName.pitchClass(celloTonic + register.transpositionSemitones) + " major"
+    }
+
+    /// The melody's home note on the cello, as a MIDI note.
+    private var celloTonic: Int {
+        switch self {
+        case .hotCrossBuns, .odeToJoy, .twinkle, .lightlyRow: return 50 // D3
+        case .oldMacDonald: return 55 // G3
         }
     }
 
@@ -120,6 +142,8 @@ public enum MelodyRegister: String, CaseIterable, Identifiable, Codable, Sendabl
 
     public var id: String { rawValue }
 
+    /// The key of a melody centred on D on the cello, heard in this register. Listen & Echo uses it;
+    /// a melody names its own key (`MelodyPiece.keyName(for:)`).
     public var keyName: String { self == .cello ? "D major" : "G major" }
 
     public var rangeLabel: String {
@@ -270,7 +294,7 @@ public struct MelodyPracticeContext: Codable, Equatable, Sendable {
                         midiNote: $0.midiNote.map { $0 + register.transpositionSemitones })
         }
         return MelodyPracticeContext(pieceID: score.pieceID, scoreVersion: score.version,
-                                     register: register, referenceKey: register.keyName,
+                                     register: register, referenceKey: piece.keyName(for: register),
                                      tuningA4Hz: 440, tempoBPM: tempoBPM, section: section,
                                      expectedEvents: events, durationBeats: range.upperBound - range.lowerBound,
                                      gradingVersion: gradingVersion)

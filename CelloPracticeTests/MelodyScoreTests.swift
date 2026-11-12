@@ -68,6 +68,49 @@ final class MelodyScoreTests: XCTestCase {
         }
     }
 
+    func testOldMacDonaldDropsAFourthThenLeapsASixthAndIsInItsOwnKey() {
+        let score = MelodyScore.oldMacDonald
+        XCTAssertEqual(score.pieceID, "oldMacDonald")
+        XCTAssertEqual(score.version, 1)
+        // 1 1 1 5 | 6 6 5 | 3 3 2 2 | 1, with the 5 and 6 below the first note.
+        XCTAssertEqual(score.events.map(\.midiNote), [55, 55, 55, 50, 52, 52, 50, 59, 59, 57, 57, 55])
+        XCTAssertEqual(score.events.map(\.durationBeats), [1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 4])
+        XCTAssertEqual(score.events.last?.endBeat, score.totalBeats)
+        XCTAssertEqual(score.phraseBoundaries, MelodyScore.odeToJoy.phraseBoundaries)
+        let notes = score.events.compactMap(\.midiNote)
+        XCTAssertEqual(zip(notes, notes.dropFirst()).map { $1 - $0 }.filter { abs($0) > 2 }, [-5, 9],
+                       "Its only moves larger than a step: a fourth down, then a sixth up")
+        // Every note is one Twinkle already uses, in both registers.
+        XCTAssertTrue(Set(notes).isSubset(of: Set(MelodyScore.twinkle.events.compactMap(\.midiNote))))
+        for (register, key, range, phrases) in [
+            (MelodyRegister.lowVoice, "C major", "G2–E3", [["C3", "C3", "C3", "G2"], ["A2", "A2", "G2"], ["E3", "E3", "D3", "D3"], ["C3"]]),
+            (.cello, "G major", "D3–B3", [["G3", "G3", "G3", "D3"], ["E3", "E3", "D3"], ["B3", "B3", "A3", "A3"], ["G3"]])] {
+            XCTAssertEqual(MelodyPiece.oldMacDonald.keyName(for: register), key)
+            XCTAssertEqual(MelodyPiece.oldMacDonald.rangeLabel(for: register), range)
+            for (section, notes) in zip(MelodySection.phrases, phrases) {
+                let context = MelodyPiece.oldMacDonald.humming(register: register, section: section)
+                XCTAssertTrue(context.isValid)
+                XCTAssertEqual(context.referenceKey, key, "A take keeps the key it was heard in")
+                XCTAssertEqual(context.noteNames, notes)
+                XCTAssertEqual(context.expectedEvents.last?.endBeat, 4)
+                XCTAssertEqual(context.displayPieceTitle, "Old MacDonald")
+            }
+        }
+        XCTAssertEqual(MelodyPiece.oldMacDonald.keyName(for: .higherVoice), "C major")
+    }
+
+    func testEveryEarlierMelodyKeepsTheKeyItsSavedTakesWereHeardIn() throws {
+        // A take's key is part of what its progress is saved under, so it must never change.
+        for piece in [MelodyPiece.hotCrossBuns, .odeToJoy, .twinkle, .lightlyRow] {
+            for register in MelodyRegister.allCases {
+                XCTAssertEqual(piece.keyName(for: register), register.keyName, "\(piece.title), \(register.rawValue)")
+                XCTAssertEqual(try MelodyPracticeContext.melody(piece: piece, register: register).referenceKey, register.keyName)
+            }
+        }
+        XCTAssertEqual(MelodyRegister.cello.keyName, "D major")
+        XCTAssertEqual(MelodyRegister.lowVoice.keyName, "G major")
+    }
+
     func testTheRhythmHintFollowsTheLengthsOfTheNotesSoTunesThatShareARhythmShareItsHint() {
         let onEachBeat = "Tap on each beat: 1, 2, 3, 4."
         let heldEnding = "Tap on 1, 2 and 3. Count 4 while the last note continues."
@@ -76,7 +119,8 @@ final class MelodyScoreTests: XCTestCase {
             (.odeToJoy, [onEachBeat, onEachBeat, onEachBeat,
                          "Tap on 1, the & after 2, and 3. Count 4 while the last note continues."]),
             (.twinkle, [onEachBeat, heldEnding, onEachBeat, heldEnding]),
-            (.lightlyRow, [heldEnding, heldEnding, onEachBeat, heldEnding])]
+            (.lightlyRow, [heldEnding, heldEnding, onEachBeat, heldEnding]),
+            (.oldMacDonald, [onEachBeat, heldEnding, onEachBeat, "Tap once on 1. Count 2, 3 and 4 while the note continues."])]
         for (piece, expected) in hints {
             XCTAssertEqual(MelodySection.phrases.map(piece.rhythmHint), expected, piece.title)
             XCTAssertEqual(piece.rhythmHint(for: .whole), "Tap at each new tile. Keep counting through the longer tiles.")

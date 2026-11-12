@@ -6,7 +6,7 @@ House rules for changing Cello, whether you are a person or an AI assistant. The
 
 One vocabulary, on screen, in code, in tests and in docs:
 
-- **Level**: a numbered stage of the path (First sounds, Hot Cross Buns, Ode to Joy, Twinkle, Twinkle, Lightly Row).
+- **Level**: a numbered stage of the path (First sounds, Hot Cross Buns, Ode to Joy, Twinkle, Twinkle, Lightly Row, Old MacDonald).
 - **Lesson**: one item in a level, shown as "Lesson 1 of 6". Not "step", "exercise" or "activity".
 - **Part**: a piece of a lesson that has several, such as a phrase or a single note.
 - **Take**: one recording. **Round**: one tapping attempt.

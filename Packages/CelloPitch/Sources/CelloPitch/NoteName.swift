@@ -6,7 +6,12 @@ public enum NoteName {
 
     /// The name of a MIDI note number.
     public static func midi(_ midi: Int) -> String {
-        "\(names[(midi % 12 + 12) % 12])\(Int(floor(Double(midi) / 12)) - 1)"
+        "\(pitchClass(midi))\(Int(floor(Double(midi) / 12)) - 1)"
+    }
+
+    /// A MIDI note's name without its octave, as a key is named: "D", "F♯".
+    public static func pitchClass(_ midi: Int) -> String {
+        names[(midi % 12 + 12) % 12]
     }
 
     /// The nearest note to a frequency at A4 = 440 Hz; a dash for anything that is not a pitch.

@@ -17,6 +17,7 @@ Music (the path)
   Level 3 · Ode to Joy        Listen → Tap it → Meet the notes → Hum it → Whole melody
   Level 4 · Twinkle, Twinkle  Listen → Tap it → Meet the notes → Hum it → Whole melody
   Level 5 · Lightly Row       Listen → Tap it → Meet the notes → Hum it → Whole melody
+  Level 6 · Old MacDonald     Listen → Tap it → Meet the notes → Hum it → Whole melody
 About → long-term goal, who built it, sound sources and licences, lesson references
 Recordings → existing local audio/video history
 ```
@@ -74,7 +75,7 @@ The content is `PracticeLesson.primer`; the screen is `PrimerView`. Reading a pr
 
 ### Meet the notes
 
-Each melody level introduces its notes before asking for whole phrases ([issue #51](https://github.com/RonildoBraga/cello/issues/51)): three for Hot Cross Buns (G2, A2, B2), five for Ode to Joy (G2 to D3), six for Twinkle, Twinkle (G2 to E3), five for Lightly Row (G2 to D3). For each note the learner hears the recorded hum and hums it back for three seconds with the live tuning bar. Two pairs follow, to hear and feel "higher" and "lower": the melody's jump and its reverse, or, for a melody that moves only by step, its lowest then its highest note and the reverse. A jump is two notes in a row more than a whole tone apart. Twinkle's is G2 to D3 and Lightly Row's a skip, D3 down to B2; Hot Cross Buns' only jump is between its lowest and highest notes, and Ode to Joy has none. Last come the notes the melody repeats quickly, each on its own (`NoteDrill.quickRepeats`): for Hot Cross Buns, eight quick G's and eight quick A's. Ode to Joy has none.
+Each melody level introduces its notes before asking for whole phrases ([issue #51](https://github.com/RonildoBraga/cello/issues/51)): three for Hot Cross Buns (G2, A2, B2), five for Ode to Joy (G2 to D3), six for Twinkle, Twinkle (G2 to E3), five for Lightly Row (G2 to D3), five for Old MacDonald (G2 to E3). For each note the learner hears the recorded hum and hums it back for three seconds with the live tuning bar. Two pairs follow, to hear and feel "higher" and "lower": the melody's jump and its reverse, or, for a melody that moves only by step, its lowest then its highest note and the reverse. A jump is two notes in a row more than a whole tone apart. Twinkle's is G2 to D3, Lightly Row's a skip, D3 down to B2, and Old MacDonald's a leap of a sixth, G2 up to E3; Hot Cross Buns' only jump is between its lowest and highest notes, and Ode to Joy has none. Last come the notes the melody repeats quickly, each on its own (`NoteDrill.quickRepeats`): for Hot Cross Buns, eight quick G's and eight quick A's. Ode to Joy has none.
 
 The quick notes are there because of what the takes showed. Hot Cross Buns' third phrase is four quick G's then four quick A's, and it asked for three new things at once: twice the speed, starting the same note afresh, and a change of note halfway. A learner who had passed phrases 1 and 2 scored nothing on it three times, although the first of those takes had every note within 0.07 s of its place. A closed-lip hum has nothing to restart a note with, the learner left long gaps to compensate, and the gaps cost the Timing and Clarity stars. So the repeat is now practised alone first, and wherever a take repeats a note quickly the screen says how (`VoicePracticeMode.quickNotesHint`): sing "doo", and keep each note going until the next one starts. Eight notes, not four, because each goal lets one note in five miss: eight leaves room for one slip.
 
@@ -149,6 +150,12 @@ It is a third `MelodyPiece` and nothing more: the level, its five lessons, the e
 Level 5 is the opening line of *Lightly Row*, the tune of the German song *Hänschen klein*, and the first level of the plan toward Bach's first Prelude ([issue #78](https://github.com/RonildoBraga/cello/issues/78)). It adds skips: from one note to the note after next, twice, before a climb back up by step. Twinkle's jump of a fifth came once; skips are smaller and far more common, and the Prelude's opening is full of larger ones. Its five notes are those of Ode to Joy and its rhythm is Twinkle's, so the skips are the only new thing.
 
 It is a fourth `MelodyPiece` and nothing more, as the plan expected: the tapping hint, the Meet the notes pair, the examples, the grading and the progress rules all come from what is already there. See [score and provenance](lightly-row-reference.md).
+
+## Fifth melody: Old MacDonald first line
+
+Level 6 is the first line of *Old MacDonald Had a Farm*, the second level of the plan ([issue #78](https://github.com/RonildoBraga/cello/issues/78)). It adds bigger jumps: a drop of a fourth in phrase 1, then a leap of a sixth up into phrase 3. The sixth, D3 to B3 on the cello, is the second jump of the Bach Prelude's opening. Every note is one Twinkle already uses, and phrase 4 is a single note held for four beats.
+
+It needed one new thing, as the plan said: a melody names its own key. Old MacDonald sits in G major on the cello and C major for the voice, where every earlier melody is in D major and G major. The key comes from the melody's home note on the cello (`MelodyPiece.keyName(for:)`); earlier melodies keep exactly the keys their saved takes, and so their saved progress, were made under. Two small changes to the teacher's note came with it: notes that share a name are named once ("Notes 8 and 9 (E3)"), and a note that missed while the Notes goal was still reached is mentioned after the praise. See [score and provenance](old-macdonald-reference.md).
 
 ## Cello orientation
 

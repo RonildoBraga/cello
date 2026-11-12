@@ -72,7 +72,7 @@ struct NoteDrill: Hashable, Identifiable {
             MelodyEvent(onsetBeat: Double(index) * noteBeats, durationBeats: noteBeats, midiNote: note)
         }
         return MelodyPracticeContext(pieceID: Self.pieceID(for: piece), scoreVersion: Self.scoreVersion,
-                                     register: register, referenceKey: register.keyName,
+                                     register: register, referenceKey: piece.keyName(for: register),
                                      tuningA4Hz: 440, tempoBPM: 60, section: .phrase1, expectedEvents: events,
                                      durationBeats: Double(midiNotes.count) * noteBeats,
                                      gradingVersion: MelodyRating.currentVersion)
