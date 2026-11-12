@@ -147,8 +147,10 @@ final class NoteDrillTests: XCTestCase {
     }
 
     func testTheRecordedReferenceForEveryDrillEarnsThreeStarsFromTheMelodyRater() throws {
+        // Melodies share many drills (G2 alone is in most of them); the same notes sound and score the same.
+        var rated: Set<[Double]> = []
         for piece in MelodyPiece.allCases {
-            for drill in NoteDrill.drills(for: piece) {
+            for drill in NoteDrill.drills(for: piece) where rated.insert(drill.midiNotes.map(Double.init) + [drill.noteBeats]).inserted {
                 let context = drill.context
                 let data = try RecordedReference.wavData(context: context)
                 let samples: [Float] = stride(from: 44, to: data.count, by: 2).map { offset in

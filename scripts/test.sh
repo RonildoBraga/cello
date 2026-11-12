@@ -3,6 +3,8 @@
 #   scripts/test.sh            pitch package + app unit tests
 #   scripts/test.sh package    pitch package only (no Simulator needed)
 #   scripts/test.sh unit       app unit tests
+#   scripts/test.sh unit-core  app unit tests without the rendered melody examples (CI runs the two in parallel)
+#   scripts/test.sh examples   the rendered melody examples: every melody's reference scored, clean and under hiss
 #   scripts/test.sh smoke      nine UI tests across every area (about 6 minutes; run for each change)
 #   scripts/test.sh ui         every real-clock UI test (about 30 minutes; run before a release)
 #   scripts/test.sh all        everything
@@ -35,8 +37,11 @@ cello_xcode_test() {
     -destination "platform=iOS Simulator,id=$simulator" \
     -derivedDataPath "$cello_project_root/build" CODE_SIGNING_ALLOWED=NO \
     -parallel-testing-enabled NO -collect-test-diagnostics never \
-    "${@/#/-only-testing:}" test
+    "$@" test
 }
+
+# Rendering and scoring every melody's examples takes most of the unit tests' time, and more with each level.
+cello_example_tests=CelloTests/OdeToJoyPracticeTests
 
 # One quick pass over each area: the path, a lesson and the step bar, a melody
 # level, Meet the notes, one real tapping round, primers, About, Echo and the
@@ -56,9 +61,11 @@ cello_smoke_tests=(
 for cello_suite in "${cello_suites[@]}"; do
   case "$cello_suite" in
     package) swift test --package-path "$cello_project_root/Packages/CelloPitch" -c release ;;
-    unit) cello_xcode_test CelloTests ;;
-    smoke) cello_xcode_test "${cello_smoke_tests[@]}" ;;
-    ui) cello_xcode_test CelloUITests ;;
-    *) echo "Unknown suite '$cello_suite'. Use package, unit, smoke, ui or all." >&2; exit 2 ;;
+    unit) cello_xcode_test -only-testing:CelloTests ;;
+    unit-core) cello_xcode_test -only-testing:CelloTests -skip-testing:"$cello_example_tests" ;;
+    examples) cello_xcode_test -only-testing:"$cello_example_tests" ;;
+    smoke) cello_xcode_test "${cello_smoke_tests[@]/#/-only-testing:}" ;;
+    ui) cello_xcode_test -only-testing:CelloUITests ;;
+    *) echo "Unknown suite '$cello_suite'. Use package, unit, unit-core, examples, smoke, ui or all." >&2; exit 2 ;;
   esac
 done

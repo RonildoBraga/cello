@@ -28,6 +28,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: xcodebuild -version
-      - run: bash scripts/test.sh unit
+      - run: bash scripts/test.sh unit-core
+
+  # Every melody's rendered examples, scored clean and under hiss: the slowest unit tests,
+  # in their own job so neither job nears the time limit as levels are added.
+  examples:
+    name: Melody examples
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: xcodebuild -version
+      - run: bash scripts/test.sh examples
 
 # The real-clock UI tests stay a local, pre-release step: scripts/test.sh ui
