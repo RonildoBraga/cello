@@ -9,6 +9,7 @@ final class NoteDrillTests: XCTestCase {
         XCTAssertEqual(NoteDrill.notes(for: .twinkle).map(\.title), ["G2", "A2", "B2", "C3", "D3", "E3"])
         XCTAssertEqual(NoteDrill.notes(for: .lightlyRow).map(\.title), ["G2", "A2", "B2", "C3", "D3"])
         XCTAssertEqual(NoteDrill.notes(for: .oldMacDonald).map(\.title), ["G2", "A2", "C3", "D3", "E3"])
+        XCTAssertEqual(NoteDrill.notes(for: .yankeeDoodle).map(\.title), ["G2", "A2", "B2", "C3", "D3", "E3", "F3"])
         for piece in MelodyPiece.allCases {
             let humming = piece.humming(register: .lowVoice, section: .whole)
             XCTAssertEqual(Set(NoteDrill.notes(for: piece).flatMap(\.midiNotes)),
@@ -53,6 +54,23 @@ final class NoteDrillTests: XCTestCase {
         // Earlier melodies' drills keep the key their saved takes were made in.
         XCTAssertTrue(NoteDrill.drills(for: .twinkle).allSatisfy { $0.context.referenceKey == "G major" })
         XCTAssertTrue(NoteDrill.drills(for: .twinkle, register: .cello).allSatisfy { $0.context.referenceKey == "D major" })
+    }
+
+    func testYankeeDoodlePractisesItsSevenNotesItsJumpAndItsQuickRepeatedNote() {
+        // Its widest move is the drop of a fifth that ends phrase 1 (D3 to G2 for the voice).
+        // The G that opens phrases 1 to 3 is sounded twice at half a beat, so it is met on its own too.
+        let drills = NoteDrill.drills(for: .yankeeDoodle)
+        XCTAssertEqual(drills.map(\.chipLabel), ["G2", "A2", "B2", "C3", "D3", "E3", "F3", "G2→D3", "D3→G2", "C3 ×8"])
+        XCTAssertEqual(drills.last?.title, "C3 · 8 quick notes")
+        XCTAssertEqual(drills.last?.context.expectedEvents.map(\.durationBeats), Array(repeating: 0.5, count: 8))
+        let cello = NoteDrill.drills(for: .yankeeDoodle, register: .cello)
+        XCTAssertEqual(cello.map(\.chipLabel), ["D3", "E3", "F♯3", "G3", "A3", "B3", "C4", "D3→A3", "A3→D3", "G3 ×8"])
+        XCTAssertTrue(drills.allSatisfy { $0.context.referenceKey == "C major" })
+        XCTAssertTrue(cello.allSatisfy { $0.context.referenceKey == "G major" })
+        // The quick-notes advice is shown on every phrase that opens with the repeated G, and on the drill.
+        let phrase = { VoicePracticeMode.phrase(MelodyPiece.yankeeDoodle.humming(register: .lowVoice, section: $0)) }
+        XCTAssertEqual(MelodySection.allCases.map { phrase($0).quickNotesHint != nil }, [true, true, true, true, false])
+        XCTAssertNotNil(VoicePracticeMode.phrase(drills[9].context).quickNotesHint)
     }
 
     func testLightlyRowPractisesItsSkipOverANote() {

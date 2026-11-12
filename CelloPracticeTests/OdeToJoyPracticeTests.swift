@@ -6,8 +6,9 @@ import XCTest
 
 final class OdeToJoyPracticeTests: XCTestCase {
     func testRecordedPhrasesAndWholeOpeningEarnThreeIndependentStarsHummedAndOnTheCello() throws {
-        // Twinkle's jump of five notes and Lightly Row's skips are scored by the same rater as the steps of Ode to Joy.
-        for piece in [MelodyPiece.odeToJoy, .twinkle, .lightlyRow, .oldMacDonald] {
+        // Twinkle's jump of five notes, Lightly Row's skips and Yankee Doodle's running notes are scored
+        // by the same rater as the steps of Ode to Joy.
+        for piece in [MelodyPiece.odeToJoy, .twinkle, .lightlyRow, .oldMacDonald, .yankeeDoodle] {
             for register in PracticeMethod.allCases.map(\.register) {
                 for section in MelodySection.allCases {
                     let context = try MelodyPracticeContext.melody(
@@ -37,7 +38,8 @@ final class OdeToJoyPracticeTests: XCTestCase {
             (.odeToJoy, [.phrase1, .phrase3], [50, 52, 54, 55, 57]),
             (.twinkle, MelodySection.phrases, [50, 52, 54, 55, 57, 59]),
             (.lightlyRow, MelodySection.phrases, [50, 52, 54, 55, 57]),
-            (.oldMacDonald, MelodySection.phrases, [50, 52, 55, 57, 59])]
+            (.oldMacDonald, MelodySection.phrases, [50, 52, 55, 57, 59]),
+            (.yankeeDoodle, MelodySection.phrases, [50, 52, 54, 55, 57, 59, 60])]
         for (piece, sections, notes) in pieces {
             for register in PracticeMethod.allCases.map(\.register) {
                 var heardNotes: Set<Int> = []
@@ -46,8 +48,9 @@ final class OdeToJoyPracticeTests: XCTestCase {
                     let sound = pcm(try RecordedReference.wavData(context: context))
                     for event in context.expectedEvents {
                         heardNotes.insert(try XCTUnwrap(event.midiNote))
+                        // Inside the note: a half-beat note is measured over its own half beat.
                         let measured = measuredFrequencies(sound, times: [0.25, 0.40, 0.55, 0.70].map {
-                            event.onsetBeat + $0
+                            event.onsetBeat + $0 * min(event.durationBeats, 1)
                         })
                         XCTAssertGreaterThanOrEqual(measured.count, 3)
                         let actual = try XCTUnwrap(median(measured))
@@ -62,25 +65,52 @@ final class OdeToJoyPracticeTests: XCTestCase {
     }
 
     func testQuickNotesAreHeardThroughSteadyHissThatFillsTheirPauses() throws {
-        // The example at a real hum's level (loud parts near -47 dBFS) with hiss 13 dB below it.
-        // The hiss alone is above the level that counts as sound, so no pause between the notes
-        // falls silent: the fresh starts are heard as dips.
         let context = MelodyPiece.hotCrossBuns.humming(register: .lowVoice, section: .phrase3)
-        let clean = pcm(try RecordedReference.wavData(context: context))
-        let cells = stride(from: 0, to: clean.count - 480, by: 480).map { start in
-            (clean[start..<(start + 480)].reduce(0.0) { $0 + Double($1) * Double($1) } / 480).squareRoot()
-        }.sorted()
-        let gain = Float(pow(10, -47.0 / 20) / cells[cells.count * 9 / 10])
-        var state: UInt64 = 1234
-        func uniform() -> Double {
-            state = state &* 6364136223846793005 &+ 1442695040888963407
-            return Double(state >> 11) / Double(UInt64(1) << 53)
-        }
-        let hiss = pow(10, -60.0 / 20)
-        let noisy = clean.map { $0 * gain + Float(hiss * (-2 * log(max(uniform(), 1e-12))).squareRoot() * cos(2 * .pi * uniform())) }
-        let rating = rate(noisy, for: context)
+        let rating = rate(withHiss(pcm(try RecordedReference.wavData(context: context))), for: context)
         XCTAssertEqual(rating.noteResults.filter { $0.observedOnset != nil }.count, 8)
         XCTAssertEqual(rating.starCount, 3)
+    }
+
+    func testRunningNotesAreHeardThroughTheSameHissHummedAndOnTheCello() throws {
+        for register in PracticeMethod.allCases.map(\.register) {
+            for section in MelodySection.allCases {
+                let context = MelodyPiece.yankeeDoodle.humming(register: register, section: section)
+                let rating = rate(withHiss(pcm(try RecordedReference.wavData(context: context))), for: context)
+                let take = "\(register.rawValue), \(section.rawValue)"
+                XCTAssertEqual(rating.noteResults.filter { $0.observedOnset != nil }.count, context.expectedEvents.count, take)
+                XCTAssertEqual(rating.starCount, 3, take)
+            }
+        }
+    }
+
+    func testTheTeacherNoteOnRunningNotesThatAreLateRushedOrRunTogether() throws {
+        let context = MelodyPiece.yankeeDoodle.humming(register: .lowVoice, section: .phrase1)
+        func note(sung events: [MelodyEvent]) throws -> (MelodyRating, [String]) {
+            let rating = rate(pcm(try RecordedReference.wavData(context: replacing(context, events: events))), for: context)
+            return (rating, TeacherNote(rating: rating, register: .lowVoice).paragraphs)
+        }
+        let asked = context.expectedEvents
+        // The whole run a quarter of a beat late: it started late and kept going at the right speed.
+        let late = asked.enumerated().map { index, event in
+            MelodyEvent(onsetBeat: event.onsetBeat + 0.25, durationBeats: index == asked.count - 1 ? 0.25 : 0.5,
+                        midiNote: event.midiNote)
+        }
+        let (lateRating, lateNote) = try note(sung: late)
+        XCTAssertFalse(lateRating.timing)
+        XCTAssertTrue(lateRating.notes)
+        XCTAssertEqual(lateNote.first, "All the notes began about 0.2 s late. Change note as each bar reaches the line.")
+        // Rushed: at fifteen sixteenths of the time, each note a little sooner than the last.
+        let rushed = asked.map { MelodyEvent(onsetBeat: $0.onsetBeat * 15 / 16, durationBeats: 0.5 * 15 / 16, midiNote: $0.midiNote) }
+        let (rushedRating, rushedNote) = try note(sung: rushed)
+        XCTAssertFalse(rushedRating.timing)
+        XCTAssertEqual(rushedNote.first, "Notes 7 and 8 began about 0.2 s early. Wait for each bar to reach the line.")
+        // The two G's that open the phrase run together as one long note: the second is not heard apart.
+        let together = [MelodyEvent(onsetBeat: 0, durationBeats: 1, midiNote: asked[0].midiNote)] + asked.dropFirst(2)
+        let (togetherRating, togetherNote) = try note(sung: Array(together))
+        XCTAssertNil(togetherRating.noteResults[1].observedOnset)
+        XCTAssertTrue(togetherRating.goalReached, "One note in eight may go unheard")
+        XCTAssertEqual(togetherNote, ["All three goals reached. Try this phrase again, then move to the next one.",
+                                      "Also: 7 of the 8 notes were heard. Give each note a clear start of its own."])
     }
 
     func testIndependentWrongPitchAndMissingNoteSignalsDoNotEarnNotesOrThreeStars() throws {
@@ -228,6 +258,23 @@ final class OdeToJoyPracticeTests: XCTestCase {
                       sampleRate: Double(RecordedReference.sampleRate)), estimate.confidence >= 0.75 else { return nil }
             return estimate.frequency
         }
+    }
+
+    /// The example at a real hum's level (loud parts near -47 dBFS) with hiss 13 dB below it.
+    /// The hiss alone is above the level that counts as sound, so no pause between the notes
+    /// falls silent: the fresh starts are heard as dips.
+    private func withHiss(_ clean: [Float]) -> [Float] {
+        let cells = stride(from: 0, to: clean.count - 480, by: 480).map { start in
+            (clean[start..<(start + 480)].reduce(0.0) { $0 + Double($1) * Double($1) } / 480).squareRoot()
+        }.sorted()
+        let gain = Float(pow(10, -47.0 / 20) / cells[cells.count * 9 / 10])
+        var state: UInt64 = 1234
+        func uniform() -> Double {
+            state = state &* 6364136223846793005 &+ 1442695040888963407
+            return Double(state >> 11) / Double(UInt64(1) << 53)
+        }
+        let hiss = pow(10, -60.0 / 20)
+        return clean.map { $0 * gain + Float(hiss * (-2 * log(max(uniform(), 1e-12))).squareRoot() * cos(2 * .pi * uniform())) }
     }
 
     private func median(_ values: [Double]) -> Double? {
