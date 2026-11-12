@@ -91,6 +91,8 @@ Three three-star takes among the last five rated takes earn completion for the e
 
 Deterministic tests cover correct phrases in both registers, wrong notes/order, missing and extra notes, repeated-note articulation, late starts, shortened notes, fast performances, rests, clipping, noise, silence, competing octaves and post-roll. Storage tests cover real audio/video decoding, save/reload/export, context isolation and durable completion. Chart tests cover gaps, rests, invalid measurements and wrong octaves.
 
+A scoring change is also checked on real takes: `cello-rescore` (in `Packages/CelloPitch`) re-scores every saved take in a folder with the checkout's rater and lists the takes whose stars change. The numbers quoted for versions 3 and 4 above come from it.
+
 Local validation also uses controlled phrases assembled and transposed from the licensed human humming example, plus unchanged learner single-note recordings as negative controls. Assembled fixtures test human phonation under known conditions; they are not spontaneous performances or a substitute for checking new learner melody takes. Personal recordings and local verification outputs are excluded from Git. Physical microphone, speaker, camera and timing behavior still require an iPhone take.
 
 ## Other built-in melodies

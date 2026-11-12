@@ -37,6 +37,13 @@ Simulator checks do not establish microphone, speaker, camera or haptic behaviou
 
 - **Less is more.** Every screen element and every line needs a reason to exist. Leave out effects that only decorate, such as celebration animations. When something stops being used, delete it in the same change: the property, the helper, its tests and its docs.
 - **No third-party dependencies** without discussing it in an issue first. Apple frameworks and the local `Packages/CelloPitch` package are enough today.
+- **Listening and judging live in `Packages/CelloPitch`.** Pitch detection, the melody scores, the melody rater and the teacher's note are plain Swift with no screens, so the app, the tests and a command-line tool share one copy. Screens, storage and lesson wording stay in the app. Before changing how takes are scored, run the tool on real recordings and say in the pull request what gained and lost stars:
+
+  ```sh
+  swift run --package-path Packages/CelloPitch -c release cello-rescore FOLDER_OF_SAVED_TAKES
+  ```
+
+  `FOLDER_OF_SAVED_TAKES` is any folder holding takes as the app saves them, such as a copy of the app's Documents. Keep such copies out of the repository: they are personal recordings.
 - **Reuse before you copy.** A new activity should configure the existing practice screen, rhythm round, result card, chart and progress ledger. If one of them does not fit, extend it; do not add a parallel version.
 - **Shared look.** Use the components in `DesignSystem.swift` for cards, buttons, headers and rows instead of inline radii, paddings and font sizes.
 - **Text scales.** Use text styles (`.headline`, `.caption2`, …) or `@ScaledMetric`; a literal point size belongs only in `DesignSystem.swift`. Small text needs a contrast ratio of at least 4.5:1: on the dark cards use white at 70% opacity or more, and use `Palette.goldText`, not `Palette.gold`, for gold text.

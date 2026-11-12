@@ -1,3 +1,4 @@
+import CelloPitch
 import SwiftUI
 
 struct MelodyFeedbackView: View {

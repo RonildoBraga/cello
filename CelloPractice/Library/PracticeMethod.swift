@@ -1,3 +1,4 @@
+import CelloPitch
 import SwiftUI
 
 /// How a recorded lesson is practised. The lesson and its goals stay the same;

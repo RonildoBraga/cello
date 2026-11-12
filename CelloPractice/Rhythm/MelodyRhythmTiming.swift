@@ -1,3 +1,4 @@
+import CelloPitch
 import Foundation
 
 /// Rhythm uses the shared frozen score, with its own assessment version.

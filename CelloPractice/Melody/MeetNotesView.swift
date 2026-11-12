@@ -1,3 +1,4 @@
+import CelloPitch
 import SwiftUI
 
 /// A melody's notes one at a time: hear a note, then hum it back with the live

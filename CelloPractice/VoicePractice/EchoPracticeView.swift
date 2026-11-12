@@ -1,3 +1,4 @@
+import CelloPitch
 import SwiftUI
 
 /// A new score is chosen only between attempts; recording freezes that choice.

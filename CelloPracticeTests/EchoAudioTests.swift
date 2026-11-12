@@ -1,4 +1,5 @@
 import AVFoundation
+import CelloPitch
 import Foundation
 import XCTest
 @testable import Cello

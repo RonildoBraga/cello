@@ -3,19 +3,19 @@ import Foundation
 /// What a teacher would say after a melody take: the thing that mattered most, what to try,
 /// and at most one more thing worth knowing. Every word comes from what the rater measured,
 /// so the same take always gets the same note, and nothing is said that was not heard.
-struct TeacherNote: Equatable {
-    enum Subject: Equatable {
+public struct TeacherNote: Equatable {
+    public enum Subject: Equatable {
         case allGood, unscored, octave, unheard, late, early, cutShort, low, high, pitch, unclear, general
     }
 
     /// What the main point is about. Earlier takes with the same subject show a habit.
-    let subject: Subject
-    let paragraphs: [String]
+    public let subject: Subject
+    public let paragraphs: [String]
 
-    var text: String { paragraphs.joined(separator: "\n\n") }
+    public var text: String { paragraphs.joined(separator: "\n\n") }
 
     /// `earlier` holds the ratings of the takes made before this one on the same part, newest first.
-    init(rating: MelodyRating, register: MelodyRegister, earlier: [MelodyRating] = []) {
+    public init(rating: MelodyRating, register: MelodyRegister, earlier: [MelodyRating] = []) {
         let cello = register == .cello
         let findings = Self.findings(in: rating, cello: cello)
         let subject = findings.first?.subject ?? .allGood

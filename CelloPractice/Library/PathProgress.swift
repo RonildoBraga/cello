@@ -1,3 +1,4 @@
+import CelloPitch
 import Foundation
 
 /// What the path shows about one lesson.

@@ -1,3 +1,4 @@
+import CelloPitch
 import Foundation
 
 enum Exercise: String, Codable, CaseIterable, Identifiable {

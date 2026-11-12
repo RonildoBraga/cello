@@ -1,4 +1,5 @@
 import AVFoundation
+import CelloPitch
 import Combine
 import CoreGraphics
 import CoreVideo
