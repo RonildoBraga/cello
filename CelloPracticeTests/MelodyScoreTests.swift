@@ -161,6 +161,32 @@ final class MelodyScoreTests: XCTestCase {
         }
     }
 
+    func testThePreludeChordsAreBachsFirstFourBarsOneNoteToABeatFromTheLowG() {
+        let score = MelodyScore.preludeChords
+        XCTAssertEqual(score.pieceID, "preludeChords")
+        XCTAssertEqual(score.version, 1)
+        XCTAssertEqual(score.events.map(\.durationBeats), Array(repeating: 1, count: 16))
+        XCTAssertEqual(score.events.last?.endBeat, score.totalBeats)
+        XCTAssertEqual(score.phraseBoundaries, MelodyScore.odeToJoy.phraseBoundaries)
+        // Each bar's figure, lowest note, middle, top, middle: checked against the Mutopia edition of BWV 1007.
+        let phrases = [["G2", "D3", "B3", "D3"], ["G2", "E3", "C4", "E3"], ["G2", "F♯3", "C4", "F♯3"], ["G2", "G3", "B3", "G3"]]
+        let notes = score.events.compactMap(\.midiNote)
+        XCTAssertEqual(zip(notes, notes.dropFirst()).map { $1 - $0 }, [7, 9, -9, -7, 9, 8, -8, -9, 11, 6, -6, -11, 12, 4, -4],
+                       "Every move is a jump, from a third to an octave")
+        for register in [MelodyRegister.lowVoice, .cello] {
+            XCTAssertEqual(MelodyPiece.preludeChords.transposition(for: register), 0, "The voice sounds the cello's notes")
+            XCTAssertEqual(MelodyPiece.preludeChords.keyName(for: register), "G major")
+            XCTAssertEqual(MelodyPiece.preludeChords.rangeLabel(for: register), "G2–C4")
+            for (section, notes) in zip(MelodySection.phrases, phrases) {
+                let context = MelodyPiece.preludeChords.humming(register: register, section: section)
+                XCTAssertTrue(context.isValid)
+                XCTAssertEqual(context.referenceKey, "G major")
+                XCTAssertEqual(context.noteNames, notes)
+                XCTAssertEqual(context.displayPieceTitle, "Prelude chords")
+            }
+        }
+    }
+
     func testEveryEarlierMelodyKeepsTheNotesAndProgressKeysOfItsSavedTakes() throws {
         // Progress is saved under a hash of the whole frozen selection: notes, key and all. Placing a later
         // melody's voice at the cello's pitch must not move the voice of an earlier one, in any lesson.
@@ -208,7 +234,8 @@ final class MelodyScoreTests: XCTestCase {
             (.lightlyRow, [heldEnding, heldEnding, onEachBeat, heldEnding]),
             (.oldMacDonald, [onEachBeat, heldEnding, onEachBeat, "Tap once on 1. Count 2, 3 and 4 while the note continues."]),
             (.yankeeDoodle, [twoPerBeat, runThenTwo, twoPerBeat, runThenTwo]),
-            (.gMajorScale, Array(repeating: onEachBeat, count: 4))]
+            (.gMajorScale, Array(repeating: onEachBeat, count: 4)),
+            (.preludeChords, Array(repeating: onEachBeat, count: 4))]
         for (piece, expected) in hints {
             XCTAssertEqual(MelodySection.phrases.map(piece.rhythmHint), expected, piece.title)
             XCTAssertEqual(piece.rhythmHint(for: .whole), "Tap at each new tile. Keep counting through the longer tiles.")

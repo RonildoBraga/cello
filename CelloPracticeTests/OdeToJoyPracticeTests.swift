@@ -8,7 +8,7 @@ final class OdeToJoyPracticeTests: XCTestCase {
     func testRecordedPhrasesAndWholeOpeningEarnThreeIndependentStarsHummedAndOnTheCello() throws {
         // Twinkle's jump of five notes, Lightly Row's skips and Yankee Doodle's running notes are scored
         // by the same rater as the steps of Ode to Joy.
-        for piece in [MelodyPiece.odeToJoy, .twinkle, .lightlyRow, .oldMacDonald, .yankeeDoodle, .gMajorScale] {
+        for piece in [MelodyPiece.odeToJoy, .twinkle, .lightlyRow, .oldMacDonald, .yankeeDoodle, .gMajorScale, .preludeChords] {
             for register in PracticeMethod.allCases.map(\.register) {
                 for section in MelodySection.allCases {
                     let context = try MelodyPracticeContext.melody(
@@ -40,7 +40,8 @@ final class OdeToJoyPracticeTests: XCTestCase {
             (.lightlyRow, MelodySection.phrases, [50, 52, 54, 55, 57]),
             (.oldMacDonald, MelodySection.phrases, [50, 52, 55, 57, 59]),
             (.yankeeDoodle, MelodySection.phrases, [50, 52, 54, 55, 57, 59, 60]),
-            (.gMajorScale, MelodySection.phrases, [43, 45, 47, 48, 50, 52, 54, 55])]
+            (.gMajorScale, MelodySection.phrases, [43, 45, 47, 48, 50, 52, 54, 55]),
+            (.preludeChords, MelodySection.phrases, [43, 50, 52, 54, 55, 59, 60])]
         for (piece, sections, notes) in pieces {
             for register in PracticeMethod.allCases.map(\.register) {
                 var heardNotes: Set<Int> = []
@@ -237,6 +238,21 @@ final class OdeToJoyPracticeTests: XCTestCase {
         for section in MelodySection.allCases {
             let timing = round(try MelodyRhythmContext.melody(piece: .oldMacDonald, section: section))
             XCTAssertEqual(try XCTUnwrap(MelodyRhythmAttempt(timing: timing, finishedAt: timing.endTime)).starCount, 3, section.rawValue)
+        }
+    }
+
+    func testTheTeacherNoteNamesAJumpThatFellShortOrWentTooFar() throws {
+        // Bach's first chord, G2 D3 B3 D3, with the jump to the top note sung a whole tone short, then a
+        // whole tone too far. D3 comes twice, so notes go by number, with their name.
+        let context = MelodyPiece.preludeChords.humming(register: .lowVoice, section: .phrase1)
+        for (shift, expected) in [(-2, "Note 3 (B3) was low. Aim higher on it."), (2, "Note 3 (B3) was high. Aim lower on it.")] {
+            let sung = context.expectedEvents.enumerated().map { index, event in
+                MelodyEvent(onsetBeat: event.onsetBeat, durationBeats: event.durationBeats,
+                            midiNote: event.midiNote.map { index == 2 ? $0 + shift : $0 })
+            }
+            let rating = rate(pcm(try RecordedReference.wavData(context: replacing(context, events: sung))), for: context)
+            XCTAssertFalse(rating.notes, "One note in four is more than the Notes goal allows")
+            XCTAssertEqual(TeacherNote(rating: rating, register: .lowVoice).paragraphs.first, expected)
         }
     }
 
