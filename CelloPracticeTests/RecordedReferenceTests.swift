@@ -131,6 +131,45 @@ final class RecordedReferenceTests: XCTestCase {
         }
     }
 
+    func testHummedNotesSitOnTheirPitchAtOneLoudnessWithoutAnOffset() throws {
+        for midiNote in 43...60 {
+            let context = snapshot(events: [MelodyEvent(onsetBeat: 0, durationBeats: 1, midiNote: midiNote)], duration: 2)
+            let sound = pcm(try RecordedReference.wavData(context: context))
+            let note = sound[0..<42_240]
+            let expected = try XCTUnwrap(context.frequency(for: context.expectedEvents[0]))
+            let measured = try XCTUnwrap(median(measuredFrequencies(sound, times: [0.25, 0.40, 0.55, 0.70])))
+            XCTAssertLessThan(abs(1_200 * log2(measured / expected)), 8, "MIDI \(midiNote)")
+            XCTAssertEqual(20 * log10(Double(rms(note))), -15, accuracy: 0.5, "MIDI \(midiNote)")
+            XCTAssertLessThan(abs(note.reduce(0, +) / Float(note.count)), 0.002, "MIDI \(midiNote)")
+        }
+    }
+
+    /// Most of the recording's energy above 1.2 kHz lies below 3 kHz, where its resonances are: 22 dB more than
+    /// from 3 to 6 kHz. Resampling the hum up moved them with the pitch, to 8 dB at E3 and below 0 dB at C4, the
+    /// sound of a smaller voice. Rebuilt cycle by cycle, every note keeps about 15 dB.
+    func testHummedNotesKeepTheVoicesResonancesWhereTheRecordingHasThem() throws {
+        for midiNote in [52, 55, 57, 60] {
+            let context = snapshot(events: [MelodyEvent(onsetBeat: 0, durationBeats: 1, midiNote: midiNote)], duration: 2)
+            let note = Array(pcm(try RecordedReference.wavData(context: context))[0..<42_240])
+            XCTAssertGreaterThan(resonanceBalance(note), 12, "MIDI \(midiNote)")
+        }
+    }
+
+    func testLongHummedNotesGoBackAndForthOverTheRecordingWithoutASeam() throws {
+        for midiNote in [43, 60] {
+            let context = snapshot(events: [MelodyEvent(onsetBeat: 0, durationBeats: 7, midiNote: midiNote)], duration: 8)
+            let sound = pcm(try RecordedReference.wavData(context: context))
+            XCTAssertLessThan(sound.map(abs).max() ?? 1, 0.90)
+            let jumps = zip(sound, sound.dropFirst()).map { pair in abs(pair.0 - pair.1) }
+            XCTAssertLessThan(jumps.max() ?? 1, 0.20)
+            let expected = try XCTUnwrap(context.frequency(for: context.expectedEvents[0]))
+            for time in [1.0, 3.0, 5.0] {
+                let measured = try XCTUnwrap(measuredFrequencies(sound, times: [time]).first, "MIDI \(midiNote), \(time) s")
+                XCTAssertLessThan(abs(1_200 * log2(measured / expected)), 25, "MIDI \(midiNote), \(time) s")
+            }
+        }
+    }
+
     func testMissingRecordingsThrowInsteadOfSubstitutingSyntheticAudio() throws {
         let emptyBundle = Bundle(for: Self.self)
         XCTAssertNotEqual(emptyBundle.bundleURL, Bundle.main.bundleURL)
@@ -189,5 +228,29 @@ final class RecordedReferenceTests: XCTestCase {
 
     private func rms(_ samples: ArraySlice<Float>) -> Float {
         sqrt(samples.reduce(0) { $0 + $1 * $1 } / Float(samples.count))
+    }
+
+    /// Power from 1.2 to 3 kHz over power from 3 to 6 kHz, in dB, over four windows in a note's middle half.
+    private func resonanceBalance(_ note: [Float]) -> Double {
+        let size = 2_048, rate = Double(RecordedReference.sampleRate)
+        let window = (0..<size).map { 0.5 - 0.5 * cos(2 * .pi * Double($0) / Double(size)) }
+        var low = 0.0, high = 0.0
+        for start in stride(from: note.count / 4, through: note.count * 3 / 4 - size, by: (note.count / 2 - size) / 3) {
+            for bin in Int(1_200 * Double(size) / rate)..<Int(6_000 * Double(size) / rate) {
+                var real = 0.0, imaginary = 0.0
+                for index in 0..<size {
+                    let value = Double(note[start + index]) * window[index]
+                    let angle = 2 * .pi * Double(bin * index) / Double(size)
+                    real += value * cos(angle)
+                    imaginary -= value * sin(angle)
+                }
+                if Double(bin) * rate / Double(size) < 3_000 {
+                    low += real * real + imaginary * imaginary
+                } else {
+                    high += real * real + imaginary * imaginary
+                }
+            }
+        }
+        return 10 * log10(low / high)
     }
 }

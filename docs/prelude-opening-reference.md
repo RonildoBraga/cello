@@ -29,7 +29,7 @@ Meet the notes plays the eight notes one at a time, then the melody's widest jum
 
 See [the Prelude chords](prelude-chords-reference.md) for the suite's history and its source. The music is in the public domain. Our independently encoded excerpt copies no modern edition.
 
-Playback adapts the same recorded sources already bundled for the other melodies. Human references retune the retropttam hum to the score, up to C4, fifteen semitones above its own pitch; cello references use the existing VSCO 2 recorded cello-section sustains. These sources remain under their existing licences and credits: [human source, CC BY 3.0 and adaptations](../CelloPractice/Resources/HUMMING-LICENSE.txt), and [cello sources and CC0 dedication](../CelloPractice/Resources/CELLO-LICENSE.txt). No new recording is distributed.
+Playback adapts the same recorded sources already bundled for the other melodies. Human references rebuild the retropttam hum on the score one recorded cycle at a time, up to C4, fifteen semitones above its own pitch, keeping the voice's resonances (see [the G major scale](g-major-scale-reference.md)); cello references use the existing VSCO 2 recorded cello-section sustains. These sources remain under their existing licences and credits: [human source, CC BY 3.0 and adaptations](../CelloPractice/Resources/HUMMING-LICENSE.txt), and [cello sources and CC0 dedication](../CelloPractice/Resources/CELLO-LICENSE.txt). No new recording is distributed.
 
 Sources checked on 13 November 2026.
 
@@ -39,4 +39,4 @@ Humming and tapping use the shared melody assessments unchanged. Each take freez
 
 The plan asked for proof that the scoring can follow it before the level was built: thirty-two notes of half a second, many a sixth or more from the one before. Unit tests render the hummed and cello examples of every phrase and of the whole opening and check that each earns three stars, both in quiet and under the steady hiss of the noise test, and that every note sounds at its pitch, measured inside its own half beat.
 
-No real cello take has been scored at any level yet, and no real take of this level exists, so the teacher's note has only been checked on the app's own examples and on simulated mistakes at earlier levels. Not yet checked: a real voice or a real cello on it, and the hummed examples by ear.
+No real cello take has been scored at any level yet, and no real take of this level exists, so the teacher's note has only been checked on the app's own examples and on simulated mistakes at earlier levels. Not yet checked: a real voice or a real cello on it, and the hummed examples by ear beyond phrase 2.

@@ -29,7 +29,7 @@ Melody adaptations (recorded-human references)
 The melody examples use the same human recording, edited into our teaching arrangements of the traditional Hot Cross Buns melody, the opening of Beethoven’s Ode to Joy theme, the opening of the 18th-century melody known as Twinkle, Twinkle, Little Star, the opening of the German folk tune known as Lightly Row (Hänschen klein), the first line of the traditional Old MacDonald Had a Farm, the first strain of the 18th-century tune Yankee Doodle, the G major scale, the opening chords and opening bars of the Prelude of J. S. Bach’s Cello Suite No. 1, and original Listen & Echo practice patterns. Pitch, note duration, articulation and quiet gaps are adjusted to the selected score. They are adaptations of a recorded voice, not continuous performances of these melodies by the original creator. No endorsement by the original creator is implied.
 
 Low voice:
-- The renderer retunes the original hum-example.wav excerpt from its measured 110.64730204182847 Hz source pitch to each expected note.
-- Each note has short fades and a quiet articulation gap; longer sustained notes may crossfade repeated source audio.
+- The renderer moves the original hum-example.wav excerpt to each expected note one recorded cycle at a time (pitch-synchronous overlap-add), so the pitch changes and the voice's resonances stay where they were recorded. Each note is centred on its target from the lengths of the recorded cycles it uses; the excerpt's median pitch is 110.64730204182847 Hz.
+- Each note is brought to one loudness and has short fades and a quiet articulation gap; longer sustained notes go back and forth over the recorded cycles.
 
 Both the original excerpt and these adaptations are distributed under CC BY 3.0 with the original credit, source and licence links above. Original foundation playback and its fixed pitch target remain unchanged. No learner recording is used as a bundled reference.

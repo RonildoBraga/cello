@@ -27,7 +27,7 @@ Meet the notes plays the eight notes one at a time, then the octave: G2 then G3,
 
 ## The hummed example
 
-The hummed G3 is ten semitones above the recorded hum's own pitch (110.6 Hz, close to A2), further than any earlier level moved it (eight, for Yankee Doodle's F3). The renderer retunes the one recording; the examples pass the same pitch checks as every other level. Whether G3 still sounds like a person humming has not been judged by ear. If it does not, the plan in issue #82 is a second recorded hum around D3, chosen for the notes it is nearer to, as the cello examples already choose between four recorded strings. A new recording would need its source and licence recorded like the first.
+The hummed G3 is ten semitones above the recorded hum's own pitch (110.6 Hz, close to A2), further than any earlier level moved it (eight, for Yankee Doodle's F3). The renderer first raised notes by resampling, playing the recording faster, which moves the voice's resonances with its pitch: 1.8 times higher at G3 and 2.4 times at C4, the sound of a smaller voice. It now rebuilds the hum one recorded cycle at a time, which changes the pitch and leaves the resonances where they were recorded, within 12 per cent up to C4. Phrase 2 of Levels 8 to 10, rendered both ways, was compared by ear on 13 November 2026, and the cycle-by-cycle hum sounded more natural, so the second recorded hum that issue #82 planned for this case is not needed. Each hummed note is centred on its pitch, within a few cents, and played at the same loudness as the cello's notes; the examples pass the same pitch checks as every other level.
 
 ## Recording provenance
 
@@ -37,4 +37,4 @@ Playback adapts the same recorded sources already bundled for the other melodies
 
 Humming and tapping use the shared melody assessments unchanged. Each take freezes its piece ID (`gMajorScale`), score version, register, key, expected events, tuning, tempo, section and grading version, so this level's progress is separate from the other melodies and adding it regrades nothing. Unit tests render the hummed and cello examples of every phrase and of the whole scale, check that each earns three stars, and check that every note sounds at its pitch.
 
-Not yet checked: the hummed examples by ear, from F-sharp3 up; a real voice humming up to G3; a real cello.
+Not yet checked: a real voice humming up to G3; a real cello.
