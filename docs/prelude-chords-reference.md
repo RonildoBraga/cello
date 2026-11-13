@@ -29,7 +29,7 @@ Bach most likely composed the six cello suites between 1717 and 1723, when he wa
 
 Playback adapts the same recorded sources already bundled for the other melodies. Human references retune the retropttam hum to the score; cello references use the existing VSCO 2 recorded cello-section sustains. These sources remain under their existing licences and credits: [human source, CC BY 3.0 and adaptations](../CelloPractice/Resources/HUMMING-LICENSE.txt), and [cello sources and CC0 dedication](../CelloPractice/Resources/CELLO-LICENSE.txt). No new recording is distributed.
 
-The hummed C4 is fifteen semitones above the recorded hum's own pitch (110.6 Hz, close to A2), the furthest the one recording has been moved. It passes the pitch checks; how it sounds has not been judged by ear (see [the G major scale](g-major-scale-reference.md)).
+The hummed C4 is fifteen semitones above the recorded hum's own pitch (110.6 Hz, close to A2), the furthest the one recording has been moved. It passes the pitch checks and keeps the voice's resonances, as the hum is rebuilt one recorded cycle at a time; see [the G major scale](g-major-scale-reference.md) for how that was chosen by ear.
 
 Sources checked on 13 November 2026.
 
@@ -41,4 +41,4 @@ The chords span an octave and a fourth with jumps up to an octave: cello writing
 
 Humming and tapping use the shared melody assessments unchanged. Each take freezes its piece ID (`preludeChords`), score version, register, key, expected events, tuning, tempo, section and grading version, so this level's progress is separate from the other melodies and adding it regrades nothing. Unit tests render the hummed and cello examples of every phrase and of the whole level, check that each earns three stars, and check that every note sounds at its pitch. A unit test renders the first chord with its top note a whole tone short, and a whole tone too far, and checks that the teacher's note names the note and the way it was out ("Note 3 (B3) was low. Aim higher on it.").
 
-Not yet checked: a real voice or a real cello on the jumps, and the hummed examples by ear.
+Not yet checked: a real voice or a real cello on the jumps, and the hummed examples by ear beyond phrase 2.
