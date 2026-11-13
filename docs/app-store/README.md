@@ -4,7 +4,7 @@ The first public submission was **1.19.0 (36)**, free in all App Store countries
 
 - `listing-en-AU.json`: public English (Australia) metadata and review instructions. Private review contact fields are entered in App Store Connect and are not stored here.
 - `icon-design.md`: original generated icon provenance and prompt. The opaque 1024px asset lives in the app icon catalog; the compiled archive must contain its 1024px Icon Image rendition.
-- Screenshots must be original app captures from a clean demonstration Simulator. No learner recordings, private histories or invented results. The current required iPhone Dynamic Island medium slot accepts the test iPhone 17’s 1206 x 2622 captures. Inspect screenshots before uploading.
+- Screenshots must be original app captures from a clean demonstration Simulator. No learner recordings, private histories or invented results. The current required iPhone Dynamic Island medium slot accepts the test iPhone 17’s 1206 x 2622 captures. Inspect screenshots before uploading. The six for 1.20.0 replace the 1.19.0 set, one of which showed a cello level that no longer exists: path, Steady note, Pulse, Prelude opening, Listen & Echo and Meet your cello, captured from a fresh install on an iPhone 17 Simulator running iOS 27 with the status bar at 9:41.
 
 ## Publish the support pages
 
