@@ -31,11 +31,12 @@ jobs:
       - run: bash scripts/test.sh unit-core
 
   # Every melody's rendered examples, scored clean and under hiss: the slowest unit tests,
-  # in their own job so neither job nears the time limit as levels are added.
+  # in their own job so the app unit tests keep well inside their limit. With ten levels
+  # this job took 18 to 26 minutes on GitHub's runners, so it gets more room than the rest.
   examples:
     name: Melody examples
     runs-on: macos-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - run: xcodebuild -version
