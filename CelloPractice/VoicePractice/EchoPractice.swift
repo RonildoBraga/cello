@@ -177,6 +177,21 @@ struct EchoProgressLedger: SessionProgressLedger {
 
 /// Feedback describes the observed performance, not a measurement of memory.
 extension MelodyRating {
+    /// Echo names a note only in its timing advice, before any general clarity advice.
+    func echoFocus(in verdicts: [NoteVerdict]) -> NoteVerdict? {
+        guard status == .rated, !octaveMismatch, notes, !timing,
+              let note = noteResults.first(where: { $0.expectedFrequency != nil && !$0.timed }),
+              let verdict = verdicts.first(where: { $0.id == note.expectedIndex }),
+              let issue = verdict.issues.first(where: { [.late, .early, .short].contains($0.kind) }) else { return nil }
+        let subject: TeacherNote.Subject
+        switch issue.kind {
+        case .late: subject = .late
+        case .early: subject = .early
+        default: subject = .cutShort
+        }
+        return NoteVerdict.focus(of: [verdict], subject: subject)
+    }
+
     var echoFeedback: String {
         switch status {
         case .insufficientSound: return "Start after the countdown and go through the whole pattern."
