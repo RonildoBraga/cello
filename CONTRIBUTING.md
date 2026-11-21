@@ -22,7 +22,7 @@ bash scripts/test.sh smoke  # nine UI tests across every area, about 6 minutes; 
 bash scripts/test.sh ui     # every real-clock UI test, about 30 minutes; run before a release
 ```
 
-Simulator checks do not establish microphone, speaker, camera or haptic behaviour. Say in the pull request what was and was not checked on a physical iPhone.
+Simulator checks do not establish microphone, speaker or haptic behaviour. Say in the pull request what was and was not checked on a physical iPhone.
 
 ## Learner data is a contract
 
