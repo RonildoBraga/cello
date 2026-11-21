@@ -29,7 +29,8 @@ struct TuneCelloView: View {
             }
             .onChange(of: capture.frequency) { _, frequency in tuner.hear(frequency) }
             .onDisappear { capture.stop() }
-            .onChange(of: scenePhase) { _, phase in if phase != .active { capture.stop() } }
+            // The microphone prompt makes the scene inactive; stopping then would cancel the request.
+            .onChange(of: scenePhase) { _, phase in if phase == .background { capture.stop() } }
     }
 
     private var tunerCard: some View {
