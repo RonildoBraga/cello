@@ -39,8 +39,8 @@ extension EnvironmentValues {
 }
 
 /// Voice or cello, in the bar of every lesson that has a sound to hear or record.
-/// The cello is filmed and the voice is not, so changing method releases the
-/// microphone and camera, and stops whatever is playing. The switch follows only
+/// The targets change with the method, so changing it releases the microphone
+/// and stops whatever is playing. The switch follows only
 /// whether a take is recording, never the controller's ticks.
 struct PracticeMethodSwitch: View {
     let capture: CaptureController

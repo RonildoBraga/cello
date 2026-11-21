@@ -21,7 +21,7 @@ struct TuneCelloView: View {
             .screenTitle("Tune your cello")
             .bottomActionBar {
                 Button {
-                    if capture.isReady { capture.stop() } else { capture.start(includingCamera: false) }
+                    if capture.isReady { capture.stop() } else { capture.start() }
                 } label: {
                     Label(capture.isReady ? "Stop listening" : "Start listening",
                           systemImage: capture.isReady ? "stop.fill" : "mic.fill")

@@ -14,8 +14,7 @@ struct PitchSample: Codable, Sendable {
 }
 
 /// One capture session feeds both the saved take and the live tuner. Every take
-/// records the microphone; the camera joins only when a lesson asks for it, so
-/// humming needs no camera permission. Session mutations stay off the main thread.
+/// records the microphone only. Session mutations stay off the main thread.
 final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     let session = AVCaptureSession()
 
@@ -46,7 +45,6 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     private var recordingRequested = false
     private var recordingCompletion: ((URL, [PitchSample], RoomNoise?) -> Void)?
     private var stopWhenRecordingStarts = false
-    private var videoInput: AVCaptureDeviceInput?
     private var observerTokens: [NSObjectProtocol] = []
     private var referenceToken: UUID?
     private var referenceCooldown: DispatchWorkItem?
@@ -84,9 +82,8 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         referenceCooldown?.cancel()
     }
 
-    /// Permissions are requested only after a learner starts an action, and the
-    /// camera only for lessons that record video.
-    func start(includingCamera: Bool) {
+    /// The microphone permission is requested only after a learner starts an action.
+    func start() {
         sessionQueue.async { [weak self] in
             guard let self else { return }
             guard self.referenceToken == nil else {
@@ -94,21 +91,17 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
                 return
             }
             self.wantsToRun = true
-            self.requestCaptureStart(includingCamera: includingCamera)
+            self.requestCaptureStart()
         }
     }
 
-    private func requestCaptureStart(includingCamera: Bool) {
+    private func requestCaptureStart() {
         Task { [weak self] in
             guard let self else { return }
-            let cameraAllowed = includingCamera ? await Self.requestPermission(for: .video) : true
-            let microphoneAllowed = await Self.requestPermission(for: .audio)
-            guard cameraAllowed && microphoneAllowed else {
+            guard await Self.requestPermission(for: .audio) else {
                 self.publish {
                     self.isReady = false
-                    self.message = includingCamera
-                        ? "Allow Camera and Microphone in Settings → Cello, then tap Record again."
-                        : "Allow Microphone in Settings → Cello, then tap Record again."
+                    self.message = "Allow Microphone in Settings → Cello, then tap Record again."
                 }
                 return
             }
@@ -117,13 +110,11 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
                 do {
                     if !self.configured { try self.configureSession() }
                     else { try self.activateAudioSession() }
-                    try self.setCamera(enabled: includingCamera)
                     if !self.session.isRunning { self.session.startRunning() }
                     let running = self.session.isRunning
                     self.publish {
                         self.isReady = running
-                        self.message = running ? nil : includingCamera
-                            ? "The camera could not start. Close any other camera app and try again."
+                        self.message = running ? nil
                             : "The microphone could not start. Close any other recording app and try again."
                     }
                 } catch {
@@ -149,7 +140,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         for _ in 0..<30 where isPlayingReference { try? await Task.sleep(for: .milliseconds(50)) }
     }
 
-    /// Finishes an active take before releasing the camera and microphone.
+    /// Finishes an active take before releasing the microphone.
     func stop() {
         publish {
             self.isReady = false
@@ -173,30 +164,6 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
             } else {
                 self.stopSession()
             }
-        }
-    }
-
-    func switchCamera() {
-        sessionQueue.async { [weak self] in
-            guard let self, self.configured, !self.recordingRequested,
-                  let oldInput = self.videoInput else { return }
-            let nextPosition: AVCaptureDevice.Position = oldInput.device.position == .front ? .back : .front
-            guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: nextPosition),
-                  let replacement = try? AVCaptureDeviceInput(device: camera) else {
-                self.publish { self.message = "The other camera is not available." }
-                return
-            }
-            self.session.beginConfiguration()
-            self.session.removeInput(oldInput)
-            if self.session.canAddInput(replacement) {
-                self.session.addInput(replacement)
-                self.videoInput = replacement
-            } else {
-                self.session.addInput(oldInput)
-                self.publish { self.message = "The camera could not be switched." }
-            }
-            self.configureMovieConnection()
-            self.session.commitConfiguration()
         }
     }
 
@@ -303,7 +270,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         }
     }
 
-    // Called only on sessionQueue. A preview does not need camera/microphone permission.
+    // Called only on sessionQueue. A preview does not need microphone permission.
     private func prepareReference(frequency: Double, source: ReferenceSource, token: UUID) {
         guard !recordingRequested, referenceToken == nil else {
             publish {
@@ -451,7 +418,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         }
     }
 
-    /// The base session records the microphone only. `setCamera` adds video.
+    /// The session records the microphone only.
     private func configureSession() throws {
         guard let microphone = AVCaptureDevice.default(for: .audio) else {
             throw CaptureError.unavailableMicrophone
@@ -464,7 +431,6 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
             if !configurationSucceeded {
                 session.inputs.forEach(session.removeInput)
                 session.outputs.forEach(session.removeOutput)
-                videoInput = nil
             }
             session.commitConfiguration()
             if !configurationSucceeded {
@@ -487,42 +453,11 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         configurationSucceeded = true
     }
 
-    /// Adds or removes the camera between takes. Called only on sessionQueue.
-    private func setCamera(enabled: Bool) throws {
-        guard enabled != (videoInput != nil), !recordingRequested else { return }
-        session.beginConfiguration()
-        defer { session.commitConfiguration() }
-        if let input = videoInput {
-            session.removeInput(input)
-            videoInput = nil
-            return
-        }
-        guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
-                ?? AVCaptureDevice.default(for: .video) else { throw CaptureError.unavailableCamera }
-        let input = try AVCaptureDeviceInput(device: camera)
-        guard session.canAddInput(input) else { throw CaptureError.unsupportedConfiguration }
-        session.addInput(input)
-        videoInput = input
-        if session.canSetSessionPreset(.hd1280x720) { session.sessionPreset = .hd1280x720 }
-        configureMovieConnection()
-    }
-
     private func activateAudioSession() throws {
         let audioSession = AVAudioSession.sharedInstance()
         try audioSession.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker])
         try audioSession.setPreferredSampleRate(48_000)
         try audioSession.setActive(true)
-    }
-
-    private func configureMovieConnection() {
-        guard let connection = movieOutput.connection(with: .video) else { return }
-        // The first version uses a portrait capture, matching its guided preview.
-        if connection.isVideoRotationAngleSupported(90) { connection.videoRotationAngle = 90 }
-        if connection.isVideoMirroringSupported {
-            connection.automaticallyAdjustsVideoMirroring = false
-            connection.isVideoMirrored = false
-        }
-        if connection.isVideoStabilizationSupported { connection.preferredVideoStabilizationMode = .standard }
     }
 
     private func stopSession() {
@@ -627,12 +562,10 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
 
     private enum CaptureError: LocalizedError {
         case unavailableMicrophone
-        case unavailableCamera
         case unsupportedConfiguration
         var errorDescription: String? {
             switch self {
             case .unavailableMicrophone: return "The microphone is unavailable. Use your iPhone to try live practice."
-            case .unavailableCamera: return "The camera is unavailable. Use your iPhone to record a cello lesson."
             case .unsupportedConfiguration: return "This device could not set up recording. Please restart the app and try again."
             }
         }
@@ -652,7 +585,7 @@ extension CaptureController: AVCaptureAudioDataOutputSampleBufferDelegate {
               let mono = Self.monoSamples(from: pcm) else {
             if !reportedUnsupportedAudio {
                 reportedUnsupportedAudio = true
-                publish { self.message = "The microphone audio format could not be analysed. Video recording is still available." }
+                publish { self.message = "The microphone audio format could not be analysed. Recording is still available." }
             }
             return
         }

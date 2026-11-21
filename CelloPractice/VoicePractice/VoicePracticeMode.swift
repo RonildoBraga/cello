@@ -109,9 +109,6 @@ enum VoicePracticeMode: Equatable {
 
     /// Echo unlocks Record only after its pattern has been heard to the end.
     var requiresHearFirst: Bool { isEcho }
-    /// Video helps review posture and bowing; a hummed note needs only the microphone.
-    var recordsVideo: Bool { method == .cello }
-
     @MainActor
     func progress(in store: SessionStore) -> PracticeProgress {
         switch self {
@@ -123,7 +120,7 @@ enum VoicePracticeMode: Equatable {
 
     @MainActor
     func playReference(on capture: CaptureController) {
-        // Hearing a reference needs playback only, without camera or microphone setup.
+        // Hearing a reference needs playback only, without microphone setup.
         if let context = melodyContext { capture.playMelodyReference(context) }
         else if method == .voice { capture.playHummingExample() }
         else { capture.playCelloReference(frequency: targetFrequency) }
@@ -195,7 +192,7 @@ enum VoicePracticeMode: Equatable {
 
     private var echoCountdownMessage: String { "Start \(method == .cello ? "playing" : "humming") when the countdown ends." }
     var preparingMessage: String {
-        isEcho ? echoCountdownMessage : recordsVideo ? "Preparing camera & microphone…" : "Preparing microphone…"
+        isEcho ? echoCountdownMessage : "Preparing microphone…"
     }
     var countInMessage: String {
         isEcho ? echoCountdownMessage : "Get ready to \(verb)"

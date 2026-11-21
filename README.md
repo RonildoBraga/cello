@@ -35,7 +35,7 @@ The lessons include:
 
 **Music → First sounds → Listen & Echo** adds ear training with fresh two-note and three-note patterns. Tap the pattern's chip, listen to the complete recorded-human reference, then Record after the count of 1–2–3–4. During recording, the live tuning bar follows each target note and shows measured pitch, cents and a higher/lower cue. Stars and the performance chart appear after saving. Two notes last four seconds; three last six. Each level earns separate progress across patterns, with three three-star takes among the last five rated takes completing that level. Both levels remain available. This activity has its own ledger and keeps the original numbered foundation lessons unchanged. See [the Echo practice design and assessment](docs/listen-and-echo.md).
 
-Choose **Cello** in any recorded lesson and tap the information button to open **Meet your cello**, with an original labelled diagram, the four recorded string-pitch examples from low to high, a link to **Tune your cello**, and the route into playing. Tune your cello is a tuner for the four open strings: choose a string, tap Start listening and play it. It says “in tune” within 5 cents, names the fine tuner for small changes and the peg for changes beyond 100 cents, and reads the string in any octave, because a low C's overtone often sounds louder than its note. Listening makes no take and changes no progress. Hear is manual and needs no microphone/camera capture. Reading and listening leave performance scores and completion unchanged. The introduction returns to the open strings; setup, first-position instruction and cello melody assessment remain in [issue #6](https://github.com/RonildoBraga/cello/issues/6). See [the introductory sources and draft practical lesson plan](docs/first-cello-lessons.md).
+Choose **Cello** in any recorded lesson and tap the information button to open **Meet your cello**, with an original labelled diagram, the four recorded string-pitch examples from low to high, a link to **Tune your cello**, and the route into playing. Tune your cello is a tuner for the four open strings: choose a string, tap Start listening and play it. It says “in tune” within 5 cents, names the fine tuner for small changes and the peg for changes beyond 100 cents, and reads the string in any octave, because a low C's overtone often sounds louder than its note. Listening makes no take and changes no progress. Hear is manual and needs no microphone capture. Reading and listening leave performance scores and completion unchanged. The introduction returns to the open strings; setup, first-position instruction and cello melody assessment remain in [issue #6](https://github.com/RonildoBraga/cello/issues/6). See [the introductory sources and draft practical lesson plan](docs/first-cello-lessons.md).
 
 On the cello, Steady note has separate C/G/D/A open-string targets. Lesson pages show instructions, best/latest scores and earned completion; every exercise stays available. Original IDs, lesson numbers and earned progress are retained.
 
@@ -62,7 +62,7 @@ The first melody is Hot Cross Buns. **Meet the notes** plays each of its notes f
 **Listen** also offers manual playback in the cello register (D3–F♯3). All audible references use recorded sound: edited human humming for the voice registers and recorded bowed cello samples for cello notes. The foundation human example keeps its original pitch; melody examples adjust the recordings to the selected notes and timing. Cello playing exercises are future work. See the [melody rhythm assessment](docs/melody-rhythm.md), [humming assessment](docs/melody-humming.md), [learning-path design](docs/music-learning-path.md) and [delivery issues](https://github.com/RonildoBraga/cello/issues/1).
 
 - Tapping the note at the top plays the recorded human example. **Record** counts in 1–2–3–4, then records a three-second humming take. While you hum, each note is a bar travelling to a line: its length is how long to hold, and the gap is the pause. Cello takes finish when you tap Stop, with a 90-second limit.
-- Humming recordings hold microphone audio and pitch observations only; no camera is used or asked for. Cello recordings add synchronized video, so posture and bowing can be reviewed. A tuning bar and end-of-take pitch chart show distance from the fixed target.
+- Recordings hold microphone audio and pitch observations only; no camera is used or asked for. Cello takes made before version 1.21.0 also hold video, which still plays. A tuning bar and end-of-take pitch chart show distance from the fixed target.
 - Rhythm lessons count in 1–2–3–4 at 60 BPM, show each tap travelling towards a line so it can be met on time, time a tap when the finger lands, and give whole-beat haptics, saved tap timing, a performance chart and feedback that names what went wrong. Lesson 4 has sixteen tap positions over eight beats; Lesson 5 has twelve over eight beats.
 - The app listens to the room before each take. In a noisy room the count-in says so, the live tuner ignores sound that does not stand clear of the room, and the result notes that noise may have lowered the score. Scoring itself is unchanged. See [background noise](docs/background-noise.md).
 - Melody takes hear a note's fresh start in a dip of the sound as well as in silence, judge its pitch once it has settled, and give quick notes room for their starts. Passes and gold earned under the earlier scoring still stand.
@@ -79,7 +79,7 @@ Requirements: macOS with Xcode and an iOS 18-or-later SDK; the app targets iOS 1
 
 1. Open `CelloPractice.xcodeproj` and select the **Cello** scheme.
 2. Select an available iPhone Simulator and run, or choose your connected iPhone.
-3. For a physical device, select your own Apple development team in **Signing & Capabilities**, use a bundle identifier you can provision, and enable Developer Mode on the phone. Microphone access is requested when starting a recording; camera access only when starting a cello recording. Reference playback works without capture permissions.
+3. For a physical device, select your own Apple development team in **Signing & Capabilities**, use a bundle identifier you can provision, and enable Developer Mode on the phone. Microphone access is requested when starting a recording. Reference playback works without capture permissions.
 
 The optional install script builds, installs and launches a signed Release app on a connected phone:
 
@@ -115,14 +115,14 @@ The bundled [privacy manifest](CelloPractice/Resources/PrivacyInfo.xcprivacy) de
 
 The same manifest declares app-only saved preferences under reason `CA92.1`. Public [help and support](https://ronildobraga.github.io/cello/) and the [privacy policy](https://ronildobraga.github.io/cello/privacy.html) are also linked from About. The static pages in `docs/` are published with GitHub Pages; they have no added analytics or forms.
 
-- Takes (sound only for humming, sound and video for cello) and metadata: `Documents/PracticeSessions`.
+- Takes (sound only; older cello takes also hold video) and metadata: `Documents/PracticeSessions`.
 - Unfinished or failed-save takes retained for recovery: `Documents/PendingTakes`.
 - Voice completion milestones: `Documents/PracticeProgress.json`.
 - Separate rhythm history files: `PulsePractice.json`, `TwoTapsPractice.json` and `MixedRhythmPractice.json`.
 - Piece rhythm rounds and completion milestones: `Documents/MelodyRhythmPractice.json`, separate from foundation histories.
 - Listen & Echo completion milestones: `Documents/EchoProgress.json`; frozen patterns and ratings stay with the recordings.
 - Separate melody completion milestones: `Documents/MelodyProgress.json`; attempt ratings and frozen phrase references stay with each recording.
-- A session ZIP contains the recording, metadata, pitch CSV, a review summary and, for takes with video, up to four timestamped JPEG frames.
+- A session ZIP contains the recording, metadata, pitch CSV, a review summary and, for older takes with video, up to four timestamped JPEG frames.
 
 Recordings can be deleted one at a time, or all at once from Edit → Delete all on the Recordings tab, to free space. Deleting the app removes its local data, so export important recordings first. Repository ignore rules exclude local builds, signing material, personal practice media and review artifacts. The bundled reference hum below is a licensed public recording, not a learner's practice take.
 

@@ -9,7 +9,7 @@ struct SessionDetailView: View {
     @State private var exporting = false
     @State private var exportURL: URL?
     @State private var sharing = false
-    /// Humming takes are sound only; they need a player bar, not a video frame.
+    /// Takes are sound only and need a player bar; older cello takes also hold video.
     @State private var hasVideo = true
     @State private var error: String?
     private var noisyRoom: Bool { session.room?.isLoud == true }

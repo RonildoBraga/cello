@@ -391,7 +391,7 @@ final class LearningUITests: XCTestCase {
 
         let playback = app.descendants(matching: .any).matching(identifier: "sessionPlaybackPlayer").firstMatch
         reveal(playback, in: app)
-        XCTAssertTrue(playback.isHittable, "Adding a pitch trace must keep the recorded video reachable")
+        XCTAssertTrue(playback.isHittable, "Adding a pitch trace must keep the recording reachable")
         let share = app.buttons["shareSessionButton"]
         reveal(share, in: app)
         XCTAssertTrue(share.isEnabled, "The existing recording actions should remain accessible below the chart")
@@ -520,7 +520,7 @@ final class LearningUITests: XCTestCase {
             waitForRecord(in: app)
             XCTAssertTrue(target.label.contains(note))
             XCTAssertFalse(app.staticTexts["captureMessage"].exists)
-            XCTAssertFalse(app.buttons["Turn off camera and microphone"].exists)
+            XCTAssertFalse(app.buttons["Turn off microphone"].exists)
         }
         screenshot("Cello · recorded references without microphone setup")
         assertNoPermissionAlerts(in: app)
@@ -536,7 +536,7 @@ final class LearningUITests: XCTestCase {
         let hear = app.buttons["previewTargetButton"]
         XCTAssertTrue(hear.isHittable && hear.isEnabled)
         XCTAssertTrue(hear.label.contains("Hear hum"))
-        XCTAssertFalse(app.buttons["Turn off camera and microphone"].exists)
+        XCTAssertFalse(app.buttons["Turn off microphone"].exists)
         hear.tap()
 
         let record = app.buttons["practiceRecordButton"]
@@ -549,7 +549,7 @@ final class LearningUITests: XCTestCase {
         waitForRecord(in: app)
         XCTAssertEqual(target.label, hummingTarget)
         XCTAssertFalse(app.staticTexts["captureMessage"].exists)
-        XCTAssertFalse(app.buttons["Turn off camera and microphone"].exists)
+        XCTAssertFalse(app.buttons["Turn off microphone"].exists)
         assertNoPermissionAlerts(in: app)
 
         hear.tap()
@@ -565,7 +565,7 @@ final class LearningUITests: XCTestCase {
         waitForRecord(in: app)
         XCTAssertEqual(target.label, hummingTarget)
         XCTAssertTrue(hear.isEnabled)
-        XCTAssertFalse(app.buttons["Turn off camera and microphone"].exists)
+        XCTAssertFalse(app.buttons["Turn off microphone"].exists)
         assertNoPermissionAlerts(in: app)
         screenshot("Humming · ready after leaving during playback")
     }
@@ -581,7 +581,7 @@ final class LearningUITests: XCTestCase {
         XCTAssertFalse(status.exists, "Opening the melody must not start playback")
         XCTAssertFalse(app.buttons["practiceRecordButton"].exists, "Melody recording is a separate delivery")
         XCTAssertFalse(app.buttons["previewTargetButton"].exists)
-        XCTAssertFalse(app.buttons["Turn off camera and microphone"].exists)
+        XCTAssertFalse(app.buttons["Turn off microphone"].exists)
         XCTAssertTrue(key.label.contains("Recorded hum") && key.label.contains("G major") && key.label.contains("G2–B2"))
         assertNoPermissionAlerts(in: app)
         assertNoWrittenInput(in: app)
@@ -940,8 +940,7 @@ final class LearningUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["LISTEN"].exists, "Only Hear may play the reference")
         let message = app.staticTexts["captureMessage"]
         XCTAssertTrue(message.waitForExistence(timeout: 20), "Unavailable Simulator capture should return with an explanation")
-        XCTAssertTrue(message.label.localizedCaseInsensitiveContains("camera")
-                      || message.label.localizedCaseInsensitiveContains("microphone"))
+        XCTAssertTrue(message.label.localizedCaseInsensitiveContains("microphone"))
         waitForRecord(in: app)
         XCTAssertFalse(app.staticTexts["melodyRatingStars"].exists)
         XCTAssertFalse(app.staticTexts["melodyRatingUnclear"].exists)
@@ -1210,7 +1209,7 @@ final class LearningUITests: XCTestCase {
         XCTAssertTrue(duration.label.contains("4 seconds") && duration.label.contains("60 BPM"))
         XCTAssertTrue(target.label.contains("G2–B2"))
         XCTAssertFalse(app.staticTexts["LISTEN"].exists)
-        XCTAssertFalse(app.buttons["Turn off camera and microphone"].exists)
+        XCTAssertFalse(app.buttons["Turn off microphone"].exists)
         XCTAssertFalse(app.staticTexts["melodyRatingStars"].exists)
         assertNoPermissionAlerts(in: app)
         screenshot("Hot Cross Buns · humming ready for phrase 1")
@@ -1257,28 +1256,27 @@ final class LearningUITests: XCTestCase {
         let record = app.buttons["practiceRecordButton"]
         XCTAssertEqual(record.label, "Record")
         record.tap()
-        // Camera/microphone consent follows the explicit Record action. A real
-        // Simulator has no camera; this exercises its recoverable error, rather
-        // than adding an app-only camera or scoring fixture.
+        // Microphone consent follows the explicit Record action. A Simulator's
+        // capture fails; this exercises its recoverable error, rather than adding
+        // an app-only capture or scoring fixture.
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
         for _ in 0..<2 {
             let alert = springboard.alerts.firstMatch
             if alert.waitForExistence(timeout: 1) {
                 let allow = alert.buttons.matching(NSPredicate(format: "label == 'Allow' OR label == 'OK'")).firstMatch
-                XCTAssertTrue(allow.exists, "Only explicit camera/microphone permission alerts are expected")
+                XCTAssertTrue(allow.exists, "Only an explicit microphone permission alert is expected")
                 allow.tap()
             }
         }
         XCTAssertFalse(app.staticTexts["LISTEN"].exists, "Record must never play the reference first")
         let message = app.staticTexts["captureMessage"]
         XCTAssertTrue(message.waitForExistence(timeout: 20), "Unavailable capture must leave Preparing with an explanation")
-        XCTAssertTrue(message.label.localizedCaseInsensitiveContains("camera")
-                      || message.label.localizedCaseInsensitiveContains("microphone"))
+        XCTAssertTrue(message.label.localizedCaseInsensitiveContains("microphone"))
         waitForRecord(in: app)
         XCTAssertTrue(record.isEnabled)
         XCTAssertFalse(app.staticTexts["melodyRatingStars"].exists)
         XCTAssertFalse(app.staticTexts["melodyRatingUnclear"].exists, "No take means no invented assessment")
-        screenshot("Hot Cross Buns · camera unavailable without a fabricated result")
+        screenshot("Hot Cross Buns · capture unavailable without a fabricated result")
         openMelodyHumming(in: app)
         waitForRecord(in: app)
         XCTAssertFalse(app.staticTexts["LISTEN"].exists)
@@ -1650,7 +1648,7 @@ final class LearningUITests: XCTestCase {
         assertReadyToRecord(in: app)
         app.tabBars.buttons["Recordings"].tap()
         XCTAssertTrue(app.navigationBars["Recordings"].waitForExistence(timeout: 5))
-        XCTAssertEqual(visibleRecordingIDs(in: app), recordingIDs, "Tap practice must not create an audio/video recording")
+        XCTAssertEqual(visibleRecordingIDs(in: app), recordingIDs, "Tap practice must not create a recording")
     }
 
     func testArchivedCompletedLessonFourCanContinueToMixedRhythm() throws {
@@ -1801,7 +1799,7 @@ final class LearningUITests: XCTestCase {
         let next = app.buttons["nextLessonButton"]
         app.scroll(to: next)
         XCTAssertTrue(next.isEnabled, "The next exercise must remain available before its predecessor is completed")
-        XCTAssertFalse(app.buttons["Turn off camera and microphone"].exists)
+        XCTAssertFalse(app.buttons["Turn off microphone"].exists)
         assertNoPermissionAlerts(in: app)
         screenshot("Humming · progress and optional next exercise")
 
@@ -1950,7 +1948,6 @@ final class LearningUITests: XCTestCase {
         XCTAssertTrue(record.isHittable, "Record must be visible before microphone input")
         XCTAssertTrue(record.isEnabled, "Record must not require a warm-up hum")
         XCTAssertTrue(app.buttons["previewTargetButton"].exists)
-        XCTAssertFalse(app.buttons["Enable camera & microphone"].exists)
     }
 
     private func assertInlinePulseHeader(in app: XCUIApplication, title: String = "Pulse") {
