@@ -924,6 +924,7 @@ final class LearningUITests: XCTestCase {
 
     func testOdeToJoyRecordDoesNotAutoplayOrInventFeedbackWithoutCapture() {
         let app = XCUIApplication.cello()
+        app.launchArguments += ["-noMicrophone", "YES"]
         app.launch()
         openMelodyHumming(in: app, pieceID: "odeToJoy")
         let record = app.buttons["practiceRecordButton"]
@@ -1251,6 +1252,7 @@ final class LearningUITests: XCTestCase {
 
     func testMelodyRecordDoesNotAutoplayAndUnavailableCaptureDoesNotCreateFeedback() {
         let app = XCUIApplication.cello()
+        app.launchArguments += ["-noMicrophone", "YES"]
         app.launch()
         openMelodyHumming(in: app)
         let record = app.buttons["practiceRecordButton"]

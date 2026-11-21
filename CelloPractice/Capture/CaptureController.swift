@@ -422,7 +422,9 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         if configuringSession { try activateAudioSession() }
         let input = engine.inputNode
         let format = input.outputFormat(forBus: 0)
-        guard format.channelCount > 0, format.sampleRate > 0 else {
+        // UI tests launch with -noMicrophone YES to see the app without one, on any Mac.
+        guard format.channelCount > 0, format.sampleRate > 0,
+              !UserDefaults.standard.bool(forKey: "noMicrophone") else {
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
             throw CaptureError.unavailableMicrophone
         }

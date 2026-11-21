@@ -9,8 +9,9 @@ struct SessionDetailView: View {
     @State private var exporting = false
     @State private var exportURL: URL?
     @State private var sharing = false
-    /// Takes are sound only and need a player bar; older cello takes also hold video.
-    @State private var hasVideo = true
+    /// Takes are sound only; older cello takes also hold video, and keep the video player.
+    @State private var hasVideo = false
+    @State private var sound: TakeSound?
     @State private var error: String?
     private var noisyRoom: Bool { session.room?.isLoud == true }
     /// The teacher's note for a melody take, worked out once when the recording is opened.
@@ -41,11 +42,16 @@ struct SessionDetailView: View {
                     MelodyTraceView(context: context, samples: session.pitchSamples, duration: session.duration).card()
                 }
                 VStack(alignment: .leading, spacing: 10) {
-                    Label("Playback", systemImage: "play.rectangle")
+                    Label("Playback", systemImage: "waveform")
                         .font(.subheadline.weight(.semibold)).foregroundStyle(Palette.forest)
-                    VideoPlayer(player: player).frame(height: hasVideo ? 220 : 96)
-                        .accessibilityIdentifier("sessionPlaybackPlayer")
-                        .clipShape(RoundedRectangle(cornerRadius: Layout.cardRadius))
+                    Group {
+                        if hasVideo {
+                            VideoPlayer(player: player).frame(height: 220)
+                                .clipShape(RoundedRectangle(cornerRadius: Layout.cardRadius))
+                        } else {
+                            TakePlayerView(player: player, sound: sound, duration: session.duration)
+                        }
+                    }.accessibilityIdentifier("sessionPlaybackPlayer")
                 }
                 DisclosureGroup("Recording details") {
                     VStack(alignment: .leading, spacing: 8) {
@@ -71,8 +77,14 @@ struct SessionDetailView: View {
         }.background(Palette.paper).screenTitle("Your session")
             .onDisappear { player.pause() }
             .task {
-                let tracks = try? await AVURLAsset(url: store.recordingURL(for: session)).loadTracks(withMediaType: .video)
+                // Heard through the speaker even with the ring switch on silent.
+                try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+                let recording = store.recordingURL(for: session)
+                let tracks = try? await AVURLAsset(url: recording).loadTracks(withMediaType: .video)
                 if let tracks { hasVideo = !tracks.isEmpty }
+                guard !hasVideo else { return }
+                sound = await TakeSound.load(recording: recording, duration: session.duration, id: session.id)
+                if let sound, sound.url != recording { player.replaceCurrentItem(with: AVPlayerItem(url: sound.url)) }
             }
             .sheet(isPresented: $sharing) {
                 if let exportURL { ActivitySheet(items: [exportURL]) }
@@ -106,3 +118,4 @@ private struct ActivitySheet: UIViewControllerRepresentable {
     }
     func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
+

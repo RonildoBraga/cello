@@ -134,6 +134,7 @@ final class EchoPracticeUITests: XCTestCase {
 
     func testEchoRecordDoesNotAutoplayOrInventFeedbackWhenCaptureIsUnavailable() {
         let app = XCUIApplication.cello()
+        app.launchArguments += ["-noMicrophone", "YES"]
         app.launch()
         openEcho(in: app)
         hearFullPattern(in: app, duration: 4)
