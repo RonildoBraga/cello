@@ -124,4 +124,51 @@ final class TunerReadingTests: XCTestCase {
             XCTAssertTrue(try XCTUnwrap(reading.cents).isFinite)
         }
     }
+
+    // MARK: Tuning an open string
+
+    private func heard(_ tuner: inout StringTuner, cents: [Double]) {
+        for offset in cents { tuner.hear(tuner.target * pow(2, offset / 1_200)) }
+    }
+
+    func testAStringIsJudgedOnceThreeReadingsAgreeAndSilenceStartsAgain() throws {
+        var tuner = StringTuner(target: 220)
+        heard(&tuner, cents: [2, 3])
+        XCTAssertNil(tuner.advice, "Two readings are too few to judge")
+        heard(&tuner, cents: [4])
+        XCTAssertEqual(try XCTUnwrap(tuner.cents), 3, accuracy: 1e-8)
+        XCTAssertEqual(tuner.advice, .inTune)
+        tuner.hear(nil)
+        XCTAssertNil(tuner.cents, "A pause between notes forgets the last string")
+    }
+
+    func testOneStrayReadingDoesNotMoveTheVerdict() throws {
+        var tuner = StringTuner(target: 146.8323839587038)
+        heard(&tuner, cents: [-1, 0, 40, 1, -2])
+        XCTAssertEqual(try XCTUnwrap(tuner.cents), 0, accuracy: 1e-8)
+        XCTAssertEqual(tuner.advice, .inTune)
+    }
+
+    func testTheLowCStringIsJudgedWhenItsOvertoneSoundsLouderThanItsNote() throws {
+        for octaves in [1.0, 2.0] {
+            var tuner = StringTuner(target: 65.40639132514966)
+            heard(&tuner, cents: [1_200 * octaves - 12, 1_200 * octaves - 12, 1_200 * octaves - 12])
+            XCTAssertEqual(try XCTUnwrap(tuner.cents), -12, accuracy: 1e-8)
+            XCTAssertEqual(tuner.advice, .low)
+        }
+    }
+
+    func testAdviceNamesTheFineTunerForSmallChangesAndThePegForLargeOnes() {
+        let cases: [(Double, StringTuner.Advice)] = [
+            (-4.9, .inTune), (4.9, .inTune), (-5.1, .low), (30, .high),
+            (-100, .low), (100, .high), (-180, .farLow), (250, .farHigh)
+        ]
+        for (cents, advice) in cases {
+            var tuner = StringTuner(target: 97.99885899543733)
+            heard(&tuner, cents: [cents, cents, cents])
+            XCTAssertEqual(tuner.advice, advice, "\(cents) cents")
+        }
+        XCTAssertLessThan(StringTuner.inTuneCents, RecordingRater.matchCents,
+                          "Tuning asks for more than a take of one held note")
+    }
 }

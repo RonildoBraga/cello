@@ -31,6 +31,7 @@ struct CelloIntroductionView: View {
                     CelloDiagramView()
                 }.card()
                 stringExamples
+                tuneLink
                 lessonPath
             }.foregroundStyle(Palette.ink).screenContent()
         }.background(Palette.paper)
@@ -96,6 +97,20 @@ struct CelloIntroductionView: View {
                     .accessibilityIdentifier("celloIntroPlaybackMessage")
             }
         }.card()
+    }
+
+    private var tuneLink: some View {
+        NavigationLink(value: MusicRoute.tuneCello) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    SectionTitle("Tune your cello")
+                    Text("Check each open string with the tuner before you play.")
+                        .font(.footnote).foregroundStyle(Palette.muted)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").foregroundStyle(Palette.muted)
+            }.card()
+        }.buttonStyle(.plain).accessibilityIdentifier("tuneCelloLink")
     }
 
     private var lessonPath: some View {
