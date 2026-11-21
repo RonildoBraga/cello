@@ -41,10 +41,10 @@ final class LevelTests: XCTestCase {
         let phrase = VoicePracticeMode.phrase(MelodyPiece.hotCrossBuns.humming(register: .cello, section: .phrase1))
         XCTAssertEqual(phrase.recordingTitle, "Play")
 
-        // Listen & Echo: the same patterns on the cello, kept apart from the voice's.
+        // Listen & Echo: the cello has its own patterns, on its open strings, kept apart from the voice's.
         let echo = try EchoLevel.twoNotes.context(patternIndex: 1, register: .cello)
         XCTAssertEqual(EchoLevel.selection(for: echo)?.patternIndex, 1)
-        XCTAssertEqual(EchoLevel.twoNotes.rangeLabel(for: .cello), "D3–F♯3")
+        XCTAssertEqual(EchoLevel.twoNotes.rangeLabel(for: .cello), "G2–A3")
         XCTAssertNotEqual(echo, try EchoLevel.twoNotes.context(patternIndex: 1, register: .lowVoice))
     }
 
