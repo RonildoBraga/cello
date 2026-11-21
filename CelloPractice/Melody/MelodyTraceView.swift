@@ -134,8 +134,8 @@ struct MelodyTraceView: View {
     private let data: MelodyTraceData
     /// One card per note of a rated take; none for a take that only has its pitch.
     private let verdicts: [NoteVerdict]
-    /// The note the teacher's note talks about, shown until another note is chosen.
-    private let focus: Int?
+    /// The note the teacher's note talks about, by the issue it names, shown until another note is chosen.
+    private let focus: NoteVerdict?
     @State private var chosen: Int?
 
     init(context: MelodyPracticeContext, samples: [PitchSample], duration: Double) {
@@ -147,12 +147,12 @@ struct MelodyTraceView: View {
     init(context: MelodyPracticeContext, rating: MelodyRating, duration: Double) {
         data = MelodyTraceData(context: context, rating: rating, duration: duration)
         verdicts = NoteVerdict.verdicts(for: rating)
-        focus = NoteVerdict.focus(of: verdicts, subject: TeacherNote(rating: rating, register: context.register).subject)?.id
+        focus = NoteVerdict.focus(of: verdicts, subject: TeacherNote(rating: rating, register: context.register).subject)
     }
 
     private var highlighted: NoteVerdict? {
-        guard let id = chosen ?? focus else { return nil }
-        return verdicts.first { $0.id == id }
+        guard let chosen else { return focus }
+        return verdicts.first { $0.id == chosen }
     }
 
     var body: some View {
