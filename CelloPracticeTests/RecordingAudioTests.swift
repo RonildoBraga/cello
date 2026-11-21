@@ -6,6 +6,14 @@ import XCTest
 @testable import Cello
 
 final class RecordingAudioTests: XCTestCase {
+    /// App Store Connect rejects any build that uses AVCaptureSession without a camera
+    /// purpose string (ITMS-90683), even though Cello asks only for the microphone.
+    func testTheAppKeepsBothCapturePurposeStrings() {
+        for key in ["NSCameraUsageDescription", "NSMicrophoneUsageDescription"] {
+            XCTAssertFalse((Bundle.main.object(forInfoDictionaryKey: key) as? String ?? "").isEmpty, key)
+        }
+    }
+
     func testLeadingTrackOffsetStaysSilentAndLosesTimingWithoutMovingNotes() async throws {
         let root = try makeRoot()
         defer { try? FileManager.default.removeItem(at: root) }
