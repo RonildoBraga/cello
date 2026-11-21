@@ -79,8 +79,7 @@ enum RecordingRater {
         for start in stride(from: 0, to: samples.count, by: cellSize) {
             let end = min(start + cellSize, samples.count)
             let cell = samples[start..<end]
-            let mean = cell.reduce(0.0) { $0 + Double($1) } / Double(cell.count)
-            let rms = sqrt(cell.reduce(0.0) { $0 + pow(Double($1) - mean, 2) } / Double(cell.count))
+            let rms = Measure.level(of: cell)
             let beginTime = Double(start) / sampleRate
             let endTime = Double(end) / sampleRate
             let time = (beginTime + endTime) / 2

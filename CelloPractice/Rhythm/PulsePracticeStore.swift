@@ -73,9 +73,6 @@ struct PulseAttempt: Codable, Identifiable {
         return (upper - lower) * 1_000
     }
 
-    var medianDistanceMilliseconds: Double? { median(offsets.values.map { abs($0) * 1_000 }) }
-    var medianOffsetMilliseconds: Double? { median(offsets.values.map { $0 * 1_000 }) }
-
     var cue: String {
         guard isScored else { return "Tap along at least three times to get a score." }
         let kind: TapDiagnosis.Kind = exercise == .pulse ? .pulse : exercise == .twoTaps ? .twoTaps : .mixed
@@ -90,10 +87,6 @@ struct PulseAttempt: Codable, Identifiable {
             (0..<totalBeats).contains($0.key) && $0.value.isFinite &&
             abs($0.value) <= exercise.tapWindow + 1e-9
         }
-    }
-
-    private func median(_ values: [Double]) -> Double? {
-        values.count >= 3 ? RhythmStatistics.percentile(0.5, in: values.sorted()) : nil
     }
 }
 

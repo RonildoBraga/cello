@@ -51,17 +51,6 @@ enum EchoLevel: String, CaseIterable, Identifiable, Codable, Sendable {
         }
     }
 
-    func rangeLabel(for register: MelodyRegister) -> String {
-        switch (self, register) {
-        case (.twoNotes, .lowVoice): return "G2–B2"
-        case (.twoNotes, .higherVoice): return "G3–B3"
-        case (.threeNotes, .lowVoice): return "G2–D3"
-        case (.threeNotes, .higherVoice): return "G3–D4"
-        case (.twoNotes, .cello): return "G2–A3"
-        case (.threeNotes, .cello): return "C2–A3"
-        }
-    }
-
     func context(patternIndex: Int, register: MelodyRegister) throws -> MelodyPracticeContext {
         try context(patternIndex: patternIndex, register: register,
                     gradingVersion: MelodyRating.currentVersion)

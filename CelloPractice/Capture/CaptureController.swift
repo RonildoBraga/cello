@@ -13,10 +13,11 @@ struct PitchSample: Codable, Sendable {
     let rms: Double
 }
 
-/// One capture session feeds both the saved take and the live tuner. Every take
-/// records the microphone only. Session mutations stay off the main thread.
+/// One audio engine feeds both the saved take and the live tuner. It hears the
+/// microphone only: no camera API is used, so none is ever asked for. Engine changes
+/// stay off the main thread.
 final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
-    let session = AVCaptureSession()
+    private let engine = AVAudioEngine()
 
     @Published private(set) var isReady = false
     @Published private(set) var isRecording = false
@@ -35,16 +36,11 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     private let sessionQueue = DispatchQueue(label: "cello.capture.session")
     private let audioQueue = DispatchQueue(label: "cello.capture.audio", qos: .userInitiated)
     private let analysisQueue = DispatchQueue(label: "cello.capture.pitch", qos: .userInitiated)
-    private let movieOutput = AVCaptureMovieFileOutput()
-    private let audioOutput = AVCaptureAudioDataOutput()
     private let detector = PitchDetector()
 
     // Accessed only on sessionQueue.
-    private var configured = false
     private var wantsToRun = false
     private var recordingRequested = false
-    private var recordingCompletion: ((URL, [PitchSample], RoomNoise?) -> Void)?
-    private var stopWhenRecordingStarts = false
     private var observerTokens: [NSObjectProtocol] = []
     private var referenceToken: UUID?
     private var referenceCooldown: DispatchWorkItem?
@@ -62,6 +58,8 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     private var reportedUnsupportedAudio = false
     private var analysisSuppressed = false
     private var listener = RoomListener()
+    /// The take being written: an audio-only QuickTime movie, timed by the frames it holds.
+    private var take: Take?
 
     // Accessed only on the main thread.
     private var displayTimer: Timer?
@@ -98,7 +96,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     private func requestCaptureStart() {
         Task { [weak self] in
             guard let self else { return }
-            guard await Self.requestPermission(for: .audio) else {
+            guard await Self.requestMicrophonePermission() else {
                 self.publish {
                     self.isReady = false
                     self.message = "Allow Microphone in Settings → Cello, then tap Record again."
@@ -108,10 +106,8 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
             self.sessionQueue.async { [weak self] in
                 guard let self, self.wantsToRun else { return }
                 do {
-                    if !self.configured { try self.configureSession() }
-                    else { try self.activateAudioSession() }
-                    if !self.session.isRunning { self.session.startRunning() }
-                    let running = self.session.isRunning
+                    if !self.engine.isRunning { try self.startEngine() }
+                    let running = self.engine.isRunning
                     self.publish {
                         self.isReady = running
                         self.message = running ? nil
@@ -159,8 +155,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
             guard let self else { return }
             self.wantsToRun = false
             if self.recordingRequested {
-                self.stopWhenRecordingStarts = true
-                if self.movieOutput.isRecording { self.movieOutput.stopRecording() }
+                self.audioQueue.async { self.finishTake() }
             } else {
                 self.stopSession()
             }
@@ -178,7 +173,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
                 self.publish { self.message = "This recording length is unavailable. Choose another exercise." }
                 return
             }
-            guard self.session.isRunning, self.wantsToRun else {
+            guard self.engine.isRunning, self.wantsToRun else {
                 self.publish { self.message = "Recording isn’t ready. Tap Record to try again." }
                 return
             }
@@ -186,33 +181,36 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
                 self.publish { self.message = "Wait for the reference note to finish, then try recording again." }
                 return
             }
-            guard self.movieOutput.connection(with: .audio)?.isEnabled == true else {
-                self.publish { self.message = "Microphone recording is unavailable. Tap Record to try again." }
-                return
-            }
             do {
                 let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                     .appendingPathComponent("PendingTakes", isDirectory: true)
                 try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
                 let url = directory.appendingPathComponent(UUID().uuidString).appendingPathExtension("mov")
+                let writer = try AVAssetWriter(outputURL: url, fileType: .mov)
+                let input = AVAssetWriterInput(mediaType: .audio, outputSettings: [
+                    AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: RecordingAudio.sampleRate,
+                    AVNumberOfChannelsKey: 1, AVEncoderBitRateKey: 128_000
+                ])
+                input.expectsMediaDataInRealTime = true
+                guard writer.canAdd(input) else { throw CaptureError.unsupportedConfiguration }
+                writer.add(input)
+                guard writer.startWriting() else { throw writer.error ?? CaptureError.unsupportedConfiguration }
+                writer.startSession(atSourceTime: .zero)
                 self.recordingRequested = true
-                self.recordingCompletion = onFinished
-                self.stopWhenRecordingStarts = false
-                self.audioQueue.sync {
-                    self.generation += 1
-                    self.audioWindow.removeAll(keepingCapacity: true)
-                    self.pitchSamples.removeAll(keepingCapacity: true)
-                    // The file output has not started yet. Arm observations in
-                    // didStartRecording so preparation time is never exported.
-                    self.recordingStartHostTime = nil
-                    self.lastAnalysisTime = 0
-                }
-                self.movieOutput.maxRecordedDuration = CMTime(seconds: maximumDuration, preferredTimescale: 600)
                 self.publish {
                     self.elapsed = 0
                     self.message = nil
                 }
-                self.movieOutput.startRecording(to: url, recordingDelegate: self)
+                self.audioQueue.async {
+                    self.generation += 1
+                    self.audioWindow.removeAll(keepingCapacity: true)
+                    self.pitchSamples.removeAll(keepingCapacity: true)
+                    self.lastAnalysisTime = 0
+                    self.take = Take(url: url, writer: writer, input: input, maximumDuration: maximumDuration,
+                                     completion: onFinished)
+                    self.recordingStartHostTime = Self.hostTime
+                    self.takeStarted()
+                }
             } catch {
                 self.publish { self.message = "Could not create a recording: \(error.localizedDescription)" }
             }
@@ -222,8 +220,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     func stopRecording() {
         sessionQueue.async { [weak self] in
             guard let self, self.recordingRequested else { return }
-            self.stopWhenRecordingStarts = true
-            if self.movieOutput.isRecording { self.movieOutput.stopRecording() }
+            self.audioQueue.async { self.finishTake() }
         }
     }
 
@@ -282,7 +279,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
             return
         }
         referenceToken = token
-        referenceUsesCapture = session.isRunning && wantsToRun
+        referenceUsesCapture = engine.isRunning && wantsToRun
         referenceCancelled = false
         audioQueue.sync {
             analysisSuppressed = true
@@ -418,39 +415,33 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         }
     }
 
-    /// The session records the microphone only.
-    private func configureSession() throws {
-        guard let microphone = AVCaptureDevice.default(for: .audio) else {
+    /// The engine hears the microphone only. Measurement mode is used instead of voice
+    /// processing, which can alter a sustained musical note. No speaker monitoring.
+    /// While a reference plays, the audio session is left as playback set it.
+    private func startEngine(configuringSession: Bool = true) throws {
+        if configuringSession { try activateAudioSession() }
+        let input = engine.inputNode
+        let format = input.outputFormat(forBus: 0)
+        // UI tests launch with -noMicrophone YES to see the app without one, on any Mac.
+        guard format.channelCount > 0, format.sampleRate > 0,
+              !UserDefaults.standard.bool(forKey: "noMicrophone") else {
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
             throw CaptureError.unavailableMicrophone
         }
-        let microphoneInput = try AVCaptureDeviceInput(device: microphone)
-
-        session.beginConfiguration()
-        var configurationSucceeded = false
-        defer {
-            if !configurationSucceeded {
-                session.inputs.forEach(session.removeInput)
-                session.outputs.forEach(session.removeOutput)
-            }
-            session.commitConfiguration()
-            if !configurationSucceeded {
-                try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-            }
+        input.removeTap(onBus: 0)
+        input.installTap(onBus: 0, bufferSize: 4_096, format: format) { [weak self] buffer, _ in
+            // The engine reuses its buffer once this returns, so the audio queue gets a copy.
+            guard let self, let copy = Self.copy(buffer) else { return }
+            self.audioQueue.async { self.hear(copy) }
         }
-        // Use measurement mode instead of voice processing, which can alter a
-        // sustained musical note. No speaker monitoring or Bluetooth mic route.
-        session.automaticallyConfiguresApplicationAudioSession = false
-        try activateAudioSession()
-
-        guard session.canAddInput(microphoneInput) else { throw CaptureError.unsupportedConfiguration }
-        session.addInput(microphoneInput)
-        guard session.canAddOutput(movieOutput) else { throw CaptureError.unsupportedConfiguration }
-        session.addOutput(movieOutput)
-        guard session.canAddOutput(audioOutput) else { throw CaptureError.unsupportedConfiguration }
-        audioOutput.setSampleBufferDelegate(self, queue: audioQueue)
-        session.addOutput(audioOutput)
-        configured = true
-        configurationSucceeded = true
+        engine.prepare()
+        do {
+            try engine.start()
+        } catch {
+            input.removeTap(onBus: 0)
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            throw error
+        }
     }
 
     private func activateAudioSession() throws {
@@ -487,7 +478,8 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     }
 
     private func finishStoppingSession() {
-        if session.isRunning { session.stopRunning() }
+        engine.inputNode.removeTap(onBus: 0)
+        if engine.isRunning { engine.stop() }
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         // Publish after the serial session queue has actually stopped. A Start
         // already in flight may have enqueued a ready update after stop()'s
@@ -523,21 +515,22 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
             }
             self.stop()
         })
-        observerTokens.append(center.addObserver(forName: .AVCaptureSessionWasInterrupted, object: session, queue: nil) { [weak self] _ in
+        // A new route or format stops the engine. Between takes it starts again on the new
+        // microphone; a take in progress finishes with what it has.
+        observerTokens.append(center.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: nil) { [weak self] _ in
             guard let self else { return }
-            self.publish {
-                self.message = "Practice was interrupted. Your active take will finish; tap Record when you are ready."
+            self.sessionQueue.async {
+                guard self.wantsToRun, !self.engine.isRunning else { return }
+                if self.recordingRequested {
+                    self.publish { self.message = "The microphone changed. Your take has finished; tap Record when you are ready." }
+                    self.stop()
+                    return
+                }
+                do { try self.startEngine(configuringSession: self.referenceToken == nil) } catch {
+                    self.publish { self.message = "The microphone changed and could not restart. Tap Record to try again." }
+                    self.stop()
+                }
             }
-            self.stop()
-        })
-        observerTokens.append(center.addObserver(forName: .AVCaptureSessionRuntimeError, object: session, queue: nil) { [weak self] note in
-            guard let self else { return }
-            let error = note.userInfo?[AVCaptureSessionErrorKey] as? NSError
-            self.publish {
-                self.message = error.map { "Capture stopped: \($0.localizedDescription)" }
-                    ?? "Capture stopped unexpectedly. Tap Record to try again."
-            }
-            self.stop()
         })
         observerTokens.append(center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil) { [weak self] _ in
             guard let self else { return }
@@ -546,10 +539,10 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         })
     }
 
-    private static func requestPermission(for mediaType: AVMediaType) async -> Bool {
-        switch AVCaptureDevice.authorizationStatus(for: mediaType) {
-        case .authorized: return true
-        case .notDetermined: return await AVCaptureDevice.requestAccess(for: mediaType)
+    private static func requestMicrophonePermission() async -> Bool {
+        switch AVAudioApplication.shared.recordPermission {
+        case .granted: return true
+        case .undetermined: return await AVAudioApplication.requestRecordPermission()
         default: return false
         }
     }
@@ -572,23 +565,32 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     }
 }
 
-extension CaptureController: AVCaptureAudioDataOutputSampleBufferDelegate {
-    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        guard !analysisSuppressed else { return }
-        guard let formatDescription = CMSampleBufferGetFormatDescription(sampleBuffer) else { return }
-        let format = AVAudioFormat(cmAudioFormatDescription: formatDescription)
-        let frameCount = CMSampleBufferGetNumSamples(sampleBuffer)
-        guard frameCount > 0, frameCount <= Int(Int32.max),
-              let pcm = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frameCount)) else { return }
-        pcm.frameLength = AVAudioFrameCount(frameCount)
-        guard CMSampleBufferCopyPCMDataIntoAudioBufferList(sampleBuffer, at: 0, frameCount: Int32(frameCount), into: pcm.mutableAudioBufferList) == noErr,
-              let mono = Self.monoSamples(from: pcm) else {
-            if !reportedUnsupportedAudio {
+// Everything below runs on audioQueue.
+extension CaptureController {
+    private struct Take {
+        let url: URL
+        let writer: AVAssetWriter
+        let input: AVAssetWriterInput
+        let maximumDuration: TimeInterval
+        let completion: (URL, [PitchSample], RoomNoise?) -> Void
+        /// Frames written so far, at the microphone's own rate: the take's clock.
+        var frames: Int64 = 0
+        var sampleRate: Double = 0
+        var seconds: Double { sampleRate > 0 ? Double(frames) / sampleRate : 0 }
+    }
+
+    private func hear(_ pcm: AVAudioPCMBuffer) {
+        // A take starts at the first sound after Record, so preparation is never saved.
+        let takeTime = take?.seconds
+        if take != nil { write(pcm) }
+        guard !analysisSuppressed, let mono = Self.monoSamples(from: pcm) else {
+            if !analysisSuppressed, !reportedUnsupportedAudio {
                 reportedUnsupportedAudio = true
                 publish { self.message = "The microphone audio format could not be analysed. Recording is still available." }
             }
             return
         }
+        let format = pcm.format
         if audioSampleRate != format.sampleRate {
             audioSampleRate = format.sampleRate
             audioWindow.removeAll(keepingCapacity: true)
@@ -603,13 +605,11 @@ extension CaptureController: AVCaptureAudioDataOutputSampleBufferDelegate {
         let sampleRate = audioSampleRate
         let currentGeneration = generation
         let start = recordingStartHostTime
-        let bufferTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer).seconds
-        let observationTime = bufferTime.isFinite ? bufferTime : now
-        let capturedTime = start.map { max(0, observationTime - $0) }
+        let capturedTime = takeTime
         analysisQueue.async { [weak self] in
             guard let self else { return }
             let estimate = self.detector.estimate(samples: samples, sampleRate: sampleRate)
-            let level = RoomNoise.level(of: samples)
+            let level = Measure.level(of: samples)
             self.audioQueue.async { [weak self] in
                 guard let self else { return }
                 self.analyzing = false
@@ -629,6 +629,114 @@ extension CaptureController: AVCaptureAudioDataOutputSampleBufferDelegate {
                 }
             }
         }
+    }
+
+    /// Appends the microphone's sound to the take, timed by the frames already written.
+    private func write(_ pcm: AVAudioPCMBuffer) {
+        guard var current = take else { return }
+        let rate = pcm.format.sampleRate
+        if current.sampleRate == 0 { current.sampleRate = rate }
+        let remaining = Int64((current.maximumDuration * current.sampleRate).rounded()) - current.frames
+        let count = min(Int64(pcm.frameLength), max(0, remaining))
+        guard rate == current.sampleRate, count > 0 else {
+            take = current
+            finishTake()
+            return
+        }
+        pcm.frameLength = AVAudioFrameCount(count)
+        if current.input.isReadyForMoreMediaData,
+           let buffer = Self.sampleBuffer(pcm, at: CMTime(value: current.frames, timescale: CMTimeScale(rate))),
+           current.input.append(buffer) {
+            current.frames += count
+        } else {
+            // A gap would join two moments of a note together; end the take instead.
+            take = current
+            finishTake()
+            return
+        }
+        take = current
+        if current.frames >= Int64((current.maximumDuration * rate).rounded()) { finishTake() }
+    }
+
+    // Called on audioQueue once the writer has begun.
+    private func takeStarted() {
+        // Serial ordering keeps a countdown pitch publication from arriving
+        // after the new take's clear and appearing as a recorded reading.
+        publish {
+            self.frequency = nil
+            self.isRecording = true
+            self.displayTimer?.invalidate()
+            self.displayStartTime = CACurrentMediaTime()
+            let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
+                guard let self, let start = self.displayStartTime else { return }
+                self.elapsed = min(90, CACurrentMediaTime() - start)
+            }
+            self.displayTimer = timer
+            RunLoop.main.add(timer, forMode: .common)
+        }
+    }
+
+    /// Closes the file and hands it, with its pitch observations and the room heard just
+    /// before it, to the take's owner. A take with no sound keeps its partial file.
+    private func finishTake() {
+        guard let finished = take else { return }
+        take = nil
+        generation += 1
+        recordingStartHostTime = nil
+        let observations = pitchSamples
+        pitchSamples.removeAll(keepingCapacity: true)
+        // The room is not measured during a take, so this is the room just before it.
+        let room = listener.room
+        finished.input.markAsFinished()
+        finished.writer.finishWriting { [weak self] in
+            guard let self else { return }
+            let error = finished.writer.error
+            let saved = finished.writer.status == .completed && finished.frames > 0
+            self.publish {
+                self.displayTimer?.invalidate()
+                self.displayTimer = nil
+                self.displayStartTime = nil
+                self.isRecording = false
+                if saved {
+                    finished.completion(finished.url, observations, room)
+                } else {
+                    self.message = "Recording could not finish: \(error?.localizedDescription ?? "nothing was captured"). Any partial file has been kept on this device."
+                }
+            }
+            self.sessionQueue.async {
+                self.recordingRequested = false
+                if !self.wantsToRun { self.stopSession() }
+            }
+        }
+    }
+
+    private static func copy(_ buffer: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {
+        guard let copy = AVAudioPCMBuffer(pcmFormat: buffer.format, frameCapacity: buffer.frameLength) else { return nil }
+        copy.frameLength = buffer.frameLength
+        let source = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: buffer.audioBufferList))
+        let destination = UnsafeMutableAudioBufferListPointer(copy.mutableAudioBufferList)
+        for (from, to) in zip(source, destination) {
+            guard let fromData = from.mData, let toData = to.mData else { return nil }
+            memcpy(toData, fromData, Int(min(from.mDataByteSize, to.mDataByteSize)))
+        }
+        return copy
+    }
+
+    private static func sampleBuffer(_ pcm: AVAudioPCMBuffer, at time: CMTime) -> CMSampleBuffer? {
+        var timing = CMSampleTimingInfo(duration: CMTime(value: 1, timescale: time.timescale),
+                                        presentationTimeStamp: time, decodeTimeStamp: .invalid)
+        var buffer: CMSampleBuffer?
+        guard CMSampleBufferCreate(allocator: kCFAllocatorDefault, dataBuffer: nil, dataReady: false,
+                                   makeDataReadyCallback: nil, refcon: nil,
+                                   formatDescription: pcm.format.formatDescription,
+                                   sampleCount: CMItemCount(pcm.frameLength), sampleTimingEntryCount: 1,
+                                   sampleTimingArray: &timing, sampleSizeEntryCount: 0, sampleSizeArray: nil,
+                                   sampleBufferOut: &buffer) == noErr, let buffer,
+              CMSampleBufferSetDataBufferFromAudioBufferList(buffer, blockBufferAllocator: kCFAllocatorDefault,
+                                                             blockBufferMemoryAllocator: kCFAllocatorDefault,
+                                                             flags: 0, bufferList: pcm.audioBufferList) == noErr
+        else { return nil }
+        return buffer
     }
 
     private static func monoSamples(from pcm: AVAudioPCMBuffer) -> [Float]? {
@@ -662,70 +770,5 @@ extension CaptureController: AVAudioPlayerDelegate {
     func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
         guard player === referencePlayer, let token = referencePlayerToken else { return }
         referencePlaybackEnded(token: token, message: "The reference note could not play: \(error?.localizedDescription ?? "audio decoding failed")")
-    }
-}
-
-extension CaptureController: AVCaptureFileOutputRecordingDelegate {
-    func fileOutput(_ output: AVCaptureFileOutput, didStartRecordingTo fileURL: URL, from connections: [AVCaptureConnection]) {
-        let actualStartHostTime = Self.hostTime
-        audioQueue.async { [weak self] in
-            guard let self else { return }
-            self.generation += 1
-            self.audioWindow.removeAll(keepingCapacity: true)
-            self.pitchSamples.removeAll(keepingCapacity: true)
-            self.recordingStartHostTime = actualStartHostTime
-            self.lastAnalysisTime = 0
-            // Serial ordering keeps a countdown pitch publication from arriving
-            // after the new take's clear and appearing as a recorded reading.
-            self.publish {
-                self.frequency = nil
-                self.isRecording = true
-                self.displayTimer?.invalidate()
-                self.displayStartTime = CACurrentMediaTime()
-                let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
-                    guard let self, let start = self.displayStartTime else { return }
-                    self.elapsed = min(90, CACurrentMediaTime() - start)
-                }
-                self.displayTimer = timer
-                RunLoop.main.add(timer, forMode: .common)
-            }
-        }
-        sessionQueue.async { [weak self] in
-            guard let self else { return }
-            if self.stopWhenRecordingStarts || !self.wantsToRun { self.movieOutput.stopRecording() }
-        }
-    }
-
-    func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
-        sessionQueue.async { [weak self] in
-            guard let self else { return }
-            self.recordingRequested = false
-            self.stopWhenRecordingStarts = false
-            let completion = self.recordingCompletion
-            self.recordingCompletion = nil
-            // The room is not measured during a take, so this is the room just before it.
-            let (observations, room): ([PitchSample], RoomNoise?) = self.audioQueue.sync {
-                self.generation += 1
-                self.recordingStartHostTime = nil
-                let captured = self.pitchSamples
-                self.pitchSamples.removeAll(keepingCapacity: true)
-                return (captured, self.listener.room)
-            }
-            let nsError = error as NSError?
-            let successfullyFinished = error == nil || nsError?.userInfo[AVErrorRecordingSuccessfullyFinishedKey] as? Bool == true
-            let fileSize = (try? FileManager.default.attributesOfItem(atPath: outputFileURL.path)[.size] as? NSNumber)?.int64Value ?? 0
-            self.publish {
-                self.displayTimer?.invalidate()
-                self.displayTimer = nil
-                self.displayStartTime = nil
-                self.isRecording = false
-                if successfullyFinished && fileSize > 0 {
-                    completion?(outputFileURL, observations, room)
-                } else {
-                    self.message = "Recording could not finish: \(error?.localizedDescription ?? "nothing was captured"). Any partial file has been kept on this device."
-                }
-            }
-            if !self.wantsToRun { self.stopSession() }
-        }
     }
 }

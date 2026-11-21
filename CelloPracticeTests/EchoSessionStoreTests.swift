@@ -55,7 +55,7 @@ final class EchoSessionStoreTests: XCTestCase {
             let first = try XCTUnwrap(history.first)
             let metadataURL = directory.appendingPathComponent(first.id.uuidString).appendingPathComponent("session.json")
             let metadata = try Data(contentsOf: metadataURL)
-            let media = try Data(contentsOf: store.videoURL(for: first))
+            let media = try Data(contentsOf: store.recordingURL(for: first))
             XCTAssertTrue(store.echoProgress(for: .twoNotes, register: .lowVoice).completed)
             XCTAssertNotNil(store.errorMessage)
 
@@ -67,7 +67,7 @@ final class EchoSessionStoreTests: XCTestCase {
             XCTAssertNotNil(store.errorMessage)
             XCTAssertEqual(try Data(contentsOf: echoFile(root)), originalLedger)
             XCTAssertEqual(try Data(contentsOf: metadataURL), metadata)
-            XCTAssertEqual(try Data(contentsOf: store.videoURL(for: first)), media)
+            XCTAssertEqual(try Data(contentsOf: store.recordingURL(for: first)), media)
 
             // A subsequent load reconstructs milestones after external storage
             // recovery. Production never removes an unreadable ledger itself.
@@ -104,13 +104,13 @@ final class EchoSessionStoreTests: XCTestCase {
         XCTAssertNil(session.rating)
         XCTAssertTrue(store.echoProgress(for: .twoNotes, register: .lowVoice).completed)
         XCTAssertNotNil(store.errorMessage)
-        XCTAssertEqual(try Data(contentsOf: store.videoURL(for: session)), original)
+        XCTAssertEqual(try Data(contentsOf: store.recordingURL(for: session)), original)
         XCTAssertFalse(FileManager.default.fileExists(atPath: source.path))
 
         let first = try XCTUnwrap(history.first)
         store.delete(first)
         XCTAssertEqual(store.sessions.count, 3)
-        XCTAssertTrue(FileManager.default.fileExists(atPath: store.videoURL(for: first).path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: store.recordingURL(for: first).path))
         XCTAssertNotNil(store.errorMessage)
 
         try FileManager.default.removeItem(at: echoFile(root))
@@ -120,7 +120,7 @@ final class EchoSessionStoreTests: XCTestCase {
         let restored = SessionStore(directory: directory)
         XCTAssertTrue(restored.echoProgress(for: .twoNotes, register: .lowVoice).completed)
         XCTAssertEqual(restored.sessions.first(where: { $0.id == session.id })?.melodyContext, context)
-        XCTAssertEqual(try Data(contentsOf: restored.videoURL(for: session)), original)
+        XCTAssertEqual(try Data(contentsOf: restored.recordingURL(for: session)), original)
     }
 
     private func temporaryRoot() throws -> URL {

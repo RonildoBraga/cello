@@ -22,7 +22,6 @@ struct NoteDrill: Hashable, Identifiable {
     var noteBeats = NoteDrill.singleBeats
 
     var id: String { "\(piece.rawValue)-\(register.rawValue)-\(midiNotes.map(String.init).joined(separator: "-"))" }
-    var isSingleNote: Bool { midiNotes.count == 1 }
 
     /// The piece's distinct notes, lowest first.
     static func notes(for piece: MelodyPiece, register: MelodyRegister = .lowVoice) -> [NoteDrill] {

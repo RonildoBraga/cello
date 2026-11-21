@@ -5,7 +5,7 @@ import UIKit
 /// Builds the shareable ZIP for one saved session: movie, metadata, pitch CSV,
 /// preview frames and a review summary.
 enum SessionExport {
-    static func create(for session: PracticeSession, video: URL) async throws -> URL {
+    static func create(for session: PracticeSession, recording: URL) async throws -> URL {
         let fileManager = FileManager.default
         let exportFolder = fileManager.temporaryDirectory
             .appendingPathComponent("CelloPracticeExport-\(UUID().uuidString)", isDirectory: true)
@@ -13,7 +13,7 @@ enum SessionExport {
         try fileManager.createDirectory(at: staging, withIntermediateDirectories: true)
         do {
             let movie = staging.appendingPathComponent("recording.mov")
-            try fileManager.copyItem(at: video, to: movie)
+            try fileManager.copyItem(at: recording, to: movie)
             try SessionStore.writeMetadata(session, to: staging)
 
             var entries: [(name: String, url: URL)] = [

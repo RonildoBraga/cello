@@ -64,11 +64,4 @@ struct PulseTiming: RhythmRoundTiming {
         offsets[tap] = offset
         return true
     }
-
-    var medianOffsetMilliseconds: Double? { median(offsets.values.map { $0 * 1_000 }) }
-    var medianDistanceMilliseconds: Double? { median(offsets.values.map { abs($0) * 1_000 }) }
-
-    private func median(_ values: [Double]) -> Double? {
-        values.count >= 3 ? RhythmStatistics.percentile(0.5, in: values.sorted()) : nil
-    }
 }

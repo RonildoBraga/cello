@@ -15,8 +15,7 @@ struct TunerReading {
 
     var cents: Double? {
         guard let frequency, let targetFrequency else { return nil }
-        // Log differences avoid ratio underflow/overflow for valid finite inputs.
-        return 1_200 * (log2(frequency) - log2(targetFrequency))
+        return Measure.cents(frequency, from: targetFrequency)
     }
 }
 

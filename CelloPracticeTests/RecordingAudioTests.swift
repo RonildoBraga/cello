@@ -6,6 +6,52 @@ import XCTest
 @testable import Cello
 
 final class RecordingAudioTests: XCTestCase {
+    /// App Store Connect rejects a build that links camera capture APIs without a camera
+    /// purpose string (ITMS-90683). Cello hears the microphone through the audio engine
+    /// only, so it needs neither the camera nor the string.
+    func testQuietTakesPlayBackLouderWithoutChangingTheSavedTake() async throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        func take(amplitude: Double) throws -> URL {
+            let pcm = (0..<48_000).map { Int16(amplitude * sin(2 * .pi * 220 * Double($0) / 48_000) * Double(Int16.max)) }
+            let url = root.appendingPathComponent("take-\(amplitude).wav")
+            try RecordedReference.wave(pcm).write(to: url)
+            return url
+        }
+        let quiet = try take(amplitude: 0.01)
+        let original = try Data(contentsOf: quiet)
+        let loaded = await TakeSound.load(recording: quiet, duration: 1, id: UUID())
+        let sound = try XCTUnwrap(loaded)
+        let louder = sound.url
+        XCTAssertNotEqual(louder, quiet)
+        XCTAssertEqual(sound.levels.count, TakeSound.barCount)
+        XCTAssertEqual(sound.levels.max() ?? 0, 1, accuracy: 0.05)
+        defer { try? FileManager.default.removeItem(at: louder) }
+        let heard = try await RecordingAudio.read(url: louder, maximumDuration: 2)
+        XCTAssertEqual(heard.map(abs).max() ?? 0, TakeSound.peak, accuracy: 0.01)
+        XCTAssertEqual(try Data(contentsOf: quiet), original, "The saved take is never changed")
+
+        let loud = try take(amplitude: 0.6)
+        let loadedLoud = await TakeSound.load(recording: loud, duration: 1, id: UUID())
+        let alreadyLoud = try XCTUnwrap(loadedLoud)
+        XCTAssertEqual(alreadyLoud.url, loud, "A take that is already loud plays as it is")
+    }
+
+    func testTheAppUsesNoCameraCaptureAPI() throws {
+        XCTAssertFalse((Bundle.main.object(forInfoDictionaryKey: "NSMicrophoneUsageDescription") as? String ?? "").isEmpty)
+        XCTAssertNil(Bundle.main.object(forInfoDictionaryKey: "NSCameraUsageDescription"))
+        let bundle = Bundle.main.bundleURL
+        let binaries = try [XCTUnwrap(Bundle.main.executableURL)] + FileManager.default
+            .contentsOfDirectory(at: bundle, includingPropertiesForKeys: nil)
+            .filter { $0.lastPathComponent.hasSuffix(".debug.dylib") }
+        for binary in binaries {
+            let data = try Data(contentsOf: binary)
+            for name in ["AVCaptureDevice", "AVCaptureSession", "AVCaptureMovieFileOutput"] {
+                XCTAssertNil(data.range(of: Data(name.utf8)), "\(binary.lastPathComponent) refers to \(name)")
+            }
+        }
+    }
+
     func testLeadingTrackOffsetStaysSilentAndLosesTimingWithoutMovingNotes() async throws {
         let root = try makeRoot()
         defer { try? FileManager.default.removeItem(at: root) }

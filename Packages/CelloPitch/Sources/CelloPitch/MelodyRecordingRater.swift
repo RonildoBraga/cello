@@ -40,9 +40,7 @@ public enum MelodyRecordingRater {
 
         let cellSize = max(1, Int(sampleRate * 0.01))
         let levels: [Double] = stride(from: 0, to: samples.count, by: cellSize).map { start in
-            let cell = samples[start..<min(start + cellSize, samples.count)]
-            let mean = cell.reduce(0.0) { $0 + Double($1) } / Double(cell.count)
-            return sqrt(cell.reduce(0.0) { $0 + pow(Double($1) - mean, 2) } / Double(cell.count))
+            Measure.level(of: samples[start..<min(start + cellSize, samples.count)])
         }
         let floor = max(0.0008, min(0.01, (levels.max() ?? 0) * 0.08))
         let hop = max(1, Int(sampleRate * 0.05))

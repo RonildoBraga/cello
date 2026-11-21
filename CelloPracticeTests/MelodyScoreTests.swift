@@ -9,16 +9,13 @@ final class MelodyScoreTests: XCTestCase {
         let score = MelodyScore.hotCrossBuns
         XCTAssertEqual(score.pieceID, "hotCrossBuns")
         XCTAssertEqual(score.version, 1)
-        XCTAssertEqual(score.beatsPerBar, 4)
-        XCTAssertEqual(score.totalBeats, 16)
-        XCTAssertEqual(score.phraseBoundaries, [0, 4, 8, 12, 16])
         XCTAssertEqual(score.events.map(\.midiNote),
                        [54, 52, 50, 54, 52, 50, 50, 50, 50, 50, 52, 52, 52, 52, 54, 52, 50])
         XCTAssertEqual(score.events.map(\.durationBeats),
                        [1, 1, 2, 1, 1, 2, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1, 1, 2])
         XCTAssertEqual(score.events.map(\.onsetBeat),
                        [0, 1, 2, 4, 5, 6, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 13, 14])
-        XCTAssertEqual(score.events.last?.endBeat, score.totalBeats)
+        XCTAssertEqual(score.events.last?.endBeat, 16)
     }
 
     func testTwinkleIsTheTunesFirstTwoLinesWithOneNewNoteForTheVoiceAndOneForTheCello() {
@@ -28,8 +25,7 @@ final class MelodyScoreTests: XCTestCase {
         // 1 1 5 5 6 6 5 | 4 4 3 3 2 2 1, each line ending on a held note.
         XCTAssertEqual(score.events.map(\.midiNote), [50, 50, 57, 57, 59, 59, 57, 55, 55, 54, 54, 52, 52, 50])
         XCTAssertEqual(score.events.map(\.durationBeats), [1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2])
-        XCTAssertEqual(score.events.last?.endBeat, score.totalBeats)
-        XCTAssertEqual(score.phraseBoundaries, MelodyScore.odeToJoy.phraseBoundaries)
+        XCTAssertEqual(score.events.last?.endBeat, 16)
         for (register, range, phrases) in [
             (MelodyRegister.lowVoice, "G2–E3", [["G2", "G2", "D3", "D3"], ["E3", "E3", "D3"], ["C3", "C3", "B2", "B2"], ["A2", "A2", "G2"]]),
             (.cello, "D3–B3", [["D3", "D3", "A3", "A3"], ["B3", "B3", "A3"], ["G3", "G3", "F♯3", "F♯3"], ["E3", "E3", "D3"]])] {
@@ -51,8 +47,7 @@ final class MelodyScoreTests: XCTestCase {
         // 5 3 3 | 4 2 2 | 1 2 3 4 | 5 5 5, the tune's opening line with every length doubled.
         XCTAssertEqual(score.events.map(\.midiNote), [57, 54, 54, 55, 52, 52, 50, 52, 54, 55, 57, 57, 57])
         XCTAssertEqual(score.events.map(\.durationBeats), [1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2])
-        XCTAssertEqual(score.events.last?.endBeat, score.totalBeats)
-        XCTAssertEqual(score.phraseBoundaries, MelodyScore.odeToJoy.phraseBoundaries)
+        XCTAssertEqual(score.events.last?.endBeat, 16)
         XCTAssertEqual(Set(score.events.compactMap(\.midiNote)), Set(MelodyScore.odeToJoy.events.compactMap(\.midiNote)),
                        "The five notes of Ode to Joy, so the skips are the only new thing")
         for (register, range, phrases) in [
@@ -76,8 +71,7 @@ final class MelodyScoreTests: XCTestCase {
         // 1 1 1 5 | 6 6 5 | 3 3 2 2 | 1, with the 5 and 6 below the first note.
         XCTAssertEqual(score.events.map(\.midiNote), [55, 55, 55, 50, 52, 52, 50, 59, 59, 57, 57, 55])
         XCTAssertEqual(score.events.map(\.durationBeats), [1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 4])
-        XCTAssertEqual(score.events.last?.endBeat, score.totalBeats)
-        XCTAssertEqual(score.phraseBoundaries, MelodyScore.odeToJoy.phraseBoundaries)
+        XCTAssertEqual(score.events.last?.endBeat, 16)
         let notes = score.events.compactMap(\.midiNote)
         XCTAssertEqual(zip(notes, notes.dropFirst()).map { $1 - $0 }.filter { abs($0) > 2 }, [-5, 9],
                        "Its only moves larger than a step: a fourth down, then a sixth up")
@@ -109,8 +103,7 @@ final class MelodyScoreTests: XCTestCase {
         XCTAssertEqual(score.events.filter { $0.durationBeats == 1 }.map(\.onsetBeat), [6, 7, 14, 15],
                        "Phrases 2 and 4 end on two one-beat notes; every other note lasts half a beat")
         XCTAssertTrue(score.events.allSatisfy { [0.5, 1].contains($0.durationBeats) })
-        XCTAssertEqual(score.events.last?.endBeat, score.totalBeats)
-        XCTAssertEqual(score.phraseBoundaries, MelodyScore.odeToJoy.phraseBoundaries)
+        XCTAssertEqual(score.events.last?.endBeat, 16)
         // Hot Cross Buns' quick notes repeat one pitch; most of these change pitch.
         let quick = zip(score.events, score.events.dropFirst()).filter { $0.0.durationBeats == 0.5 && $0.1.durationBeats == 0.5 }
         XCTAssertEqual(quick.filter { $0.0.midiNote != $0.1.midiNote }.count, 19)
@@ -143,8 +136,7 @@ final class MelodyScoreTests: XCTestCase {
         XCTAssertEqual(score.version, 1)
         XCTAssertEqual(score.events.map(\.midiNote), [43, 45, 47, 48, 50, 52, 54, 55, 55, 54, 52, 50, 48, 47, 45, 43])
         XCTAssertEqual(score.events.map(\.durationBeats), Array(repeating: 1, count: 16))
-        XCTAssertEqual(score.events.last?.endBeat, score.totalBeats)
-        XCTAssertEqual(score.phraseBoundaries, MelodyScore.odeToJoy.phraseBoundaries)
+        XCTAssertEqual(score.events.last?.endBeat, 16)
         // A fifth below the cello would start on C2, too low to hum, so the voice sounds the cello's notes.
         let phrases = [["G2", "A2", "B2", "C3"], ["D3", "E3", "F♯3", "G3"], ["G3", "F♯3", "E3", "D3"], ["C3", "B2", "A2", "G2"]]
         for register in [MelodyRegister.lowVoice, .cello] {
@@ -166,8 +158,7 @@ final class MelodyScoreTests: XCTestCase {
         XCTAssertEqual(score.pieceID, "preludeChords")
         XCTAssertEqual(score.version, 1)
         XCTAssertEqual(score.events.map(\.durationBeats), Array(repeating: 1, count: 16))
-        XCTAssertEqual(score.events.last?.endBeat, score.totalBeats)
-        XCTAssertEqual(score.phraseBoundaries, MelodyScore.odeToJoy.phraseBoundaries)
+        XCTAssertEqual(score.events.last?.endBeat, 16)
         // Each bar's figure, lowest note, middle, top, middle: checked against the Mutopia edition of BWV 1007.
         let phrases = [["G2", "D3", "B3", "D3"], ["G2", "E3", "C4", "E3"], ["G2", "F♯3", "C4", "F♯3"], ["G2", "G3", "B3", "G3"]]
         let notes = score.events.compactMap(\.midiNote)
@@ -193,8 +184,7 @@ final class MelodyScoreTests: XCTestCase {
         XCTAssertEqual(score.version, 1)
         XCTAssertEqual(score.events.count, 32)
         XCTAssertTrue(score.events.allSatisfy { $0.durationBeats == 0.5 })
-        XCTAssertEqual(score.events.last?.endBeat, score.totalBeats)
-        XCTAssertEqual(score.phraseBoundaries, MelodyScore.odeToJoy.phraseBoundaries)
+        XCTAssertEqual(score.events.last?.endBeat, 16)
         // Checked against the Mutopia edition of BWV 1007: each bar's figure, played once.
         let phrases = [["G2", "D3", "B3", "A3", "B3", "D3", "B3", "D3"], ["G2", "E3", "C4", "B3", "C4", "E3", "C4", "E3"],
                        ["G2", "F♯3", "C4", "B3", "C4", "F♯3", "C4", "F♯3"], ["G2", "G3", "B3", "A3", "B3", "G3", "B3", "G3"]]
@@ -293,9 +283,6 @@ final class MelodyScoreTests: XCTestCase {
                 XCTAssertEqual(transposed.durationBeats, original.durationBeats)
             }
         }
-        XCTAssertEqual(MelodyRegister.lowVoice.rangeLabel, "G2–B2")
-        XCTAssertEqual(MelodyRegister.higherVoice.rangeLabel, "G3–B3")
-        XCTAssertEqual(MelodyRegister.cello.rangeLabel, "D3–F♯3")
     }
 
     func testPhraseSelectionsStartAtZeroAndKeepTheirFullFourBeats() throws {

@@ -72,7 +72,7 @@ final class ReferenceToneTests: XCTestCase {
         let data = try HummingExample.wavData()
         let player = try AVAudioPlayer(data: data)
         XCTAssertEqual(player.numberOfChannels, 1)
-        XCTAssertEqual(player.duration, HummingExample.duration, accuracy: 0.001)
+        XCTAssertEqual(player.duration, 3, accuracy: 0.001)
         let sound = try humanSamples()
         XCTAssertTrue(sound.allSatisfy(\.isFinite))
         XCTAssertLessThan(sound.map(abs).max() ?? 1, 0.8)

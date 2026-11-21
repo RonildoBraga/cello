@@ -34,7 +34,7 @@ final class SessionStoreTests: XCTestCase {
         XCTAssertEqual(store.sessions.count, 1)
         XCTAssertEqual(store.pendingRecordingCount, 0)
         XCTAssertFalse(FileManager.default.fileExists(atPath: source.path))
-        XCTAssertEqual(try Data(contentsOf: store.videoURL(for: session)), originalVideo)
+        XCTAssertEqual(try Data(contentsOf: store.recordingURL(for: session)), originalVideo)
         XCTAssertGreaterThan(session.duration, 0.5)
         XCTAssertLessThan(session.duration, 2)
         XCTAssertEqual(session.pitchSamples.count, 2)
@@ -81,7 +81,7 @@ final class SessionStoreTests: XCTestCase {
         reloaded.delete(restored)
         XCTAssertNil(reloaded.errorMessage)
         XCTAssertTrue(reloaded.sessions.isEmpty)
-        XCTAssertFalse(FileManager.default.fileExists(atPath: reloaded.videoURL(for: restored).path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: reloaded.recordingURL(for: restored).path))
         XCTAssertTrue(SessionStore(directory: directory).sessions.isEmpty)
     }
 
@@ -251,11 +251,11 @@ final class SessionStoreTests: XCTestCase {
         let first = try XCTUnwrap(historical.first)
         let folder = directory.appendingPathComponent(first.id.uuidString)
         let metadata = try Data(contentsOf: folder.appendingPathComponent("session.json"))
-        let movie = try Data(contentsOf: store.videoURL(for: first))
+        let movie = try Data(contentsOf: store.recordingURL(for: first))
         store.delete(first)
         XCTAssertEqual(store.sessions.count, 3)
         XCTAssertEqual(try Data(contentsOf: folder.appendingPathComponent("session.json")), metadata)
-        XCTAssertEqual(try Data(contentsOf: store.videoURL(for: first)), movie)
+        XCTAssertEqual(try Data(contentsOf: store.recordingURL(for: first)), movie)
         XCTAssertNotNil(store.errorMessage)
 
         // The same store retries the ledger write before allowing deletion.
@@ -284,7 +284,7 @@ final class SessionStoreTests: XCTestCase {
         let first = try XCTUnwrap(historical.first)
         let folder = directory.appendingPathComponent(first.id.uuidString)
         let metadata = try Data(contentsOf: folder.appendingPathComponent("session.json"))
-        let movie = try Data(contentsOf: store.videoURL(for: first))
+        let movie = try Data(contentsOf: store.recordingURL(for: first))
 
         // Even if another operation cleared its display, restore the warning.
         store.errorMessage = nil
@@ -293,7 +293,7 @@ final class SessionStoreTests: XCTestCase {
         XCTAssertNotNil(store.errorMessage)
         XCTAssertEqual(try Data(contentsOf: progressURL), corruptLedger)
         XCTAssertEqual(try Data(contentsOf: folder.appendingPathComponent("session.json")), metadata)
-        XCTAssertEqual(try Data(contentsOf: store.videoURL(for: first)), movie)
+        XCTAssertEqual(try Data(contentsOf: store.recordingURL(for: first)), movie)
 
         // Once the unreadable file is resolved, reload reconstructs the milestone
         // before any historical take is deleted. Production never removes it.
@@ -620,7 +620,7 @@ final class SessionStoreTests: XCTestCase {
         XCTAssertEqual(session.melodyContext, context)
         XCTAssertNil(session.melodyRating)
         XCTAssertNil(session.rating)
-        XCTAssertEqual(try Data(contentsOf: store.videoURL(for: session)), original)
+        XCTAssertEqual(try Data(contentsOf: store.recordingURL(for: session)), original)
         XCTAssertFalse(store.melodyProgress(for: context).completed)
     }
 
@@ -697,7 +697,7 @@ final class SessionStoreTests: XCTestCase {
         let first = try XCTUnwrap(history.first)
         store.delete(first)
         XCTAssertEqual(store.sessions.count, 3)
-        XCTAssertTrue(FileManager.default.fileExists(atPath: store.videoURL(for: first).path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: store.recordingURL(for: first).path))
         try FileManager.default.removeItem(at: progressURL)
         store.delete(first)
         XCTAssertEqual(store.sessions.count, 2)

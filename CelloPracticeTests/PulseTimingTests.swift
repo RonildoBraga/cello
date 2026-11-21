@@ -21,17 +21,7 @@ final class PulseTimingTests: XCTestCase {
         XCTAssertFalse(timing.recordTap(at: 104.5))
         XCTAssertTrue(timing.recordTap(at: 105.2))
         XCTAssertTrue(timing.recordTap(at: 106.1))
-        XCTAssertEqual(timing.offsets.count, 3)
-        XCTAssertEqual(try XCTUnwrap(timing.medianOffsetMilliseconds), 100, accuracy: 1e-8)
-        XCTAssertEqual(try XCTUnwrap(timing.medianDistanceMilliseconds), 100, accuracy: 1e-8)
-    }
-
-    func testNoTimingJudgmentFromOneOrTwoTaps() {
-        var timing = PulseTiming(startTime: 10)
-        timing.recordTap(at: 14)
-        timing.recordTap(at: 15)
-        XCTAssertNil(timing.medianOffsetMilliseconds)
-        XCTAssertNil(timing.medianDistanceMilliseconds)
+        XCTAssertEqual(timing.offsets.values.sorted().map { ($0 * 1_000).rounded() }, [-100, 100, 200])
     }
 
     func testWindowAcceptsLastBeatButNotTailOrInvalidTimes() {

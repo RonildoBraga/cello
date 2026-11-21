@@ -268,7 +268,8 @@ enum RecordedReference {
     /// The loudness every note is brought to: -15 dBFS, about where a long note from the A3 cello recording sits.
     private static let noteLevel = pow(10, -15.0 / 20)
 
-    private static func wave(_ pcm: [Int16]) -> Data {
+    /// A mono 16-bit WAV file at `sampleRate`.
+    static func wave(_ pcm: [Int16]) -> Data {
         let dataSize = UInt32(pcm.count * MemoryLayout<Int16>.size)
         var data = Data(capacity: 44 + Int(dataSize))
         data.append(contentsOf: "RIFF".utf8)

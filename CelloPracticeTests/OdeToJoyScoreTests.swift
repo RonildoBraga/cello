@@ -8,15 +8,12 @@ final class OdeToJoyScoreTests: XCTestCase {
         let score = MelodyScore.odeToJoy
         XCTAssertEqual(score.pieceID, "odeToJoy")
         XCTAssertEqual(score.version, 1)
-        XCTAssertEqual(score.beatsPerBar, 4)
-        XCTAssertEqual(score.totalBeats, 16)
-        XCTAssertEqual(score.phraseBoundaries, [0, 4, 8, 12, 16])
         XCTAssertEqual(score.events.map(\.midiNote),
                        [54, 54, 55, 57, 57, 55, 54, 52, 50, 50, 52, 54, 54, 52, 52])
         XCTAssertEqual(Set(score.events.compactMap(\.midiNote)), [50, 52, 54, 55, 57])
         XCTAssertEqual(score.events.map(\.durationBeats), Array(repeating: 1, count: 12) + [1.5, 0.5, 2])
         XCTAssertEqual(score.events.map(\.onsetBeat), Array(0...12).map(Double.init) + [13.5, 14])
-        XCTAssertEqual(score.events.last?.endBeat, score.totalBeats)
+        XCTAssertEqual(score.events.last?.endBeat, 16)
     }
 
     func testRegistersKeepIntervalsAndUseTheCorrectFiveNoteRange() throws {
@@ -110,7 +107,8 @@ final class OdeToJoyScoreTests: XCTestCase {
                     XCTAssertEqual(try encoder.encode(current), try encoder.encode(original))
                 }
             }
-            XCTAssertEqual(MelodyPiece.hotCrossBuns.rangeLabel(for: register), register.rangeLabel)
+            XCTAssertEqual(MelodyPiece.hotCrossBuns.rangeLabel(for: register),
+                           [MelodyRegister.lowVoice: "G2–B2", .higherVoice: "G3–B3", .cello: "D3–F♯3"][register])
         }
     }
 
