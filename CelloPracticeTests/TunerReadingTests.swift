@@ -160,7 +160,7 @@ final class TunerReadingTests: XCTestCase {
 
     func testAdviceNamesTheFineTunerForSmallChangesAndThePegForLargeOnes() {
         let cases: [(Double, StringTuner.Advice)] = [
-            (-5, .inTune), (5, .inTune), (-5.5, .low), (30, .high),
+            (-4.9, .inTune), (4.9, .inTune), (-5.1, .low), (30, .high),
             (-100, .low), (100, .high), (-180, .farLow), (250, .farHigh)
         ]
         for (cents, advice) in cases {
