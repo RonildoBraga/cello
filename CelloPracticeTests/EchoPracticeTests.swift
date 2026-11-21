@@ -14,7 +14,7 @@ final class EchoPracticeTests: XCTestCase {
                     let context = try level.context(patternIndex: index, register: register)
                     XCTAssertTrue(context.isValid)
                     XCTAssertEqual(context.pieceID, level.pieceID)
-                    XCTAssertEqual(context.scoreVersion, EchoLevel.scoreVersion)
+                    XCTAssertEqual(context.scoreVersion, EchoLevel.scoreVersion(for: register))
                     XCTAssertEqual(context.section, .whole)
                     XCTAssertEqual(context.tempoBPM, 60)
                     XCTAssertEqual(context.tuningA4Hz, 440)
@@ -60,8 +60,52 @@ final class EchoPracticeTests: XCTestCase {
         XCTAssertEqual(EchoLevel.twoNotes.rangeLabel(for: .higherVoice), "G3–B3")
         XCTAssertEqual(EchoLevel.threeNotes.rangeLabel(for: .lowVoice), "G2–D3")
         XCTAssertEqual(EchoLevel.threeNotes.rangeLabel(for: .higherVoice), "G3–D4")
-        XCTAssertEqual(EchoLevel.twoNotes.rangeLabel(for: .cello), "D3–F♯3")
-        XCTAssertEqual(EchoLevel.threeNotes.rangeLabel(for: .cello), "D3–A3")
+        XCTAssertEqual(EchoLevel.twoNotes.rangeLabel(for: .cello), "G2–A3")
+        XCTAssertEqual(EchoLevel.threeNotes.rangeLabel(for: .cello), "C2–A3")
+    }
+
+    func testTheCelloEchoesItsOpenStringsFourBeatsEach() throws {
+        // Level 1 has not taught a finger yet, so the cello hears and plays only its open strings,
+        // with time to find each one.
+        let strings: Set<Int> = [36, 43, 50, 57]
+        for level in EchoLevel.allCases {
+            var sequences: Set<[Int]> = []
+            var heard: Set<Int> = []
+            for index in 0..<level.patternCount {
+                let context = try level.context(patternIndex: index, register: .cello)
+                XCTAssertTrue(context.isValid)
+                XCTAssertEqual(context.scoreVersion, 2)
+                XCTAssertEqual(context.expectedEvents.map(\.durationBeats), Array(repeating: 4, count: level.noteCount))
+                XCTAssertEqual(context.expectedEvents.map(\.onsetBeat), (0..<level.noteCount).map { Double($0 * 4) })
+                XCTAssertEqual(context.duration, Double(level.noteCount * 4))
+                let notes = context.expectedEvents.compactMap(\.midiNote)
+                XCTAssertTrue(Set(notes).isSubset(of: strings))
+                for pair in zip(notes, notes.dropFirst()) {
+                    XCTAssertLessThanOrEqual(abs(pair.1 - pair.0), 7, "Each move is to the same or a neighbouring string")
+                }
+                heard.formUnion(notes)
+                sequences.insert(notes)
+                XCTAssertEqual(EchoLevel.selection(for: context)?.patternIndex, index)
+            }
+            XCTAssertEqual(sequences.count, level.patternCount)
+            XCTAssertEqual(heard, level == .twoNotes ? [43, 50, 57] : strings)
+        }
+    }
+
+    func testTheCellosFirstPatternsStillCountTowardsItsEcho() throws {
+        // Takes of the first cello patterns (D3–F♯3, two beats a note) keep their place and their passes.
+        let first = MelodyPracticeContext(pieceID: "echoTwoNotes", scoreVersion: 1, register: .cello,
+            referenceKey: MelodyRegister.cello.keyName, tuningA4Hz: 440, tempoBPM: 60, section: .whole,
+            expectedEvents: [MelodyEvent(onsetBeat: 0, durationBeats: 2, midiNote: 50),
+                             MelodyEvent(onsetBeat: 2, durationBeats: 2, midiNote: 52)],
+            durationBeats: 4, gradingVersion: MelodyRating.currentVersion)
+        XCTAssertEqual(EchoLevel.selection(for: first)?.level, .twoNotes)
+        XCTAssertEqual(EchoLevel.selection(for: first)?.patternIndex, 1)
+        let old = try session(at: 0, context: first, version: MelodyRating.currentVersion)
+        let new = try session(at: 1, context: EchoLevel.twoNotes.context(patternIndex: 1, register: .cello),
+                              version: MelodyRating.currentVersion)
+        XCTAssertNotNil(EchoProgressLedger.eligibleKey(for: old))
+        XCTAssertEqual(EchoProgressLedger.eligibleKey(for: old), EchoProgressLedger.eligibleKey(for: new))
     }
 
     func testFreshPatternSelectionNeverRepeatsThePreviousValidIndex() {

@@ -200,10 +200,17 @@ struct VoicePracticeView<Header: View>: View {
                                 } else if let target = session.effectiveTargetFrequency {
                                     PitchTraceView(samples: session.pitchSamples, targetFrequency: target, duration: session.duration)
                                 }
-                                if !mode.isEcho {
-                                    Divider()
-                                    liveTuner
+                                // Echo keeps its notes secret until a take is made; then they are named
+                                // and the tuner can be set to each, to find what was missed.
+                                if mode.isEcho, let context = session.melodyContext {
+                                    Text("The notes were " + context.expectedEvents.compactMap {
+                                        context.frequency(for: $0).map { NoteName.frequency($0) }
+                                    }.joined(separator: " → "))
+                                    .font(.subheadline.weight(.semibold)).foregroundStyle(Palette.ink)
+                                    .accessibilityIdentifier("echoRevealedNotes")
                                 }
+                                Divider()
+                                liveTuner
                             }.card()
                             lessonProgress
                         }.id("latestRating")

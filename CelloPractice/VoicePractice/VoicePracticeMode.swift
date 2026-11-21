@@ -56,7 +56,7 @@ enum VoicePracticeMode: Equatable {
     /// The take's different notes in the order they first sound, when it has more than one.
     /// Echo offers none: its tuner stays hidden so the notes are not given away.
     var tunerTargets: [Double] {
-        guard !isEcho, let context = melodyContext else { return [] }
+        guard let context = melodyContext else { return [] }
         var targets: [Double] = []
         for target in context.expectedEvents.compactMap({ context.frequency(for: $0) })
         where !targets.contains(target) { targets.append(target) }
