@@ -81,9 +81,67 @@ final class HummingGuidanceTests: XCTestCase {
         XCTAssertNil(unheard.timingAdvice)
     }
 
-    private func note(_ index: Int, start: Double, onset: Double?, frequency: Double = 110, timed: Bool) -> MelodyNoteResult {
+    func testEchoChartFollowsItsTimingFeedbackBeforeMoreUnclearNotes() throws {
+        let take = MelodyRating(status: .rated, notes: true, timing: false, clarity: false, noteResults: [
+            note(0, start: 0, onset: 0, timed: true, clear: false),
+            note(1, start: 2, onset: 2, timed: true, clear: false),
+            note(2, start: 4, onset: 4.4, timed: false)
+        ])
+        XCTAssertEqual(TeacherNote(rating: take, register: .lowVoice).subject, .unclear,
+                       "The melody teacher's note weights clarity first, but Echo names the late note")
+        XCTAssertEqual(take.echoFeedback, take.timingAdvice)
+        XCTAssertTrue(try XCTUnwrap(take.timingAdvice).hasPrefix("Note 3 (A2) started 0.4 s late"))
+        let focus = try XCTUnwrap(take.echoFocus(in: NoteVerdict.verdicts(for: take)))
+        XCTAssertEqual(focus.position, 2)
+        XCTAssertEqual(focus.label, "0.4 s late")
+    }
+
+    func testEchoChartFocusUsesTheFirstMistimedNoteForEarlyLateAndShortStarts() throws {
+        // The melody teacher leads with lateness in each case; Echo names the first timing miss.
+        for (first, later, kind, label) in [
+            (-0.3, 0.4, NoteVerdict.Kind.early, "0.3 s early"),
+            (0.3, -0.4, .late, "0.3 s late"),
+            (0.0, 0.4, .short, "Stopped soon")
+        ] {
+            let take = rating([note(0, start: 0, onset: 0, timed: true),
+                               note(1, start: 2, onset: 2 + first, timed: false),
+                               note(2, start: 4, onset: 4 + later, timed: false)])
+            XCTAssertEqual(TeacherNote(rating: take, register: .lowVoice).subject, .late)
+            XCTAssertEqual(take.echoFeedback, take.timingAdvice)
+            let focus = try XCTUnwrap(take.echoFocus(in: NoteVerdict.verdicts(for: take)))
+            XCTAssertEqual(focus.position, 1)
+            XCTAssertEqual(focus.kind, kind)
+            XCTAssertEqual(focus.label, label)
+        }
+    }
+
+    func testEchoChartLeavesGenericFeedbackWithoutAnInventedFocus() {
+        let results = [note(0, start: 0, onset: 0.4, timed: false, clear: false),
+                       note(1, start: 2, onset: 2, timed: true)]
+        for (status, notes, timing, clarity, octave) in [
+            (MelodyRating.Status.rated, false, false, false, false), // General pitch advice.
+            (.rated, true, true, false, false), // General clarity advice.
+            (.rated, true, true, true, false), // All goals reached.
+            (.rated, true, false, true, true), // Another octave, not a particular note.
+            (.unclear, true, false, false, false),
+            (.insufficientSound, true, false, false, false)
+        ] {
+            let take = MelodyRating(status: status, notes: notes, timing: timing, clarity: clarity,
+                                    octaveMismatch: octave, noteResults: results)
+            XCTAssertNil(take.echoFocus(in: NoteVerdict.verdicts(for: take)), take.echoFeedback)
+        }
+        // timingAdvice gives general advice when its first mistimed note was not heard;
+        // the chart must not skip it and point at a later late note.
+        let unheard = rating([note(0, start: 0, onset: nil, timed: false),
+                              note(1, start: 2, onset: 2.4, timed: false)])
+        XCTAssertNil(unheard.timingAdvice)
+        XCTAssertNil(unheard.echoFocus(in: NoteVerdict.verdicts(for: unheard)))
+    }
+
+    private func note(_ index: Int, start: Double, onset: Double?, frequency: Double = 110,
+                      timed: Bool, clear: Bool = true) -> MelodyNoteResult {
         MelodyNoteResult(expectedIndex: index, expectedStart: start, expectedDuration: 2, expectedFrequency: frequency,
-                         observedFrequency: frequency, observedOnset: onset, matched: true, timed: timed, clear: true,
+                         observedFrequency: frequency, observedOnset: onset, matched: true, timed: timed, clear: clear,
                          octaveMismatch: false)
     }
 

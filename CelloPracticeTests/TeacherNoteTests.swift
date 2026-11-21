@@ -46,6 +46,37 @@ final class TeacherNoteTests: XCTestCase {
         XCTAssertEqual(text(once), ["Notes 2 and 3 began about 0.4 s late, and before note 2 your voice slid up first. Move straight to the next note as its bar reaches the line."])
     }
 
+    func testEachNoteGetsOneVerdictThatAgreesWithTheNote() {
+        let take = rating([note(0, b2, cents: -67), note(1, a2, cents: -42, late: 0.36), note(2, g2, cents: 36, late: 0.41)],
+                          strays: [MelodyStray(time: 0.96, frequency: 130.8), MelodyStray(time: 2.21, frequency: 116.5)])
+        let verdicts = NoteVerdict.verdicts(for: take)
+        XCTAssertEqual(verdicts.map(\.name), ["B2", "A2", "G2"])
+        XCTAssertEqual(verdicts.map(\.kind), [.low, .late, .late])
+        XCTAssertEqual(verdicts.map(\.label), ["67¢ flat", "0.4 s late", "0.4 s late"])
+        // The teacher's note leads with the late notes, so the chart points at the first of them.
+        XCTAssertEqual(NoteVerdict.focus(of: verdicts, subject: TeacherNote(rating: take, register: .lowVoice).subject)?.position, 1)
+
+        let mixed = NoteVerdict.verdicts(for: rating([note(0, b2), note(1, a2, cents: nil), note(2, g2, cents: 150),
+                                                      note(3, b2, late: -0.3), note(4, a2, timed: false), note(5, g2, clear: false)]))
+        XCTAssertEqual(mixed.map(\.kind), [.good, .missed, .high, .early, .short, .unclear])
+        XCTAssertEqual(mixed.map(\.label), ["Good", "Not heard", "Too high", "0.3 s early", "Stopped soon", "Unclear"])
+        XCTAssertNil(NoteVerdict.focus(of: mixed, subject: .allGood))
+
+        // A clear note that missed while near its pitch moved about: it is not sharp or flat.
+        let near = NoteVerdict.verdicts(for: rating([note(0, b2, cents: 0, matched: false), note(1, a2), note(2, g2)]))
+        XCTAssertEqual(near.first?.label, "Wavered")
+        // A note both sharp and late shows "sharp" on its card; the teacher leads with the late
+        // start, and the chart shows that note by its lateness.
+        let both = rating([note(0, b2, cents: 90, late: 0.4), note(1, a2), note(2, g2)])
+        let subject = TeacherNote(rating: both, register: .lowVoice).subject
+        XCTAssertEqual(subject, .late)
+        XCTAssertEqual(NoteVerdict.verdicts(for: both).first?.label, "90¢ sharp")
+        let focus = NoteVerdict.focus(of: NoteVerdict.verdicts(for: both), subject: subject)
+        XCTAssertEqual(focus?.position, 0)
+        XCTAssertEqual(focus?.label, "0.4 s late")
+        XCTAssertTrue(NoteVerdict.verdicts(for: MelodyRating(status: .unclear)).isEmpty, "An unrated take has no verdicts")
+    }
+
     func testTimingSaysWhichNotesHowFarAndWhatToDo() {
         XCTAssertEqual(text(rating([note(0, b2), note(1, a2, late: 0.31), note(2, g2)])),
                        ["Note 2 began 0.3 s late. Change as its bar reaches the line."])

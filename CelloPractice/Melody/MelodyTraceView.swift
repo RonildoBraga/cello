@@ -11,6 +11,9 @@ struct MelodyTraceData {
         let start: Double
         let end: Double
         let pitch: Double
+        /// Named on its bar where the tune moves to it, when the axis cannot name every note.
+        let labelled: Bool
+        var name: String { MelodyTraceData.noteName(for: pitch) }
     }
 
     struct Point: Identifiable, Equatable {
@@ -62,11 +65,19 @@ struct MelodyTraceData {
         func pitch(_ frequency: Double) -> Double {
             69 + 12 * (log2(frequency) - log2(tuning))
         }
-        expectedNotes = context.isValid ? context.expectedEvents.enumerated().compactMap { index, event in
+        var previousNote: Int?
+        let notes: [ExpectedNote] = context.isValid ? context.expectedEvents.enumerated().compactMap { index, event in
             guard let note = event.midiNote else { return nil }
+            defer { previousNote = note }
             return ExpectedNote(id: index, start: event.onsetBeat * 60 / Double(context.tempoBPM),
-                                end: event.endBeat * 60 / Double(context.tempoBPM), pitch: Double(note))
+                                end: event.endBeat * 60 / Double(context.tempoBPM), pitch: Double(note),
+                                labelled: note != previousNote)
         } : []
+        // The axis names the tune's notes when there are few of them; otherwise the bars are
+        // named, unless so many quick notes would crowd them.
+        let tuneNoteCount = Set(notes.map(\.pitch)).count
+        expectedNotes = tuneNoteCount > 6 && notes.count <= 16 ? notes
+            : notes.map { ExpectedNote(id: $0.id, start: $0.start, end: $0.end, pitch: $0.pitch, labelled: false) }
 
         let timed = observations.enumerated().filter {
             $0.element.time.isFinite && (0...savedDuration).contains($0.element.time)
@@ -102,11 +113,9 @@ struct MelodyTraceData {
         let low = floor(pitches.min() ?? 48) - 1
         let high = ceil(pitches.max() ?? 52) + 1
         pitchRange = low...max(low + 2, high)
-        if high - low <= 8, !expectedNotes.isEmpty {
-            pitchTicks = Array(Set(expectedNotes.map { $0.pitch.rounded() })).sorted()
-        } else {
-            pitchTicks = Array(Set([low + 1, ((low + high) / 2).rounded(), high - 1])).sorted()
-        }
+        // The axis names only the tune's own notes, so no line is mistaken for one of them.
+        let tuneNotes = Array(Set(expectedNotes.map { $0.pitch.rounded() })).sorted()
+        pitchTicks = tuneNotes.count <= 6 ? tuneNotes : []
     }
 
     static func noteName(for pitch: Double) -> String {
@@ -123,13 +132,28 @@ struct MelodyTraceData {
 
 struct MelodyTraceView: View {
     private let data: MelodyTraceData
+    /// One card per note of a rated take; none for a take that only has its pitch.
+    private let verdicts: [NoteVerdict]
+    /// The note the feedback talks about, by the issue it names, shown until another note is chosen.
+    private let focus: NoteVerdict?
+    @State private var chosen: Int?
 
     init(context: MelodyPracticeContext, samples: [PitchSample], duration: Double) {
         data = MelodyTraceData(context: context, samples: samples, duration: duration)
+        verdicts = []
+        focus = nil
     }
 
     init(context: MelodyPracticeContext, rating: MelodyRating, duration: Double) {
         data = MelodyTraceData(context: context, rating: rating, duration: duration)
+        verdicts = NoteVerdict.verdicts(for: rating)
+        focus = EchoLevel.selection(for: context) != nil ? rating.echoFocus(in: verdicts)
+            : NoteVerdict.focus(of: verdicts, subject: TeacherNote(rating: rating, register: context.register).subject)
+    }
+
+    private var highlighted: NoteVerdict? {
+        guard let chosen else { return focus }
+        return verdicts.first { $0.id == chosen }
     }
 
     var body: some View {
@@ -156,11 +180,33 @@ struct MelodyTraceView: View {
                                       yEnd: .value("Upper goal", note.pitch + MelodyRecordingRater.matchCents / 100))
                             .foregroundStyle(Palette.forest.opacity(0.10))
                     }
+                    // The note being looked at: the one the feedback names, or the card chosen below.
+                    if let verdict = highlighted, let note = data.expectedNotes.first(where: { $0.id == verdict.id }) {
+                        RectangleMark(xStart: .value("Start", note.start), xEnd: .value("End", note.end),
+                                      yStart: .value("Lower", note.pitch - 1.2), yEnd: .value("Upper", note.pitch + 1.2))
+                            .foregroundStyle(verdict.isGood ? Palette.forest.opacity(0.12) : Palette.gold.opacity(0.20))
+                            .annotation(position: .top, alignment: .center, spacing: 2) {
+                                Text(verdict.label).font(.caption2.weight(.semibold))
+                                    .foregroundStyle(verdict.isGood ? Palette.forest : Palette.goldText)
+                            }
+                        // Where the note should have begun, and where it did.
+                        if [.late, .early].contains(verdict.kind), let onset = verdict.observedOnset {
+                            RuleMark(x: .value("Began", onset),
+                                     yStart: .value("Lower", note.pitch - 1.2), yEnd: .value("Upper", note.pitch + 1.2))
+                                .foregroundStyle(Palette.goldText.opacity(0.7))
+                                .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [3, 2]))
+                        }
+                    }
                     ForEach(data.expectedNotes) { note in
                         RuleMark(xStart: .value("Start", note.start), xEnd: .value("End", note.end),
                                  y: .value("Reference", note.pitch))
                             .foregroundStyle(Palette.forest.opacity(0.65))
                             .lineStyle(StrokeStyle(lineWidth: 2, dash: [4, 3]))
+                            .annotation(position: .bottom, alignment: .leading, spacing: 1) {
+                                if note.labelled {
+                                    Text(note.name).font(.caption2.weight(.medium)).foregroundStyle(Palette.forest)
+                                }
+                            }
                     }
                     ForEach(Array(zip(data.expectedNotes, data.expectedNotes.dropFirst())), id: \.1.id) { previous, next in
                         if abs(previous.end - next.start) < 1e-8, previous.pitch != next.pitch {
@@ -217,10 +263,43 @@ struct MelodyTraceView: View {
                 if data.points.isEmpty {
                     Text("No clear pitch to plot for this take.").font(.caption).foregroundStyle(Palette.muted)
                 }
+                if !verdicts.isEmpty { noteCards }
             } else {
                 Text("The melody reference is unavailable.").font(.subheadline).foregroundStyle(Palette.muted)
             }
         }
+    }
+
+    /// Each note's verdict. Choosing one shows it on the chart; choosing it again goes back.
+    private var noteCards: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Each note · tap one to see it above").font(.caption).foregroundStyle(Palette.muted)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(verdicts) { verdict in
+                        let selected = highlighted?.id == verdict.id
+                        Button {
+                            chosen = chosen == verdict.id ? nil : verdict.id
+                        } label: {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("\(verdict.position + 1) · \(verdict.name)").font(.caption.weight(.semibold))
+                                    .foregroundStyle(Palette.ink)
+                                Label(verdict.label, systemImage: verdict.isGood ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                                    .font(.caption2).foregroundStyle(verdict.isGood ? Palette.forest : Palette.goldText)
+                            }
+                            .padding(.horizontal, 10).padding(.vertical, 8)
+                            .background(selected ? Palette.gold.opacity(0.18) : Palette.forest.opacity(0.06),
+                                        in: RoundedRectangle(cornerRadius: Layout.tileRadius))
+                            .overlay(RoundedRectangle(cornerRadius: Layout.tileRadius)
+                                .stroke(selected ? Palette.gold : .clear, lineWidth: 1.5))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Note \(verdict.position + 1), \(verdict.name): \(verdict.label)")
+                        .accessibilityAddTraits(selected ? .isSelected : [])
+                    }
+                }
+            }
+        }.accessibilityIdentifier("melodyNoteCards")
     }
 
     private func legend(_ title: String, color: Color, dashed: Bool = false) -> some View {

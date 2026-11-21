@@ -12,7 +12,7 @@ GitHub Pages serves `docs/index.html`, `docs/privacy.html` and `docs/site.css` f
 
 ## Verify a release
 
-Follow `CONTRIBUTING.md`: pitch package and app unit tests, then the full real-clock UI suite before release. Optional replay tests need private fixtures and must be reported as skipped when absent. Simulator checks do not prove microphone, camera, speaker or haptic behaviour. Record physical installation, data preservation and any functional checks separately.
+Follow `CONTRIBUTING.md`: pitch package and app unit tests, then the full real-clock UI suite before release. Optional replay tests need private fixtures and must be reported as skipped when absent. Simulator checks do not prove microphone, speaker or haptic behaviour. Record physical installation, data preservation and any functional checks separately.
 
 Before updating a learner’s phone, back up Documents and hash its files. Copy them back after installation and verify original recordings and progress. Never uninstall to update. Keep all backups, signing/export options, archives, IPAs, upload logs, device identifiers and private review contacts outside Git.
 

@@ -23,7 +23,7 @@ Music (the path)
   Level 9 · Prelude chords    Listen → Tap it → Meet the notes → Hum it → Whole melody
   Level 10 · Prelude opening  Listen → Tap it → Meet the notes → Hum it → Whole melody
 About → long-term goal, who built it, sound sources and licences, lesson references
-Recordings → existing local audio/video history
+Recordings → local history of takes (sound only; cello takes before 1.21.0 also hold video)
 ```
 
 The path replaced separate Foundations and Pieces libraries ([issue #49](https://github.com/RonildoBraga/cello/issues/49), design note [#53](https://github.com/RonildoBraga/cello/issues/53)). A `Level` is a title and an ordered list of `PathLesson`s, and each lesson opens a screen that already existed: a lesson page, Listen (the reference player), Tap it (melody rhythm), Meet the notes, and Hum it or Whole melody (melody humming opened at phrase 1 or at the whole melody). Adding a melody adds one level with the same lessons.
@@ -196,7 +196,7 @@ The page shows the proposed route into teacher-supported setup, open strings, fi
 
 [Issue #19](https://github.com/RonildoBraga/cello/issues/19) adds a separate Humming ear-training activity with original two-note and three-note catalogues. Manual, complete Hear playback unlocks Record for that exact frozen pattern. The usual countdown starts capture; [issue #23](https://github.com/RonildoBraga/cello/issues/23) adds the shared live tuning bar during recording, following each note in that frozen pattern. Both levels and voice registers remain selectable between attempts.
 
-The shared melody rater/feedback/chart and audio/video save path are reused. Progress spans eligible patterns within a level and voice register, with a separate EchoProgress.json ledger; Echo achievements do not enter song or foundation ledgers. Existing lesson IDs/numbers and song contexts are unchanged. Stars describe the recorded notes, timing and clarity, not a direct measurement of musical memory. See [the design, sources and validation boundaries](listen-and-echo.md).
+The shared melody rater/feedback/chart and recording save path are reused. Progress spans eligible patterns within a level and voice register, with a separate EchoProgress.json ledger; Echo achievements do not enter song or foundation ledgers. Existing lesson IDs/numbers and song contexts are unchanged. Stars describe the recorded notes, timing and clarity, not a direct measurement of musical memory. See [the design, sources and validation boundaries](listen-and-echo.md).
 
 ## Capture
 
