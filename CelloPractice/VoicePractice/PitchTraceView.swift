@@ -44,6 +44,17 @@ struct PitchTraceData {
     }
 
     var nearTargetCount: Int { points.filter(\.isNearTarget).count }
+
+    /// Where the take mostly sat, in plain words, with what to do about it.
+    var tip: String? {
+        guard !points.isEmpty else { return nil }
+        let sorted = points.map(\.cents).sorted()
+        let middle = sorted[sorted.count / 2]
+        let amount = Int(abs(middle).rounded())
+        if abs(middle) <= 25 { return "Mostly on the note. Keep it there for the whole take." }
+        return middle > 0 ? "Mostly \(amount)¢ sharp. Let the pitch settle a little lower."
+            : "Mostly \(amount)¢ flat. Lift the pitch a little."
+    }
     var aboveTargetCount: Int { points.filter { $0.cents > 25 + 1e-8 }.count }
     var belowTargetCount: Int { points.filter { $0.cents < -25 - 1e-8 }.count }
 
@@ -95,10 +106,6 @@ struct PitchTraceView: View {
                     RuleMark(y: .value("Target", 0))
                         .foregroundStyle(Palette.forest.opacity(0.65))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                        .annotation(position: .top, alignment: .trailing) {
-                            Text("Target 0").font(.caption2.weight(.medium))
-                                .foregroundStyle(Palette.forest)
-                        }
 
                     ForEach(trace.points) { point in
                         PointMark(x: .value("Time", point.time), y: .value("Pitch", point.cents))
@@ -121,12 +128,13 @@ struct PitchTraceView: View {
                     }
                 }
                 .chartYAxis {
-                    AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { value in
+                    // Higher than the target is sharp, lower is flat: said in words, not in cents.
+                    AxisMarks(position: .leading, values: [trace.centsRange.lowerBound * 0.6, 0, trace.centsRange.upperBound * 0.6]) { value in
                         AxisGridLine().foregroundStyle(Palette.muted.opacity(0.10))
                         AxisValueLabel {
                             if let cents = value.as(Double.self) {
-                                Text(cents > 0 ? "+\(Int(cents))" : "\(Int(cents))")
-                                    .foregroundStyle(Palette.muted)
+                                Text(cents > 0 ? "Sharp" : cents < 0 ? "Flat" : NoteName.frequency(targetFrequency))
+                                    .foregroundStyle(cents == 0 ? Palette.forest : Palette.muted)
                             }
                         }
                     }
@@ -136,6 +144,10 @@ struct PitchTraceView: View {
                 .accessibilityLabel(trace.accessibilitySummary)
                 .accessibilityHint("Above zero is higher pitch; below zero is lower pitch.")
                 .accessibilityIdentifier("pitchTraceChart")
+                if let tip = trace.tip {
+                    Text(tip).font(.subheadline).foregroundStyle(Palette.ink)
+                        .accessibilityIdentifier("pitchTraceTip")
+                }
             }
         }.accessibilityElement(children: .contain)
             .accessibilityIdentifier("pitchTraceCard")
