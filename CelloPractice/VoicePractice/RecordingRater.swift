@@ -9,14 +9,17 @@ enum RecordingRater {
     /// How far from the target a held note may be and still match it.
     static let matchCents = 25.0
 
-    static func rate(url: URL, targetFrequency: Double) async -> PracticeRating {
+    /// `room` is the room as heard before the take: only sound clear of it counts. `anyOctave`
+    /// hears the target in any octave, for a cello, whose overtone can be louder than its note.
+    static func rate(url: URL, targetFrequency: Double, room: RoomNoise? = nil, anyOctave: Bool = false) async -> PracticeRating {
         await Task.detached(priority: .userInitiated) {
             guard targetFrequency.isFinite, targetFrequency > 0 else {
                 return PracticeRating(targetFrequency: 0, status: .unclear)
             }
             do {
                 let samples = try await RecordingAudio.read(url: url, maximumDuration: maximumDuration)
-                return rate(samples: samples, sampleRate: sampleRate, targetFrequency: targetFrequency)
+                return rate(samples: samples, sampleRate: sampleRate, targetFrequency: targetFrequency,
+                            room: room, anyOctave: anyOctave)
             } catch {
                 return PracticeRating(targetFrequency: targetFrequency, status: .unclear)
             }
@@ -24,7 +27,8 @@ enum RecordingRater {
     }
 
     /// Pure PCM entry point for signal tests. Production calls the media decoder.
-    static func rate(samples: [Float], sampleRate: Double, targetFrequency: Double) -> PracticeRating {
+    static func rate(samples: [Float], sampleRate: Double, targetFrequency: Double,
+                     room: RoomNoise? = nil, anyOctave: Bool = false) -> PracticeRating {
         guard targetFrequency.isFinite, targetFrequency > 0 else {
             return PracticeRating(targetFrequency: 0, status: .unclear)
         }
@@ -59,6 +63,7 @@ enum RecordingRater {
         // successful estimates as continuous sound. A pitch window supports only
         // cells actually inside it, and each cell contributes its own duration.
         let cellSize = max(1, Int(sampleRate * 0.01))
+        let soundLevel = max(RoomNoise.soundFloor, room?.clearLevel ?? 0)
         var activeDuration = 0.0
         var voicedDuration = 0.0
         var ambiguousDuration = 0.0
@@ -80,7 +85,7 @@ enum RecordingRater {
             let endTime = Double(end) / sampleRate
             let time = (beginTime + endTime) / 2
             let weight = endTime - beginTime
-            guard rms >= 0.0008 else { continue }
+            guard rms >= soundLevel else { continue }
             activeDuration += weight
             while frameIndex + 1 < frames.count,
                   abs(frames[frameIndex + 1].center - time) < abs(frames[frameIndex].center - time) {
@@ -92,7 +97,10 @@ enum RecordingRater {
             voicedDuration += weight
             if frame.ambiguous { ambiguousDuration += weight }
             if voiceOnset == nil { voiceOnset = beginTime }
-            let cents = 1_200 * log2(estimate.frequency / targetFrequency)
+            var cents = 1_200 * log2(estimate.frequency / targetFrequency)
+            // Each reading takes the octave nearest the one before, so a note held between two
+            // octaves of the target stays one steady line; matching folds it to the nearest.
+            if anyOctave { cents -= 1_200 * ((cents - (pitches.last?.cents ?? 0)) / 1_200).rounded() }
             pitches.append(WeightedPitch(cents: cents, weight: weight, time: time))
             if voicedFrameIndices.insert(frameIndex).inserted {
                 if let previousFrequency {
@@ -112,11 +120,13 @@ enum RecordingRater {
                                   voicedDuration: voicedDuration, longestHold: longestHold)
         }
         guard activeDuration > 0, voicedDuration / activeDuration >= 0.75,
-              ambiguousDuration / voicedDuration < 0.15, octaveSwitches < 2 else {
+              anyOctave || (ambiguousDuration / voicedDuration < 0.15 && octaveSwitches < 2) else {
             return PracticeRating(targetFrequency: targetFrequency, status: .unclear,
                                   voicedDuration: voicedDuration, longestHold: longestHold)
         }
-        let nearTargetFraction = pitches.filter { abs($0.cents) <= matchCents }.reduce(0.0) { $0 + $1.weight } / voicedDuration
+        let nearTargetFraction = pitches.filter {
+            abs(anyOctave ? $0.cents - 1_200 * ($0.cents / 1_200).rounded() : $0.cents) <= matchCents
+        }.reduce(0.0) { $0 + $1.weight } / voicedDuration
         let settled = pitches.filter { $0.time >= (voiceOnset ?? 0) + 0.3 }
         let settledDuration = settled.reduce(0.0) { $0 + $1.weight }
         let spread = settledDuration >= 0.3

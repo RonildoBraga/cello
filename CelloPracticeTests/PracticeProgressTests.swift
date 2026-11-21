@@ -52,6 +52,17 @@ final class PracticeProgressTests: XCTestCase {
         XCTAssertFalse(ledger.progress(for: .listen, targetFrequency: target, sessions: all).completed)
     }
 
+    func testProgressCarriesAcrossRatingVersions() {
+        // Gold earned partly under version 1 and partly under version 2 is one lesson's gold,
+        // kept under the key version 1 wrote, so nothing earned earlier is lost.
+        let takes = [session(at: 0, success: true, version: 1), session(at: 1, success: true, version: 1),
+                     session(at: 2, success: true, version: 2)]
+        var ledger = PracticeProgressLedger()
+        ledger.update(from: takes)
+        XCTAssertTrue(ledger.progress(for: .steadyHum, targetFrequency: HummingExample.frequency, sessions: takes).completed)
+        XCTAssertEqual(PracticeProgressLedger.key(exercise: .steadyHum, targetFrequency: HummingExample.frequency)?.prefix(3), "v1|")
+    }
+
     func testCompletionSurvivesLaterDifficultTakesAndDeletedHistory() throws {
         let successes = (0..<3).map { session(at: $0, success: true) }
         let later = (3..<10).map { session(at: $0, success: false) }

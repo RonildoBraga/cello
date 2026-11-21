@@ -89,7 +89,8 @@ final class SessionStore: ObservableObject {
             .flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
         let rating: PracticeRating?
         if melodyContext == nil, exercise.method != nil, let actualTarget {
-            rating = await RecordingRater.rate(url: source, targetFrequency: actualTarget)
+            rating = await RecordingRater.rate(url: source, targetFrequency: actualTarget, room: room,
+                                               anyOctave: exercise.method == .cello)
         } else {
             rating = nil
         }

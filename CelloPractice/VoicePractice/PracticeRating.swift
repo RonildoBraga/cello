@@ -2,7 +2,13 @@ import Foundation
 
 /// A versioned practice result. Unclear audio never becomes a failed attempt.
 struct PracticeRating: Codable, Equatable, Sendable {
-    static let currentVersion = 1
+    /// Version 2 hears a cello note in any octave, because a cello's overtone can sound
+    /// louder than its note, and counts as sound only what stands clear of the room the
+    /// microphone heard before the take. Earlier takes keep the scores they were given.
+    static let currentVersion = 2
+    /// Progress belongs to the lesson, not to the rules of the day. Takes scored under these
+    /// versions count towards the same passes and gold, kept under the key version 1 wrote.
+    static let progressVersions = 1...2
 
     enum Status: String, Codable, Sendable {
         case rated, unclear, insufficientSound

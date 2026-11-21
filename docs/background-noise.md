@@ -1,6 +1,6 @@
 # Background noise
 
-A learner should not need a silent room. This note records what was measured, what the app now does about noise, and what is planned. Scoring is unchanged so far: the first step only measures the room and says when it is noisy.
+A learner should not need a silent room. This note records what was measured, what the app now does about noise, and what is planned. The first step measures the room and says when it is noisy; single-note rating version 2 also sets aside what is no louder than the room.
 
 ## What was measured
 
@@ -41,6 +41,22 @@ Not verified on a device: the Simulator has no microphone, so the measurement, t
 Since then, melody scoring version 3 hears a fresh start in a dip as well as in silence ([humming assessment](melody-humming.md)). That was built for quick notes, and it also helps here: with steady hiss 8 to 13 dB below the hum, the examples' quick notes and the jump keep three stars where version 2 gave none. Rumble, a second voice and knocks score as before.
 
 Version 4 pairs each heard note with the note it was and treats a sound too short to be a note as a stray that costs nothing. Under low rumble 13 to 18 dB below the hum, and knocks as loud as the hum, held notes and three-note phrases now keep three stars where they dropped to one. A second voice at the hum's level, and rumble within 8 dB of it, still defeat the scoring.
+
+## Single-note rating version 2 (built)
+
+The first real cello takes, open strings on 21 November 2026, were all "Couldn't rate this take" while their pitch chart sat on the target. Two rules caused it:
+
+- **Octave changes.** Version 1 calls a take unclear after two changes of an octave, to keep a hum that wanders between octaves from scoring. A cello's overtone can sound louder than its note, so the reading jumps an octave and back: 2 to 12 times in the four takes made in a quiet room, whose readings were otherwise within 25 cents of the string.
+- **Room noise counted as sound.** In a room about ten times louder (0.0019 to 0.0028), all of it passed the fixed 0.0008 and counted as sound without a pitch, so 29 to 39 percent of the "sound" had a pitch against the 75 percent asked.
+
+Version 2 changes those two rules and nothing else:
+
+- A cello take is judged against its string in any octave, as the tuner already is, and octave changes no longer make it unclear. A voice take keeps both checks.
+- Sound counts only where it stands clear of the room heard before the take, by the tuner's rule: two and a half times the room's level, never asking more than 0.0024 and never less than 0.0008. A quiet room leaves the old level in place.
+
+Re-scoring every saved single-note take: the hum takes score exactly as before; the four quiet-room cello takes go from unclear to three stars (C, G, D) and two stars (A, not steady enough); the three takes from the loud room stay unclear. With the room set aside, 71 and 72 percent of what was left had a pitch, still short of 75 percent, so that room still says to bring the phone closer. The 75 percent was not lowered to let those takes through.
+
+Progress is kept: takes rated by versions 1 and 2 count towards the same passes and gold, under the key version 1 wrote, and earlier takes keep the scores they were given.
 
 ## Planned
 
