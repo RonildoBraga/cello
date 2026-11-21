@@ -34,6 +34,18 @@ Standard strings run from low C through G and D to high A. The [Philharmonia orc
 
 Sources checked on 10 November 2026.
 
+## Tune your cello
+
+Meet your cello links to a tuner for the four open strings. The learner chooses a string (A is chosen first, and the screen says to tune A, then D, G and C), taps Start listening and plays only that string. Only the microphone is used, only once asked, and no take, score or progress is made.
+
+- **In tune** means within 5 cents of the string's note at A4 = 440 Hz, tighter than the 25 cents a take of one held note allows, because every later note is played against the open strings.
+- The verdict is the median of the last five pitch readings (half a second) and needs three, so one stray reading does not move it, and a pause between notes starts again.
+- Readings are compared with the chosen string in any octave. A cello's low C often sounds its overtone louder than its note, and a pitch detector can then report C3; the string is still judged against C2.
+- Within 100 cents the advice is "tighten slightly" or "loosen slightly", for the fine tuner; beyond it, "use the peg".
+- The screen's four steps: play the open string and let it ring; small changes with the fine tuner (clockwise raises the note); big changes with the peg, a little at a time while pressing it into the pegbox; and come up to the note from below. It warns that an over-wound string can break and sends a slipping peg, a string far off or a leaning bridge to a teacher or string shop.
+
+These steps are common practice, not a teacher-reviewed method. Not yet checked on a real cello: how steady the reading is on each string, especially the C string, and whether 5 cents is reachable with fine tuners alone.
+
 ## Proposed practical sequence — draft pending review
 
 The future route is **setup → open strings → first notes → Hot Cross Buns phrases → complete melody**. This is a proposed app sequence, not a teacher-reviewed method. [Mel Bay's published beginner-method contents](https://www.melbay.com/Products/21499BCDEB/modern-cello-method-grade-1.aspx) places open-string work, D-string notes and bowing before Hot Cross Buns. We use that as an ordering reference and create our own material; its notation, diagrams and audio are not redistributed.

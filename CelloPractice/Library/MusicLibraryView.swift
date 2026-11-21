@@ -10,6 +10,8 @@ enum MusicRoute: Hashable {
     case practice(PracticeLesson)
     /// The instrument's parts and strings, opened from a lesson's cello side.
     case celloIntroduction
+    /// A tuner for the open strings, opened from Meet your cello.
+    case tuneCello
     case echo
     /// Humming a melody, opened at a phrase or at the whole melody.
     case pieceHumming(MelodyPiece, MelodySection)
@@ -23,7 +25,7 @@ extension MusicRoute {
     /// lesson and show no lesson bar.
     var pathLesson: PathLesson? {
         switch self {
-        case .primer, .lesson, .celloIntroduction: return nil
+        case .primer, .lesson, .celloIntroduction, .tuneCello: return nil
         case .practice(let lesson): return .lesson(lesson)
         case .echo: return .echo
         case .pieceHumming(let piece, let section): return section == .whole ? .wholeMelody(piece) : .hum(piece)
@@ -108,6 +110,7 @@ struct MusicLibraryView: View {
         case .practice(let lesson):
             FoundationPracticeView(lesson: lesson, store: store, capture: capture, rhythmStores: rhythmStores)
         case .celloIntroduction: CelloIntroductionView(capture: capture)
+        case .tuneCello: TuneCelloView(capture: capture)
         case .echo: EchoPracticeView(store: store, capture: capture)
         case .pieceHumming(let piece, let section):
             MelodyHummingView(store: store, capture: capture, piece: piece, section: section)

@@ -40,6 +40,37 @@ final class CelloIntroUITests: XCTestCase {
         assertNoPermissionAlerts(in: app)
     }
 
+    func testTunerOpensFromTheIntroductionAndWaitsToBeAskedToListen() {
+        let app = XCUIApplication.cello()
+        app.launch()
+        let summary = celloLessonSummary(in: app)
+        openIntroduction(in: app)
+        let link = app.buttons["tuneCelloLink"]
+        reveal(link, in: app)
+        link.tap()
+        XCTAssertTrue(app.navigationBars["Tune your cello"].waitForExistence(timeout: 5))
+        let status = app.staticTexts["tunerStatus"]
+        XCTAssertEqual(status.label, "Tap Start listening, then play the A string", "A first, and no microphone until asked")
+        XCTAssertTrue(app.buttons["tuneString-A"].isSelected)
+        app.buttons["tuneString-D"].tap()
+        XCTAssertTrue(app.buttons["tuneString-D"].isSelected)
+        XCTAssertEqual(status.label, "Tap Start listening, then play the D string")
+        XCTAssertEqual(app.buttons["tuneHear"].label, "Hear D")
+        XCTAssertTrue(app.buttons["tunerListenButton"].isHittable)
+        let howTo = app.descendants(matching: .any).matching(identifier: "tunerHowTo").firstMatch
+        reveal(howTo, in: app)
+        for words in ["fine tuner", "peg", "Come up to the note"] {
+            XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS[c] %@", words)).firstMatch.exists, words)
+        }
+        assertNoPermissionAlerts(in: app)
+        screenshot("Tune your cello · before listening")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.navigationBars["Meet your cello"].waitForExistence(timeout: 5))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.staticTexts["practiceLessonTitle"].waitForExistence(timeout: 5))
+        XCTAssertEqual(celloLessonSummary(in: app), summary, "Tuning is not a take")
+    }
+
     func testFourStringReferencesPlayManuallyWithoutCaptureOrProgress() {
         let app = XCUIApplication.cello()
         app.launch()

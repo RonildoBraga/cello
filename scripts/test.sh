@@ -5,7 +5,7 @@
 #   scripts/test.sh unit       app unit tests
 #   scripts/test.sh unit-core  app unit tests without the rendered melody examples (CI runs the two in parallel)
 #   scripts/test.sh examples   the rendered melody examples: every melody's reference scored, clean and under hiss
-#   scripts/test.sh smoke      nine UI tests across every area (about 6 minutes; run for each change)
+#   scripts/test.sh smoke      ten UI tests across every area (about 6 minutes; run for each change)
 #   scripts/test.sh ui         every real-clock UI test (about 30 minutes; run before a release)
 #   scripts/test.sh all        everything
 # Set CELLO_SIMULATOR_ID to choose a Simulator; otherwise the first available iPhone is used.
@@ -44,8 +44,8 @@ cello_xcode_test() {
 cello_example_tests=CelloTests/OdeToJoyPracticeTests
 
 # One quick pass over each area: the path, a lesson and the step bar, a melody
-# level, Meet the notes, one real tapping round, primers, About, Echo and the
-# cello introduction. The full suite repeats these with every edge case.
+# level, Meet the notes, one real tapping round, primers, About, Echo, the
+# cello introduction and its tuner. The full suite repeats these with every edge case.
 cello_smoke_tests=(
   CelloUITests/LearningUITests/testMusicShowsOnePathOfLevelsWithOneContinueLesson
   CelloUITests/LearningUITests/testLessonsOpenBothGuidedHummingActivities
@@ -56,6 +56,7 @@ cello_smoke_tests=(
   CelloUITests/LearningUITests/testAboutTabCreditsTheBuildersAndEverySoundSource
   CelloUITests/EchoPracticeUITests/testEchoLevelsAndVoiceRegistersHaveNoTargetHintsOrRecordingPermission
   CelloUITests/CelloIntroUITests/testIntroductionShowsPartsAndReturnsToFourUnchangedPlayingLessons
+  CelloUITests/CelloIntroUITests/testTunerOpensFromTheIntroductionAndWaitsToBeAskedToListen
 )
 
 for cello_suite in "${cello_suites[@]}"; do
