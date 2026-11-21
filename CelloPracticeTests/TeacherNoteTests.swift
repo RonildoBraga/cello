@@ -67,7 +67,7 @@ final class TeacherNoteTests: XCTestCase {
         XCTAssertEqual(near.first?.label, "Wavered")
         // A note both sharp and late shows "sharp" on its card; the teacher leads with the late
         // start, and the chart shows that note by its lateness.
-        let both = rating([note(0, b2, cents: 90, late: 0.4), note(1, a2), note(2, g2), note(3, b2), note(4, a2)])
+        let both = rating([note(0, b2, cents: 90, late: 0.4), note(1, a2), note(2, g2)])
         let subject = TeacherNote(rating: both, register: .lowVoice).subject
         XCTAssertEqual(subject, .late)
         XCTAssertEqual(NoteVerdict.verdicts(for: both).first?.label, "90¢ sharp")
