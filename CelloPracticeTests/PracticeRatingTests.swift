@@ -140,6 +140,17 @@ final class PracticeRatingTests: XCTestCase {
         XCTAssertEqual(cello.version, 2)
     }
 
+    func testACelloNoteHalfwayBetweenOctavesOfTheStringStaysSteady() {
+        // Six semitones from the string, a small wobble crosses the halfway point between octaves.
+        let a = 220.0
+        let samples = sound(duration: 3) { time in a * pow(2, (600 + 5 * sin(2 * .pi * 3 * time)) / 1_200) }
+        let cello = RecordingRater.rate(samples: samples, sampleRate: rate, targetFrequency: a, anyOctave: true)
+        XCTAssertEqual(cello.status, .rated)
+        XCTAssertFalse(cello.match)
+        XCTAssertTrue(cello.steady, "A steady wrong note is still steady")
+        XCTAssertLessThan(cello.settledSpreadCents ?? .infinity, 40)
+    }
+
     func testOnlySoundClearOfTheRoomCounts() {
         // A room as loud as 0.0015 throughout, and the note for two and a half seconds of four.
         var seed: UInt64 = 29

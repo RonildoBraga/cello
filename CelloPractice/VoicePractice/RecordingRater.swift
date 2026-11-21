@@ -98,7 +98,9 @@ enum RecordingRater {
             if frame.ambiguous { ambiguousDuration += weight }
             if voiceOnset == nil { voiceOnset = beginTime }
             var cents = 1_200 * log2(estimate.frequency / targetFrequency)
-            if anyOctave { cents -= 1_200 * (cents / 1_200).rounded() }
+            // Each reading takes the octave nearest the one before, so a note held between two
+            // octaves of the target stays one steady line; matching folds it to the nearest.
+            if anyOctave { cents -= 1_200 * ((cents - (pitches.last?.cents ?? 0)) / 1_200).rounded() }
             pitches.append(WeightedPitch(cents: cents, weight: weight, time: time))
             if voicedFrameIndices.insert(frameIndex).inserted {
                 if let previousFrequency {
@@ -122,7 +124,9 @@ enum RecordingRater {
             return PracticeRating(targetFrequency: targetFrequency, status: .unclear,
                                   voicedDuration: voicedDuration, longestHold: longestHold)
         }
-        let nearTargetFraction = pitches.filter { abs($0.cents) <= matchCents }.reduce(0.0) { $0 + $1.weight } / voicedDuration
+        let nearTargetFraction = pitches.filter {
+            abs(anyOctave ? $0.cents - 1_200 * ($0.cents / 1_200).rounded() : $0.cents) <= matchCents
+        }.reduce(0.0) { $0 + $1.weight } / voicedDuration
         let settled = pitches.filter { $0.time >= (voiceOnset ?? 0) + 0.3 }
         let settledDuration = settled.reduce(0.0) { $0 + $1.weight }
         let spread = settledDuration >= 0.3
