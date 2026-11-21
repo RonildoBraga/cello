@@ -128,6 +128,38 @@ final class PracticeRatingTests: XCTestCase {
         XCTAssertFalse(result.goalReached)
     }
 
+    func testACelloNoteIsHeardInEitherOctave() {
+        // A cello's overtone can sound louder than its note, so the reading jumps an octave and back.
+        let a = 220.0
+        let samples = sound(duration: 3.6) { time in (1.2..<2.4).contains(time) ? a * 2 : a }
+        let voice = RecordingRater.rate(samples: samples, sampleRate: rate, targetFrequency: a)
+        XCTAssertEqual(voice.status, .unclear, "A voice that changes octave is not one clear note")
+        let cello = RecordingRater.rate(samples: samples, sampleRate: rate, targetFrequency: a, anyOctave: true)
+        XCTAssertEqual(cello.status, .rated)
+        XCTAssertTrue(cello.match, "Either octave is the string's note")
+        XCTAssertEqual(cello.version, 2)
+    }
+
+    func testOnlySoundClearOfTheRoomCounts() {
+        // A room as loud as 0.0015 throughout, and the note for two and a half seconds of four.
+        var seed: UInt64 = 29
+        let samples: [Float] = (0..<Int(rate * 4)).map { index in
+            seed = seed &* 6_364_136_223_846_793_005 &+ 1
+            let hiss = (Double(seed >> 32) / Double(UInt32.max) - 0.5) * 0.0052
+            let t = Double(index) / rate
+            let note = (1.0..<3.5).contains(t) ? 0.02 * sin(2 * .pi * target * t) : 0
+            return Float(hiss + note)
+        }
+        XCTAssertEqual(evaluate(samples).status, .unclear, "Without the room, its hiss is unpitched sound")
+        let heard = RecordingRater.rate(samples: samples, sampleRate: rate, targetFrequency: target,
+                                        room: RoomNoise(level: 0.0015))
+        XCTAssertEqual(heard.status, .rated)
+        XCTAssertEqual(heard.starCount, 3)
+        // A quiet room leaves the old floor in place.
+        XCTAssertEqual(RecordingRater.rate(samples: samples, sampleRate: rate, targetFrequency: target,
+                                           room: RoomNoise(level: 0.0002)).status, .unclear)
+    }
+
     func testSavedMediaDecoderAndRatingRoundTrip() async throws {
         let samples = sound(duration: 2.5) { _ in self.target }
         let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: rate, channels: 1))

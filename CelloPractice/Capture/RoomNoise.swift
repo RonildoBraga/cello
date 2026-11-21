@@ -26,7 +26,8 @@ struct RoomNoise: Equatable {
 
     /// Whether a sound stands clear of the room: two and a half times its level. The bar
     /// stops below a soft hum, so a loud room never hides the learner from the tuner.
-    func isClear(_ rms: Double) -> Bool { rms >= min(level * 2.5, Self.soundFloor * 3) }
+    func isClear(_ rms: Double) -> Bool { rms >= clearLevel }
+    var clearLevel: Double { min(level * 2.5, Self.soundFloor * 3) }
 
     /// The level of a stretch of sound, ignoring any constant offset in the signal.
     static func level(of samples: [Float]) -> Double {

@@ -138,7 +138,7 @@ struct LessonScoreSummary {
         hasAttempts = !matchingSessions.isEmpty || completed
         let scores = matchingSessions.filter {
             guard let rating = $0.rating else { return false }
-            return rating.version == PracticeRating.currentVersion && rating.status == .rated
+            return PracticeRating.progressVersions.contains(rating.version) && rating.status == .rated
                 && rating.targetFrequency == $0.effectiveTargetFrequency
         }.sorted {
             if $0.createdAt != $1.createdAt { return $0.createdAt > $1.createdAt }

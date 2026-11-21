@@ -129,12 +129,12 @@ struct PracticeProgressLedger: SessionProgressLedger {
         guard exercise.method != nil, targetFrequency.isFinite, targetFrequency > 0 else { return nil }
         // Codable round-trips this exact reference. Different targets and scoring
         // versions must never silently contribute to the same achievement.
-        return "v\(PracticeRating.currentVersion)|\(exercise.rawValue)|\(String(targetFrequency.bitPattern, radix: 16))"
+        return "v\(PracticeRating.progressVersions.lowerBound)|\(exercise.rawValue)|\(String(targetFrequency.bitPattern, radix: 16))"
     }
 
     static func eligibleKey(for session: PracticeSession) -> String? {
         guard let rating = session.rating, rating.status == .rated,
-              rating.version == PracticeRating.currentVersion,
+              PracticeRating.progressVersions.contains(rating.version),
               let target = session.effectiveTargetFrequency,
               rating.targetFrequency == target else { return nil }
         return key(exercise: session.exercise, targetFrequency: target)
