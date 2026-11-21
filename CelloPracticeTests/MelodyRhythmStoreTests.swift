@@ -12,7 +12,6 @@ final class MelodyRhythmStoreTests: XCTestCase {
             XCTAssertEqual(result.starCount, 3, section.rawValue)
             XCTAssertEqual(result.offsets.count, context.expectedTapTimes.count)
             XCTAssertEqual(result.spreadMilliseconds ?? -1, 0, accuracy: 1e-6)
-            XCTAssertEqual(result.medianOffsetMilliseconds ?? -1, 40, accuracy: 1e-6)
         }
     }
 

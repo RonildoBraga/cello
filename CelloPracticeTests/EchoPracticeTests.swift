@@ -56,12 +56,6 @@ final class EchoPracticeTests: XCTestCase {
             }
             XCTAssertEqual(heard, Set([43, 45, 47, 48, 50].map { $0 + (register == .higherVoice ? 12 : 0) }))
         }
-        XCTAssertEqual(EchoLevel.twoNotes.rangeLabel(for: .lowVoice), "G2–B2")
-        XCTAssertEqual(EchoLevel.twoNotes.rangeLabel(for: .higherVoice), "G3–B3")
-        XCTAssertEqual(EchoLevel.threeNotes.rangeLabel(for: .lowVoice), "G2–D3")
-        XCTAssertEqual(EchoLevel.threeNotes.rangeLabel(for: .higherVoice), "G3–D4")
-        XCTAssertEqual(EchoLevel.twoNotes.rangeLabel(for: .cello), "G2–A3")
-        XCTAssertEqual(EchoLevel.threeNotes.rangeLabel(for: .cello), "C2–A3")
     }
 
     func testTheCelloEchoesItsOpenStringsFourBeatsEach() throws {

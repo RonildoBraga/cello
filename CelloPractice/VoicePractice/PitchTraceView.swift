@@ -1,3 +1,4 @@
+import CelloPitch
 import Charts
 import Foundation
 import SwiftUI
@@ -21,15 +22,13 @@ struct PitchTraceData {
         let validTarget = targetFrequency.isFinite && targetFrequency > 0
         hasValidTarget = validTarget
         let validDuration = duration.isFinite && duration >= 0 ? duration : nil
-        let targetLog = validTarget ? log2(targetFrequency) : 0
         points = samples.enumerated().compactMap { index, sample -> Point? in
             guard validTarget, sample.time.isFinite, sample.time >= 0,
                   validDuration.map({ sample.time <= $0 }) ?? true,
                   sample.frequency.isFinite, sample.frequency > 0,
                   sample.confidence.isFinite, (0.75...1).contains(sample.confidence),
                   sample.rms.isFinite, sample.rms > 0 else { return nil }
-            // Subtract logs to avoid overflow in frequency / targetFrequency.
-            let cents = 1_200 * (log2(sample.frequency) - targetLog)
+            let cents = Measure.cents(sample.frequency, from: targetFrequency)
             guard cents.isFinite else { return nil }
             return Point(id: index, time: sample.time, cents: cents)
         }.sorted {

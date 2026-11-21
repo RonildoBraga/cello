@@ -161,7 +161,7 @@ final class NoteDrillTests: XCTestCase {
                 XCTAssertEqual(context.noteDrillPiece, piece)
                 XCTAssertNil(MelodyPiece(rawValue: context.pieceID), "A note take is never mistaken for a phrase")
                 XCTAssertNil(EchoLevel.selection(for: context))
-                XCTAssertEqual(context.duration, drill.isSingleNote ? 3 : 4)
+                XCTAssertEqual(context.duration, drill.midiNotes.count == 1 ? 3 : 4)
                 let decoded = try JSONDecoder().decode(MelodyPracticeContext.self, from: JSONEncoder().encode(context))
                 XCTAssertEqual(decoded, context)
                 XCTAssertEqual(VoicePracticeMode(context: decoded), .phrase(context))

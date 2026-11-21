@@ -1,3 +1,4 @@
+import CelloPitch
 import XCTest
 @testable import Cello
 
@@ -8,9 +9,9 @@ final class RoomNoiseTests: XCTestCase {
 
     func testTheLevelOfASoundIgnoresAConstantOffset() {
         let wave = (0..<4_800).map { Float(0.01 * sin(2 * Double.pi * 100 * Double($0) / 48_000)) }
-        XCTAssertEqual(RoomNoise.level(of: wave), 0.01 / 2.0.squareRoot(), accuracy: 1e-5)
-        XCTAssertEqual(RoomNoise.level(of: wave.map { $0 + 0.2 }), RoomNoise.level(of: wave), accuracy: 1e-5)
-        XCTAssertEqual(RoomNoise.level(of: []), 0)
+        XCTAssertEqual(Measure.level(of: wave), 0.01 / 2.0.squareRoot(), accuracy: 1e-5)
+        XCTAssertEqual(Measure.level(of: wave.map { $0 + 0.2 }), Measure.level(of: wave), accuracy: 1e-5)
+        XCTAssertEqual(Measure.level(of: []), 0)
     }
 
     func testTheRoomNeedsAMomentOfListeningThenIsItsQuietestTenth() {

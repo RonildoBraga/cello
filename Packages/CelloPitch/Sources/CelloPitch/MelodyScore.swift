@@ -26,10 +26,7 @@ public struct MelodyEvent: Codable, Equatable, Sendable {
 public struct MelodyScore: Codable, Equatable, Sendable {
     public let pieceID: String
     public let version: Int
-    public let beatsPerBar: Int
     public let events: [MelodyEvent]
-    public let phraseBoundaries: [Double]
-    public let totalBeats: Double
 
     public static let hotCrossBuns = fourBars("hotCrossBuns",
         pitches: [54, 52, 50, 54, 52, 50, 50, 50, 50, 50, 52, 52, 52, 52, 54, 52, 50],
@@ -90,8 +87,7 @@ public struct MelodyScore: Codable, Equatable, Sendable {
             defer { beat += duration }
             return MelodyEvent(onsetBeat: beat, durationBeats: duration, midiNote: pitch)
         }
-        return MelodyScore(pieceID: pieceID, version: 1, beatsPerBar: 4,
-                           events: events, phraseBoundaries: [0, 4, 8, 12, 16], totalBeats: 16)
+        return MelodyScore(pieceID: pieceID, version: 1, events: events)
     }
 }
 
@@ -193,14 +189,6 @@ public enum MelodyRegister: String, CaseIterable, Identifiable, Codable, Sendabl
     /// The key of a melody centred on D on the cello, heard in this register. Listen & Echo uses it;
     /// a melody names its own key (`MelodyPiece.keyName(for:)`).
     public var keyName: String { self == .cello ? "D major" : "G major" }
-
-    public var rangeLabel: String {
-        switch self {
-        case .lowVoice: return "G2–B2"
-        case .higherVoice: return "G3–B3"
-        case .cello: return "D3–F♯3"
-        }
-    }
 
     /// How far this register sits from the cello in Listen & Echo and the first melodies; a melody may
     /// place the voice elsewhere (`MelodyPiece.transposition(for:)`).

@@ -47,9 +47,6 @@ struct MelodyRhythmAttempt: Codable, Identifiable, Equatable, Sendable {
     }
     var onTimeFraction: Double { rating.onTimeFraction }
     var spreadMilliseconds: Double? { rating.spreadMilliseconds }
-    var medianOffsetMilliseconds: Double? {
-        RhythmStatistics.percentile(0.5, in: offsets.values.map { $0 * 1_000 }.sorted())
-    }
 
     var cue: String {
         guard isScored else { return "Tap each note’s start through the whole phrase to get a score." }

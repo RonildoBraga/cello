@@ -127,7 +127,7 @@ struct PracticeSession: Identifiable, Codable {
         return pitchSamples.compactMap { sample in
             guard sample.frequency.isFinite, sample.frequency > 0,
                   sample.confidence.isFinite, sample.confidence >= 0.75 else { return nil }
-            return 1_200 * (log2(sample.frequency) - log2(target))
+            return Measure.cents(sample.frequency, from: target)
         }
     }
 

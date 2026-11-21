@@ -29,13 +29,6 @@ struct RoomNoise: Equatable {
     func isClear(_ rms: Double) -> Bool { rms >= clearLevel }
     var clearLevel: Double { min(level * 2.5, Self.soundFloor * 3) }
 
-    /// The level of a stretch of sound, ignoring any constant offset in the signal.
-    static func level(of samples: [Float]) -> Double {
-        guard !samples.isEmpty else { return 0 }
-        let mean = samples.reduce(0.0) { $0 + Double($1) } / Double(samples.count)
-        return (samples.reduce(0.0) { $0 + pow(Double($1) - mean, 2) } / Double(samples.count)).squareRoot()
-    }
-
     static let warning = "Noisy room. Bring the phone closer."
     static let resultNote = "The room was noisy during this take, which can lower the score. Bring the phone closer, or try somewhere quieter."
 }

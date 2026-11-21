@@ -6,11 +6,21 @@ import XCTest
 @testable import Cello
 
 final class RecordingAudioTests: XCTestCase {
-    /// App Store Connect rejects any build that uses AVCaptureSession without a camera
-    /// purpose string (ITMS-90683), even though Cello asks only for the microphone.
-    func testTheAppKeepsBothCapturePurposeStrings() {
-        for key in ["NSCameraUsageDescription", "NSMicrophoneUsageDescription"] {
-            XCTAssertFalse((Bundle.main.object(forInfoDictionaryKey: key) as? String ?? "").isEmpty, key)
+    /// App Store Connect rejects a build that links camera capture APIs without a camera
+    /// purpose string (ITMS-90683). Cello hears the microphone through the audio engine
+    /// only, so it needs neither the camera nor the string.
+    func testTheAppUsesNoCameraCaptureAPI() throws {
+        XCTAssertFalse((Bundle.main.object(forInfoDictionaryKey: "NSMicrophoneUsageDescription") as? String ?? "").isEmpty)
+        XCTAssertNil(Bundle.main.object(forInfoDictionaryKey: "NSCameraUsageDescription"))
+        let bundle = Bundle.main.bundleURL
+        let binaries = try [XCTUnwrap(Bundle.main.executableURL)] + FileManager.default
+            .contentsOfDirectory(at: bundle, includingPropertiesForKeys: nil)
+            .filter { $0.lastPathComponent.hasSuffix(".debug.dylib") }
+        for binary in binaries {
+            let data = try Data(contentsOf: binary)
+            for name in ["AVCaptureDevice", "AVCaptureSession", "AVCaptureMovieFileOutput"] {
+                XCTAssertNil(data.range(of: Data(name.utf8)), "\(binary.lastPathComponent) refers to \(name)")
+            }
         }
     }
 

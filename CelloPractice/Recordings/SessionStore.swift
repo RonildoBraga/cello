@@ -134,7 +134,7 @@ final class SessionStore: ObservableObject {
         }
     }
 
-    func videoURL(for session: PracticeSession) -> URL {
+    func recordingURL(for session: PracticeSession) -> URL {
         folderURL(for: session).appendingPathComponent(session.videoFilename)
     }
 
@@ -198,9 +198,9 @@ final class SessionStore: ObservableObject {
     func export(_ session: PracticeSession) async throws -> URL {
         errorMessage = nil
         let current = sessions.first(where: { $0.id == session.id }) ?? session
-        let video = videoURL(for: current)
+        let recording = recordingURL(for: current)
         return try await Task.detached(priority: .userInitiated) {
-            try await SessionExport.create(for: current, video: video)
+            try await SessionExport.create(for: current, recording: recording)
         }.value
     }
 

@@ -44,7 +44,6 @@ final class LevelTests: XCTestCase {
         // Listen & Echo: the cello has its own patterns, on its open strings, kept apart from the voice's.
         let echo = try EchoLevel.twoNotes.context(patternIndex: 1, register: .cello)
         XCTAssertEqual(EchoLevel.selection(for: echo)?.patternIndex, 1)
-        XCTAssertEqual(EchoLevel.twoNotes.rangeLabel(for: .cello), "G2–A3")
         XCTAssertNotEqual(echo, try EchoLevel.twoNotes.context(patternIndex: 1, register: .lowVoice))
     }
 

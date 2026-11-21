@@ -384,8 +384,7 @@ struct VoicePracticeView<Header: View>: View {
         return saved ? "Record again" : "Record"
     }
     private var permissionsDenied: Bool {
-        let status = AVCaptureDevice.authorizationStatus(for: .audio)
-        return status == .denied || status == .restricted
+        AVAudioApplication.shared.recordPermission == .denied
     }
     private var statusMessage: String {
         if saving { return mode.reviewingMessage }

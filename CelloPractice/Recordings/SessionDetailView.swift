@@ -19,7 +19,7 @@ struct SessionDetailView: View {
         self.session = session
         self.store = store
         feedback = session.melodyFeedback(earlier: store.melodyRatings(before: session)) ?? ""
-        _player = State(initialValue: AVPlayer(url: store.videoURL(for: session)))
+        _player = State(initialValue: AVPlayer(url: store.recordingURL(for: session)))
     }
     var body: some View {
         ScrollView {
@@ -71,7 +71,7 @@ struct SessionDetailView: View {
         }.background(Palette.paper).screenTitle("Your session")
             .onDisappear { player.pause() }
             .task {
-                let tracks = try? await AVURLAsset(url: store.videoURL(for: session)).loadTracks(withMediaType: .video)
+                let tracks = try? await AVURLAsset(url: store.recordingURL(for: session)).loadTracks(withMediaType: .video)
                 if let tracks { hasVideo = !tracks.isEmpty }
             }
             .sheet(isPresented: $sharing) {
