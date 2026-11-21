@@ -148,9 +148,8 @@ final class EchoPracticeUITests: XCTestCase {
             }
         }
         let message = app.staticTexts["captureMessage"]
-        XCTAssertTrue(message.waitForExistence(timeout: 20), "A Simulator without a camera should explain the capture failure")
-        XCTAssertTrue(message.label.localizedCaseInsensitiveContains("camera")
-                      || message.label.localizedCaseInsensitiveContains("microphone"))
+        XCTAssertTrue(message.waitForExistence(timeout: 20), "A Simulator without a microphone should explain the capture failure")
+        XCTAssertTrue(message.label.localizedCaseInsensitiveContains("microphone"))
         waitForRecordLabel("Record", in: app)
         XCTAssertTrue(app.buttons["previewTargetButton"].isEnabled)
         XCTAssertFalse(app.staticTexts["melodyRatingStars"].exists)
@@ -282,8 +281,6 @@ final class EchoPracticeUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["currentTargetLabel"].exists)
         XCTAssertFalse(app.staticTexts["LIVE TUNER"].exists)
         XCTAssertFalse(app.staticTexts["Live tuner"].exists)
-        XCTAssertFalse(app.staticTexts["Camera preview"].exists)
-        XCTAssertFalse(app.buttons["Switch camera"].exists)
         let notes = app.staticTexts.matching(NSPredicate(format: "label MATCHES %@", "^[A-G][♯♭#]?[0-9]$"))
         XCTAssertEqual(notes.count, 0, "Reference note hints remain hidden before recording")
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "echoPracticeStatus").firstMatch.exists)

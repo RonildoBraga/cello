@@ -39,9 +39,7 @@ final class LevelTests: XCTestCase {
         XCTAssertTrue(Set(voiceNotes.map(\.id)).isDisjoint(with: celloNotes.map(\.id)))
         XCTAssertTrue(celloNotes.allSatisfy { $0.context.isValid && $0.context.register == .cello })
         let phrase = VoicePracticeMode.phrase(MelodyPiece.hotCrossBuns.humming(register: .cello, section: .phrase1))
-        XCTAssertTrue(phrase.recordsVideo, "A cello take is filmed")
         XCTAssertEqual(phrase.recordingTitle, "Play")
-        XCTAssertFalse(VoicePracticeMode.phrase(MelodyPiece.hotCrossBuns.humming(register: .lowVoice, section: .phrase1)).recordsVideo)
 
         // Listen & Echo: the same patterns on the cello, kept apart from the voice's.
         let echo = try EchoLevel.twoNotes.context(patternIndex: 1, register: .cello)

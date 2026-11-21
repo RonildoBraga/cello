@@ -28,7 +28,6 @@ struct VoicePracticeView<Header: View>: View {
     @State private var phase: Phase = .idle
     @State private var pendingRecord = false
     @State private var flowToken = UUID()
-    @State private var cameraExpanded = false
     /// Count-in beats still to come; shown counting up as 1 2 3 4.
     @State private var countInSeconds = 0
     /// The moment, on the system uptime clock, when the lane's time is zero:
@@ -92,7 +91,7 @@ struct VoicePracticeView<Header: View>: View {
                         Button { cancelFlow(stopCapture: true) } label: {
                             Image(systemName: "power").frame(width: 44, height: 44)
                         }.disabled(capture.isRecording || saving)
-                            .accessibilityLabel(mode.recordsVideo ? "Turn off camera and microphone" : "Turn off microphone")
+                            .accessibilityLabel("Turn off microphone")
                     }
                 }
             }
@@ -212,11 +211,6 @@ struct VoicePracticeView<Header: View>: View {
                         statusCard.id("statusCard")
                         if showsIdleContent { lessonProgress }
                     }
-                    if capture.isReady && mode.recordsVideo {
-                        DisclosureGroup("Camera preview", isExpanded: $cameraExpanded) {
-                            camera.padding(.top, 10)
-                        }.font(.subheadline.weight(.medium)).foregroundStyle(Palette.forest)
-                    }
                     if let error = store.lastSaveError {
                         Text(error).font(.footnote).foregroundStyle(.red)
                     }
@@ -333,7 +327,7 @@ struct VoicePracticeView<Header: View>: View {
                         .font(.subheadline).monospacedDigit().foregroundStyle(Palette.muted)
                         .accessibilityIdentifier("livePitchCents")
                 } else {
-                    Button("Turn on") { capture.start(includingCamera: mode.recordsVideo) }
+                    Button("Turn on") { capture.start() }
                         .font(.subheadline.weight(.semibold)).foregroundStyle(Palette.forest)
                         .accessibilityLabel("Turn on live tuner")
                 }
@@ -362,17 +356,6 @@ struct VoicePracticeView<Header: View>: View {
         }.accessibilityElement(children: .contain).accessibilityIdentifier(mode.tunerIdentifier)
     }
 
-    private var camera: some View {
-        CameraPreview(session: capture.session)
-            .overlay(alignment: .bottomTrailing) {
-                Button { capture.switchCamera() } label: {
-                    Image(systemName: "arrow.triangle.2.circlepath.camera")
-                        .frame(width: 44, height: 44).background(.black.opacity(0.5), in: Circle())
-                        .foregroundStyle(.white)
-                }.disabled(controlsLocked).accessibilityLabel("Switch camera").padding(12)
-            }.frame(height: 225).clipShape(RoundedRectangle(cornerRadius: Layout.cardRadius))
-    }
-
     private var statusTitle: String {
         if countInSeconds > 0 { return "\(Self.countInBeats + 1 - countInSeconds)" }
         if phase == .previewing { return "Listen" }
@@ -394,11 +377,8 @@ struct VoicePracticeView<Header: View>: View {
         return saved ? "Record again" : "Record"
     }
     private var permissionsDenied: Bool {
-        let needed: [AVMediaType] = mode.recordsVideo ? [.video, .audio] : [.audio]
-        return needed.contains { mediaType in
-            let status = AVCaptureDevice.authorizationStatus(for: mediaType)
-            return status == .denied || status == .restricted
-        }
+        let status = AVCaptureDevice.authorizationStatus(for: .audio)
+        return status == .denied || status == .restricted
     }
     private var statusMessage: String {
         if saving { return mode.reviewingMessage }
@@ -446,7 +426,7 @@ struct VoicePracticeView<Header: View>: View {
         pendingRecord = true
         phase = .preparing
         if capture.isReady { dispatchPendingAction() }
-        else { capture.start(includingCamera: mode.recordsVideo) }
+        else { capture.start() }
     }
 
     private func dispatchPendingAction() {

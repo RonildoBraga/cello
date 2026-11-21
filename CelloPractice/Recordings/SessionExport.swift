@@ -147,7 +147,7 @@ enum SessionExport {
 
         ## Files for review
 
-        - recording.mov: the original recording. Humming takes hold sound only; cello takes also hold video.
+        - recording.mov: the original recording, sound only. Cello takes made before version 1.21.0 also hold video.
         - session.json: exercise, fixed target or melody reference if selected, duration, pitch measurements and a frozen practice rating when available, plus any notes retained from older recordings.
         - pitch.csv: timestamped pitch measurements for plotting or analysis.
 
