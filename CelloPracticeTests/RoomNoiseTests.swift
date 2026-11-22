@@ -21,6 +21,25 @@ final class RoomNoiseTests: XCTestCase {
         XCTAssertEqual(RoomNoise(levels: Array(repeating: 0.001, count: 40))?.level, 0.001)
     }
 
+    func testTheAudibleCountInStillMeasuresQuietAndNoisyRooms() throws {
+        let guide = PracticeTimingGuide(beatInterval: 1, duration: 8, noteOnsets: [0, 4])
+        let buffer = try XCTUnwrap(guide.audioBuffer())
+        let clicks = try XCTUnwrap(buffer.floatChannelData?[0])
+        let count = Int(guide.countInDuration * 48_000)
+        for baseline in [quiet, 0.0012] {
+            let sound = (0..<count).map { frame in
+                Float(frame.isMultiple(of: 2) ? baseline : -baseline) + 0.25 * clicks[frame]
+            }
+            var listener = RoomListener()
+            for end in stride(from: 8_192, through: count, by: 4_800) {
+                _ = listener.hear(Measure.level(of: Array(sound[(end - 8_192)..<end])))
+            }
+            let room = try XCTUnwrap(listener.room)
+            XCTAssertEqual(room.level, baseline, accuracy: 0.000001)
+            XCTAssertEqual(room.isLoud, baseline >= RoomNoise.soundFloor)
+        }
+    }
+
     func testTheLearnerIsNotMistakenForTheRoom() throws {
         // Humming to find the note for nine of the last ten seconds, with one second of quiet.
         let tuning = Array(repeating: hum, count: 90) + Array(repeating: quiet, count: 10)

@@ -68,6 +68,85 @@ final class EchoAudioTests: XCTestCase {
         }
     }
 
+    func testTimingGuideAloneCannotEarnEchoNotesOrTiming() throws {
+        for register in [MelodyRegister.lowVoice, .cello] {
+            let context = try EchoLevel.twoNotes.context(patternIndex: 4, register: register)
+            let clicks = try guideSamples(for: context)
+            XCTAssertGreaterThan(clicks.map(abs).max() ?? 0, 0,
+                                 "The test must contain audible guide clicks, not silence")
+            let rating = rate(clicks, context: context)
+            XCTAssertFalse(rating.notes, "The app's own guide is not a played note")
+            XCTAssertFalse(rating.timing, "Guide clicks cannot supply the learner's note starts")
+            XCTAssertNotEqual(rating.starCount, 3)
+            XCTAssertFalse(rating.goalReached)
+        }
+    }
+
+    func testQuietTimingClicksPreserveRecordedOpenStringEchoAssessment() throws {
+        let context = try EchoLevel.twoNotes.context(patternIndex: 4, register: .cello)
+        let clean = pcm(try RecordedReference.wavData(context: context))
+        let baseline = rate(clean, context: context)
+        XCTAssertEqual(baseline.status, .rated)
+        XCTAssertEqual(baseline.starCount, 3, "The independent recorded cello must first pass on its own")
+
+        let mixed = rate(try addingGuide(to: clean, context: context), context: context)
+        XCTAssertEqual(mixed.status, baseline.status)
+        XCTAssertEqual(mixed.starCount, baseline.starCount,
+                       "Quiet guide leakage must not spoil correct open-string playing")
+        XCTAssertTrue(mixed.notes)
+        XCTAssertTrue(mixed.timing)
+        XCTAssertTrue(mixed.clarity)
+    }
+
+    func testTimingClicksDoNotHideWrongPitchOrALateOpenStringChange() throws {
+        let context = try EchoLevel.twoNotes.context(patternIndex: 4, register: .cello)
+        let wrong = replacing(context, events: context.expectedEvents.enumerated().map { index, event in
+            MelodyEvent(onsetBeat: event.onsetBeat, durationBeats: event.durationBeats,
+                        midiNote: event.midiNote.map { $0 + (index == 1 ? 2 : 0) })
+        })
+        let wrongSound = pcm(try RecordedReference.wavData(context: wrong))
+        let wrongRating = rate(try addingGuide(to: wrongSound, context: context), context: context)
+        XCTAssertEqual(wrongRating.status, .rated)
+        XCTAssertFalse(wrongRating.notes, "An on-time guide cannot turn a wrong second pitch into G2")
+        XCTAssertFalse(wrongRating.goalReached)
+
+        let late = replacing(context, events: context.expectedEvents.enumerated().map { index, event in
+            let delay = index == 1 ? 0.4 : 0
+            return MelodyEvent(onsetBeat: event.onsetBeat + delay,
+                               durationBeats: event.durationBeats - delay, midiNote: event.midiNote)
+        })
+        let lateSound = pcm(try RecordedReference.wavData(context: late))
+        let lateRating = rate(try addingGuide(to: lateSound, context: context), context: context)
+        XCTAssertEqual(lateRating.status, .rated)
+        XCTAssertTrue(lateRating.notes)
+        XCTAssertFalse(lateRating.timing, "The guide's on-time click must not hide a 0.4-second late G2")
+        XCTAssertFalse(lateRating.goalReached)
+    }
+
+    /// Simulates quiet speaker leakage without deleting the note attacks being judged.
+    /// Acoustic behaviour on an actual phone still needs a physical recording test.
+    private func addingGuide(to samples: [Float], context: MelodyPracticeContext) throws -> [Float] {
+        let clicks = try guideSamples(for: context)
+        XCTAssertEqual(samples.count, clicks.count)
+        return zip(samples, clicks).map { sound, click in sound + 0.25 * click }
+    }
+
+    private func guideSamples(for context: MelodyPracticeContext) throws -> [Float] {
+        let secondsPerBeat = 60 / Double(context.tempoBPM)
+        let guide = PracticeTimingGuide(beatInterval: secondsPerBeat, duration: context.duration,
+                                       noteOnsets: context.expectedEvents.filter { $0.midiNote != nil }
+                                           .map { $0.onsetBeat * secondsPerBeat })
+        let buffer = try XCTUnwrap(guide.audioBuffer(sampleRate: Double(RecordedReference.sampleRate)))
+        let channel = try XCTUnwrap(buffer.floatChannelData?[0])
+        let start = Int((guide.countInDuration * Double(RecordedReference.sampleRate)).rounded())
+        let count = Int((context.duration * Double(RecordedReference.sampleRate)).rounded())
+        guard start + count <= Int(buffer.frameLength) else {
+            XCTFail("The guide must cover the take after its count-in")
+            return []
+        }
+        return Array(UnsafeBufferPointer(start: channel + start, count: count))
+    }
+
     private func rate(_ samples: [Float], context: MelodyPracticeContext) -> MelodyRating {
         MelodyRecordingRater.rate(samples: samples,
             sampleRate: Double(RecordedReference.sampleRate), context: context)

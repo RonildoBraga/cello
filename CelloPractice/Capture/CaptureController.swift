@@ -1,7 +1,6 @@
 import AVFoundation
 import Combine
 import Foundation
-import QuartzCore
 import UIKit
 import CelloPitch
 
@@ -18,6 +17,7 @@ struct PitchSample: Codable, Sendable {
 /// stay off the main thread.
 final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     private let engine = AVAudioEngine()
+    private let guidePlayer = AVAudioPlayerNode()
 
     @Published private(set) var isReady = false
     @Published private(set) var isRecording = false
@@ -30,6 +30,8 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     @Published private(set) var room: RoomNoise?
     @Published private(set) var message: String?
     @Published private(set) var elapsed: TimeInterval = 0
+    /// Frame zero on the host clock, shared by the count-in, cues and saved take.
+    @Published private(set) var recordingStartTime: TimeInterval?
     /// Actual player position, independent of the recording timer.
     @Published private(set) var referenceElapsed: TimeInterval = 0
 
@@ -67,9 +69,14 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     private var referencePlayer: AVAudioPlayer?
     private var referencePlayerToken: UUID?
     private var referenceTimer: Timer?
+    private var hapticToken: UUID?
+    private var hapticCues: [DispatchWorkItem] = []
 
     override init() {
         super.init()
+        engine.attach(guidePlayer)
+        engine.connect(guidePlayer, to: engine.mainMixerNode,
+                       format: AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 1))
         observeCaptureLifecycle()
     }
 
@@ -78,6 +85,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         displayTimer?.invalidate()
         referenceTimer?.invalidate()
         referenceCooldown?.cancel()
+        hapticCues.forEach { $0.cancel() }
     }
 
     /// The microphone permission is requested only after a learner starts an action.
@@ -139,6 +147,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     /// Finishes an active take before releasing the microphone.
     func stop() {
         publish {
+            self.cancelGuideHaptics()
             self.isReady = false
             self.frequency = nil
             // Invalidate the pending main-thread playback request immediately.
@@ -154,6 +163,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         sessionQueue.async { [weak self] in
             guard let self else { return }
             self.wantsToRun = false
+            self.guidePlayer.stop()
             if self.recordingRequested {
                 self.audioQueue.async { self.finishTake() }
             } else {
@@ -165,10 +175,14 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     /// The completion belongs to this take, even if its lesson screen disappears.
     /// Called on main; failed saves deliberately retain the original pending file.
     /// It also receives the room as it was heard just before the take.
-    func startRecording(maximumDuration: TimeInterval = 90,
+    func startRecording(maximumDuration: TimeInterval = 90, guide: PracticeTimingGuide? = nil,
                         onFinished: @escaping (URL, [PitchSample], RoomNoise?) -> Void) {
         sessionQueue.async { [weak self] in
-            guard let self, !self.recordingRequested else { return }
+            guard let self else { return }
+            guard !self.recordingRequested else {
+                self.publish { self.message = "The previous take is finishing. Tap Record again in a moment." }
+                return
+            }
             guard maximumDuration.isFinite, maximumDuration > 0, maximumDuration <= 90 else {
                 self.publish { self.message = "This recording length is unavailable. Choose another exercise." }
                 return
@@ -182,6 +196,8 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
                 return
             }
             do {
+                let guideBuffer = guide?.audioBuffer()
+                guard guide == nil || guideBuffer != nil else { throw CaptureError.unsupportedConfiguration }
                 let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                     .appendingPathComponent("PendingTakes", isDirectory: true)
                 try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -197,9 +213,13 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
                 guard writer.startWriting() else { throw writer.error ?? CaptureError.unsupportedConfiguration }
                 writer.startSession(atSourceTime: .zero)
                 self.recordingRequested = true
+                let guideStart = Self.hostTime + 0.2
+                let start = guide.map { guideStart + $0.countInDuration } ?? Self.hostTime
                 self.publish {
                     self.elapsed = 0
                     self.message = nil
+                    self.recordingStartTime = start
+                    if let guide { self.startGuideHaptics(guide, at: guideStart) }
                 }
                 self.audioQueue.async {
                     self.generation += 1
@@ -207,9 +227,14 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
                     self.pitchSamples.removeAll(keepingCapacity: true)
                     self.lastAnalysisTime = 0
                     self.take = Take(url: url, writer: writer, input: input, maximumDuration: maximumDuration,
+                                     startTime: start,
                                      completion: onFinished)
-                    self.recordingStartHostTime = Self.hostTime
-                    self.takeStarted()
+                    self.recordingStartHostTime = nil
+                }
+                if let guideBuffer {
+                    self.guidePlayer.stop()
+                    self.guidePlayer.scheduleBuffer(guideBuffer)
+                    self.guidePlayer.play(at: AVAudioTime(hostTime: AVAudioTime.hostTime(forSeconds: guideStart)))
                 }
             } catch {
                 self.publish { self.message = "Could not create a recording: \(error.localizedDescription)" }
@@ -220,8 +245,34 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     func stopRecording() {
         sessionQueue.async { [weak self] in
             guard let self, self.recordingRequested else { return }
+            self.guidePlayer.stop()
+            self.publish { self.cancelGuideHaptics() }
             self.audioQueue.async { self.finishTake() }
         }
+    }
+
+    /// Haptics follow the same absolute times as the rendered clicks, never a second beat clock.
+    private func startGuideHaptics(_ guide: PracticeTimingGuide, at start: TimeInterval) {
+        cancelGuideHaptics()
+        let token = UUID()
+        hapticToken = token
+        let feedback = UIImpactFeedbackGenerator(style: .soft)
+        feedback.prepare()
+        hapticCues = guide.cues.map { cue in
+            let work = DispatchWorkItem { [weak self] in
+                guard self?.hapticToken == token else { return }
+                feedback.impactOccurred(intensity: cue.accent ? 1 : 0.4)
+                feedback.prepare()
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + max(0, start + cue.time - Self.hostTime), execute: work)
+            return work
+        }
+    }
+
+    private func cancelGuideHaptics() {
+        hapticToken = nil
+        hapticCues.forEach { $0.cancel() }
+        hapticCues.removeAll()
     }
 
     /// Listen first, then hum. Playback is never analysed or saved as the learner's pitch.
@@ -429,10 +480,12 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
             throw CaptureError.unavailableMicrophone
         }
         input.removeTap(onBus: 0)
-        input.installTap(onBus: 0, bufferSize: 4_096, format: format) { [weak self] buffer, _ in
+        input.installTap(onBus: 0, bufferSize: 4_096, format: format) { [weak self] buffer, time in
             // The engine reuses its buffer once this returns, so the audio queue gets a copy.
             guard let self, let copy = Self.copy(buffer) else { return }
-            self.audioQueue.async { self.hear(copy) }
+            let start = time.isHostTimeValid ? AVAudioTime.seconds(forHostTime: time.hostTime)
+                : Self.hostTime - Double(buffer.frameLength) / format.sampleRate
+            self.audioQueue.async { self.hear(copy, at: start) }
         }
         engine.prepare()
         do {
@@ -448,6 +501,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         let audioSession = AVAudioSession.sharedInstance()
         try audioSession.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker])
         try audioSession.setPreferredSampleRate(48_000)
+        try audioSession.setAllowHapticsAndSystemSoundsDuringRecording(true)
         try audioSession.setActive(true)
     }
 
@@ -478,6 +532,8 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
     }
 
     private func finishStoppingSession() {
+        guidePlayer.stop()
+        publish { self.cancelGuideHaptics() }
         engine.inputNode.removeTap(onBus: 0)
         if engine.isRunning { engine.stop() }
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
@@ -547,7 +603,7 @@ final class CaptureController: NSObject, ObservableObject, @unchecked Sendable {
         }
     }
 
-    private static var hostTime: Double { CMClockGetTime(CMClockGetHostTimeClock()).seconds }
+    static var hostTime: Double { CMClockGetTime(CMClockGetHostTimeClock()).seconds }
 
     private func publish(_ changes: @escaping () -> Void) {
         if Thread.isMainThread { changes() } else { DispatchQueue.main.async(execute: changes) }
@@ -572,6 +628,7 @@ extension CaptureController {
         let writer: AVAssetWriter
         let input: AVAssetWriterInput
         let maximumDuration: TimeInterval
+        let startTime: TimeInterval
         let completion: (URL, [PitchSample], RoomNoise?) -> Void
         /// Frames written so far, at the microphone's own rate: the take's clock.
         var frames: Int64 = 0
@@ -579,10 +636,31 @@ extension CaptureController {
         var seconds: Double { sampleRate > 0 ? Double(frames) / sampleRate : 0 }
     }
 
-    private func hear(_ pcm: AVAudioPCMBuffer) {
-        // A take starts at the first sound after Record, so preparation is never saved.
-        let takeTime = take?.seconds
-        if take != nil { write(pcm) }
+    private func hear(_ incoming: AVAudioPCMBuffer, at bufferStart: TimeInterval) {
+        var pcm = incoming
+        if let current = take {
+            let skip = PracticeTimingGuide.trimFrameCount(bufferStart: bufferStart,
+                recordingStart: current.startTime, sampleRate: pcm.format.sampleRate,
+                frameCount: Int(pcm.frameLength))
+            if skip < Int(pcm.frameLength) {
+                if skip > 0 {
+                    guard let trimmed = Self.copy(pcm, skipping: skip) else { return }
+                    pcm = trimmed
+                }
+                if current.frames == 0 {
+                    generation += 1
+                    audioWindow.removeAll(keepingCapacity: true)
+                    lastAnalysisTime = 0
+                    recordingStartHostTime = current.startTime
+                    takeStarted(at: current.startTime)
+                }
+            }
+        }
+        // During the count-in, only the room's quietest windows are measured.
+        // Its sound is never saved or published as the learner's pitch.
+        let countingIn = take != nil && recordingStartHostTime == nil
+        let takeTime = countingIn ? nil : take?.seconds
+        if take != nil, !countingIn { write(pcm) }
         guard !analysisSuppressed, let mono = Self.monoSamples(from: pcm) else {
             if !analysisSuppressed, !reportedUnsupportedAudio {
                 reportedUnsupportedAudio = true
@@ -624,7 +702,7 @@ extension CaptureController {
                 let room = self.listener.room
                 let heard = estimate.flatMap { room?.isClear($0.rms) ?? true ? $0.frequency : nil }
                 self.publish {
-                    self.frequency = heard
+                    if !countingIn { self.frequency = heard }
                     if roomChanged { self.room = room }
                 }
             }
@@ -659,17 +737,18 @@ extension CaptureController {
     }
 
     // Called on audioQueue once the writer has begun.
-    private func takeStarted() {
+    private func takeStarted(at start: TimeInterval) {
         // Serial ordering keeps a countdown pitch publication from arriving
         // after the new take's clear and appearing as a recorded reading.
         publish {
             self.frequency = nil
             self.isRecording = true
             self.displayTimer?.invalidate()
-            self.displayStartTime = CACurrentMediaTime()
+            self.displayStartTime = start
+            self.elapsed = max(0, Self.hostTime - start)
             let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
                 guard let self, let start = self.displayStartTime else { return }
-                self.elapsed = min(90, CACurrentMediaTime() - start)
+                self.elapsed = min(90, max(0, CaptureController.hostTime - start))
             }
             self.displayTimer = timer
             RunLoop.main.add(timer, forMode: .common)
@@ -680,6 +759,7 @@ extension CaptureController {
     /// before it, to the take's owner. A take with no sound keeps its partial file.
     private func finishTake() {
         guard let finished = take else { return }
+        let hadStarted = recordingStartHostTime != nil
         take = nil
         generation += 1
         recordingStartHostTime = nil
@@ -687,6 +767,19 @@ extension CaptureController {
         pitchSamples.removeAll(keepingCapacity: true)
         // The room is not measured during a take, so this is the room just before it.
         let room = listener.room
+        sessionQueue.async { self.guidePlayer.stop() }
+        publish { self.cancelGuideHaptics() }
+        // Cancelling an armed count-in is not a failed or zero-star take.
+        if finished.frames == 0, !hadStarted {
+            finished.writer.cancelWriting()
+            try? FileManager.default.removeItem(at: finished.url)
+            publish { self.recordingStartTime = nil }
+            sessionQueue.async {
+                self.recordingRequested = false
+                if !self.wantsToRun { self.stopSession() }
+            }
+            return
+        }
         finished.input.markAsFinished()
         finished.writer.finishWriting { [weak self] in
             guard let self else { return }
@@ -697,6 +790,7 @@ extension CaptureController {
                 self.displayTimer = nil
                 self.displayStartTime = nil
                 self.isRecording = false
+                self.recordingStartTime = nil
                 if saved {
                     finished.completion(finished.url, observations, room)
                 } else {
@@ -710,14 +804,17 @@ extension CaptureController {
         }
     }
 
-    private static func copy(_ buffer: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {
-        guard let copy = AVAudioPCMBuffer(pcmFormat: buffer.format, frameCapacity: buffer.frameLength) else { return nil }
-        copy.frameLength = buffer.frameLength
+    private static func copy(_ buffer: AVAudioPCMBuffer, skipping frames: Int = 0) -> AVAudioPCMBuffer? {
+        let length = Int(buffer.frameLength) - frames
+        guard frames >= 0, length > 0,
+              let copy = AVAudioPCMBuffer(pcmFormat: buffer.format, frameCapacity: AVAudioFrameCount(length)) else { return nil }
+        copy.frameLength = AVAudioFrameCount(length)
+        let offset = frames * Int(buffer.format.streamDescription.pointee.mBytesPerFrame)
         let source = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: buffer.audioBufferList))
         let destination = UnsafeMutableAudioBufferListPointer(copy.mutableAudioBufferList)
         for (from, to) in zip(source, destination) {
             guard let fromData = from.mData, let toData = to.mData else { return nil }
-            memcpy(toData, fromData, Int(min(from.mDataByteSize, to.mDataByteSize)))
+            memcpy(toData, fromData.advanced(by: offset), Int(to.mDataByteSize))
         }
         return copy
     }
