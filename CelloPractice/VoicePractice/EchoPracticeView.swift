@@ -33,7 +33,7 @@ struct EchoPracticeView: View {
         VoicePracticeView(store: store, capture: capture, mode: .echo(context, level: level), parts: parts,
                           hearOnArrival: $hearOnArrival) { controls in
             VStack(alignment: .leading, spacing: 16) {
-                LessonHeader(subtitle: "Tap the pattern to hear it, then \(method.wrappedValue.verb) it back. Follow the tuning bar as you record.",
+                LessonHeader(subtitle: "Hear the pattern, then \(method.wrappedValue.verb) it back. Quiet clicks keep time; a stronger click starts each note.",
                            collapsesSubtitle: store.echoProgress(for: level, register: register).successfulAttempts > 0)
                 // The pattern's notes stay secret, so its chip is named by its length.
                 HStack(spacing: 8) {

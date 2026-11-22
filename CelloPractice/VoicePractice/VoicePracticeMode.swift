@@ -77,6 +77,12 @@ enum VoicePracticeMode: Equatable {
     /// Seconds per count-in beat: the melody's own beat, or one second.
     var beatInterval: TimeInterval { melodyContext.map { 60 / Double($0.tempoBPM) } ?? 1 }
 
+    var timingGuide: PracticeTimingGuide {
+        PracticeTimingGuide(beatInterval: beatInterval, duration: isTimed ? duration : 90,
+            noteOnsets: melodyContext?.expectedEvents.filter { $0.midiNote != nil }
+                .map { $0.onsetBeat * beatInterval } ?? [0])
+    }
+
     /// The notes to hum as bars on the lane; empty for a take with no set length.
     /// Echo keeps its bars level and unnamed, so the count-in gives nothing away.
     var laneMarks: [LaneMark] {
@@ -190,12 +196,12 @@ enum VoicePracticeMode: Equatable {
             : "Quick notes: play each one separately, and let it sound until the next one starts."
     }
 
-    private var echoCountdownMessage: String { "Start \(method == .cello ? "playing" : "humming") when the countdown ends." }
+    private var echoCountdownMessage: String { "Start \(method == .cello ? "playing" : "humming") on the strong click." }
     var preparingMessage: String {
         isEcho ? echoCountdownMessage : "Preparing microphone…"
     }
     var countInMessage: String {
-        isEcho ? echoCountdownMessage : "Get ready to \(verb)"
+        isEcho ? echoCountdownMessage : "Four clicks, then \(verb) on the strong click"
     }
     var startingMessage: String { isEcho ? echoCountdownMessage : "Starting recording…" }
     var reviewingMessage: String {

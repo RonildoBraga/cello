@@ -118,7 +118,7 @@ struct VoicePracticeView<Header: View>: View {
                 } else if mode.requiresHearFirst && phase == .previewing {
                     referenceWasHeard = false
                     cancelFlow(stopCapture: true)
-                } else if phase == .counting {
+                } else if phase == .counting || phase == .startingRecording {
                     // An overlay must not start a recording behind itself. A
                     // permission dialog, while preparing, keeps the user's intent.
                     cancelFlow(stopCapture: false)
@@ -147,7 +147,9 @@ struct VoicePracticeView<Header: View>: View {
                 guard isVisible else { return }
                 if recording {
                     phase = .recording
-                    laneZero = ProcessInfo.processInfo.systemUptime - capture.elapsed
+                    countInTask?.cancel()
+                    countInSeconds = 0
+                    laneZero = capture.recordingStartTime
                 }
                 else if phase == .recording || phase == .startingRecording {
                     let needsRest = timedRecording && isVisible
@@ -156,6 +158,19 @@ struct VoicePracticeView<Header: View>: View {
                     timedRecording = false
                     stopRequested = false
                     if needsRest { beginRest() }
+                }
+            }
+            .onChange(of: capture.recordingStartTime) { _, start in
+                guard isVisible, phase == .startingRecording, let start else { return }
+                phase = .counting
+                laneZero = start
+                let token = flowToken
+                countInTask = Task { @MainActor in
+                    if await countDown(to: $countInSeconds, beats: Self.countInBeats,
+                                       beatInterval: mode.beatInterval, until: start, token: token),
+                       phase == .counting {
+                        phase = .startingRecording
+                    }
                 }
             }
             .onChange(of: capture.elapsed) { _, elapsed in
@@ -298,7 +313,7 @@ struct VoicePracticeView<Header: View>: View {
                 // The notes travel to the line through the count-in and the take. Between
                 // the count-in ending and the recorder starting, the first note waits at the line.
                 TimelineView(.animation) { _ in
-                    let elapsed = ProcessInfo.processInfo.systemUptime - laneZero
+                    let elapsed = CaptureController.hostTime - laneZero
                     BeatLane(elapsed: capture.isRecording ? elapsed : min(0, elapsed), beatInterval: mode.beatInterval,
                              duration: mode.duration, marks: laneMarks)
                 }.frame(height: 66)
@@ -445,39 +460,30 @@ struct VoicePracticeView<Header: View>: View {
     private func beginCountIn() {
         guard capture.isReady else { cancelFlow(stopCapture: false); return }
         guard scenePhase == .active else { cancelFlow(stopCapture: false); return }
-        phase = .counting
-        let token = flowToken
-        countInTask?.cancel()
-        countInTask = Task { @MainActor in
-            laneZero = ProcessInfo.processInfo.systemUptime + Double(Self.countInBeats) * mode.beatInterval
-            guard await countDown(to: $countInSeconds, beats: Self.countInBeats, beatInterval: mode.beatInterval,
-                                  token: token), phase == .counting else { return }
-            guard scenePhase == .active, capture.isReady else {
-                cancelFlow(stopCapture: false)
-                return
-            }
-            timedRecording = mode.isTimed
-            stopRequested = false
-            phase = .startingRecording
-            startRecording()
-        }
+        // Prepare the file before the count-in. Capture supplies the one audio-clock
+        // deadline used by the clicks, lane and first saved microphone frame.
+        timedRecording = mode.isTimed
+        stopRequested = false
+        phase = .startingRecording
+        startRecording()
     }
 
     /// Like tapping, a take counts in four beats at its own tempo: 1 2 3 4.
-    private static var countInBeats: Int { 4 }
+    private static var countInBeats: Int { PracticeTimingGuide.countInBeats }
 
     /// Counts beats down on the monotonic clock. False when cancelled or superseded.
     private func countDown(to beats: Binding<Int>, beats total: Int = 3, beatInterval: TimeInterval = 1,
+                           until end: TimeInterval? = nil,
                            token: UUID) async -> Bool {
         beats.wrappedValue = total
-        let deadline = ProcessInfo.processInfo.systemUptime + Double(total) * beatInterval
+        let deadline = end ?? CaptureController.hostTime + Double(total) * beatInterval
         while !Task.isCancelled && token == flowToken {
-            let remaining = deadline - ProcessInfo.processInfo.systemUptime
+            let remaining = deadline - CaptureController.hostTime
             if remaining <= 0 {
                 beats.wrappedValue = 0
                 return true
             }
-            beats.wrappedValue = Int(ceil(remaining / beatInterval))
+            beats.wrappedValue = min(total, Int(ceil(remaining / beatInterval)))
             do { try await Task.sleep(nanoseconds: 50_000_000) }
             catch { return false }
         }
@@ -488,7 +494,7 @@ struct VoicePracticeView<Header: View>: View {
         // Capture only the frozen lesson, store and individual state bindings.
         // Capturing the whole view would also retain the capture controller.
         // The weak controller avoids a cycle while a late finish still saves.
-        capture.startRecording(maximumDuration: timedRecording ? mode.duration : 90) {
+        capture.startRecording(maximumDuration: timedRecording ? mode.duration : 90, guide: mode.timingGuide) {
             [weak capture = capture, store, exercise = mode.exercise, targetFrequency = mode.targetFrequency,
              melodyContext = mode.melodyContext, saving = $saving, saved = $saved,
              latestSession = $latestSession, latestFeedback = $latestFeedback, isVisible = $isVisible] url, samples, room in
@@ -515,6 +521,7 @@ struct VoicePracticeView<Header: View>: View {
     }
 
     private func cancelFlow(stopCapture: Bool) {
+        let hadCountIn = phase == .counting || phase == .startingRecording
         flowToken = UUID()
         pendingRecord = false
         phase = .idle
@@ -528,5 +535,6 @@ struct VoicePracticeView<Header: View>: View {
         timedRecording = false
         stopRequested = false
         if stopCapture { capture.stop() }
+        else if hadCountIn { capture.stopRecording() }
     }
 }
