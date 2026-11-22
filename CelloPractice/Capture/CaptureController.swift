@@ -642,21 +642,25 @@ extension CaptureController {
             let skip = PracticeTimingGuide.trimFrameCount(bufferStart: bufferStart,
                 recordingStart: current.startTime, sampleRate: pcm.format.sampleRate,
                 frameCount: Int(pcm.frameLength))
-            // Count-in clicks are neither saved nor heard as the learner or room noise.
-            guard skip < Int(pcm.frameLength) else { return }
-            if skip > 0 {
-                guard let trimmed = Self.copy(pcm, skipping: skip) else { return }
-                pcm = trimmed
-            }
-            if current.frames == 0 {
-                audioWindow.removeAll(keepingCapacity: true)
-                lastAnalysisTime = 0
-                recordingStartHostTime = current.startTime
-                takeStarted(at: current.startTime)
+            if skip < Int(pcm.frameLength) {
+                if skip > 0 {
+                    guard let trimmed = Self.copy(pcm, skipping: skip) else { return }
+                    pcm = trimmed
+                }
+                if current.frames == 0 {
+                    generation += 1
+                    audioWindow.removeAll(keepingCapacity: true)
+                    lastAnalysisTime = 0
+                    recordingStartHostTime = current.startTime
+                    takeStarted(at: current.startTime)
+                }
             }
         }
-        let takeTime = take?.seconds
-        if take != nil { write(pcm) }
+        // During the count-in, only the room's quietest windows are measured.
+        // Its sound is never saved or published as the learner's pitch.
+        let countingIn = take != nil && recordingStartHostTime == nil
+        let takeTime = countingIn ? nil : take?.seconds
+        if take != nil, !countingIn { write(pcm) }
         guard !analysisSuppressed, let mono = Self.monoSamples(from: pcm) else {
             if !analysisSuppressed, !reportedUnsupportedAudio {
                 reportedUnsupportedAudio = true
@@ -698,7 +702,7 @@ extension CaptureController {
                 let room = self.listener.room
                 let heard = estimate.flatMap { room?.isClear($0.rms) ?? true ? $0.frequency : nil }
                 self.publish {
-                    self.frequency = heard
+                    if !countingIn { self.frequency = heard }
                     if roomChanged { self.room = room }
                 }
             }

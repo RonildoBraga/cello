@@ -1,8 +1,8 @@
 import Foundation
 
 /// The room's own sound, without the learner: the quietest tenth of what the microphone
-/// heard in the ten seconds before a take. The count of 1–2–3–4 is silent and no hum or
-/// bowed note lasts ten seconds without a pause, so the learner is not in it. Steady noise
+/// heard in the ten seconds before a take. Quiet windows between count-in clicks
+/// keep brief cues and intermittent playing out of the baseline. Steady noise
 /// (a fan, traffic) is measured well; talk and music that come and go read lower than they sound.
 struct RoomNoise: Equatable {
     /// The level the pitch detector and the raters already count as sound. A room this
